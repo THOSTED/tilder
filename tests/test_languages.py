@@ -121,3 +121,18 @@ class ConfigErrors(unittest.TestCase):
         code, err = run(self.site)
         self.assertEqual(code, 1)
         self.assertEqual(err.count("error: "), 2)
+
+    def test_undeclared_suffix_on_a_page(self):
+        (self.site / "content" / "about.de.md").write_text("---\nman: T(1)\ntitle: x\ndescription: d\ntagline: t\nnav: -\n---\n\n## Name\n\nx\n")
+        (self.site / "content" / "blog" / "2026-03-01-x.es.md").write_text("---\ntitle: x\ndescription: d\n---\n\n## Name\n\nx\n")
+        code, err = run(self.site)
+        self.assertEqual(code, 1)
+        self.assertIn('error: content/about.de.md: "de" is not a declared language. Declared: en, fr', err)
+        self.assertIn('error: content/blog/2026-03-01-x.es.md: "es" is not a declared language', err)
+        self.assertEqual(err.count("error: "), 2)
+
+    def test_a_dotted_name_that_is_not_a_language_is_a_page(self):
+        (self.site / "content" / "v1.2.md").write_text("---\nman: T(1)\ntitle: v1.2\ndescription: A page whose name has a dot but no language suffix in it.\ntagline: t\nnav: -\n---\n\n## Name\n\nx\n")
+        code, err = run(self.site)
+        self.assertEqual(code, 0, err)
+        self.assertTrue((self.site / "out" / "v1.2.html").is_file())

@@ -96,6 +96,13 @@ def setup():
         if said and said != lang:
             errs.append(error(path, f'[site] lang is "{said}", not "{lang}"',
                               "A language's file sets its own lang, or leaves it out"))
+    for f in sorted(CONTENT.rglob("*.md")):
+        if any(part.startswith("_") for part in f.relative_to(CONTENT).parts):
+            continue
+        _, lang = split(f.stem)
+        if lang and lang not in langs:
+            errs.append(error(f, f'"{lang}" is not a declared language',
+                              f"Declared: {listed} ([site] languages in {CONFIG.relative_to(CONTENT.parent)})"))
     if errs:
         fail(errs)
     STATE["default"], STATE["languages"] = dflt, langs
