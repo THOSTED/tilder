@@ -10,11 +10,14 @@ step.
 ## 1. Goal
 
 A site may be served in several languages: the default language at the
-root, every other declared language under its own prefix (`/en/`). A page
-is translated by putting a file with a language suffix next to it
-(`about.en.md` next to `about.md`); a page that is not translated is still
-served in every language, with the content of the default language. Every
-word of the interface comes from a configuration file per language.
+root, every other declared language under its own prefix (`/en/`). **Every
+declared language is a complete tree**: four declared languages give four
+whole sites, with the same pages. A page is translated by putting a file
+with a language suffix next to it (`about.en.md` next to `about.md`); a
+page that is not translated in a language is still served there, with the
+content of the default language, or failing that of any language that has
+it. Every word of the interface comes from a configuration file per
+language.
 
 A site that declares one language, or none, changes by not one byte: the
 reference site is the regression test, as before.
@@ -62,12 +65,15 @@ To render a page in language L, the build takes, in order:
 
 1. `<name>.L.md`;
 2. `<name>.<default>.md`;
-3. `<name>.md`.
+3. `<name>.md`;
+4. `<name>.<other>.md`, for the other declared languages in the order of
+   `site.languages`.
 
 The first that exists wins; its language is the page's **content
 language** (the file's suffix, or the default language for a file without
-one). A page that exists in no form for L does not exist in L: a
-`legal.en.md` alone gives `/en/legal` and no `/legal`.
+one). A page therefore exists in every declared language as soon as it
+exists in any form: a `legal.en.md` alone gives `/legal`, `/en/legal` and
+`/de/legal`, the first and last with the English content.
 
 ### Configuration layers
 
@@ -132,9 +138,9 @@ resolved in the language, the current one marked as today.
 links to the language's landing page and reads as its code; the default
 language shows no segment. Screen readers hear "site, en, blog, hello".
 
-**Language switcher.** A new layout placeholder, `{{ languages }}`: the
-declared languages in which **this page** exists, each a link to its
-sibling with `hreflang` and `lang` attributes, the current one marked
+**Language switcher.** A new layout placeholder, `{{ languages }}`: every
+declared language, each a link to this page's sibling with `hreflang` and
+`lang` attributes, the current one marked
 `aria-current="page"`, named from `[languages]` or by its code:
 
 ```html
@@ -158,15 +164,15 @@ monolingual site.
 ## 5. `<head>`, structured data, sitemap, feeds
 
 **Resolution table.** Before any rendering, the build computes, for every
-page path (without prefix), the languages in which it exists, the source
-file chosen for each and its content language. Everything below reads it.
+page path (without prefix) and every declared language, the source file
+chosen and its content language. Everything below reads it.
 
 **Per page:**
 - `<link rel="canonical">`: the page's own URL, prefix included. A fallback
   page is a page of its own: no cross-language canonical.
-- `<link rel="alternate" hreflang="L" href="...">` for every language the
-  page exists in, itself included, plus `hreflang="x-default"` to the
-  default language's version. Absent in a monolingual site.
+- `<link rel="alternate" hreflang="L" href="...">` for every declared
+  language, itself included, plus `hreflang="x-default"` to the default
+  language's version. Absent in a monolingual site.
 - `<html lang>` stays `site.lang` of the current language: the language of
   the interface. A new placeholder `{{ content_lang }}` gives the content
   language, for `<main id="contenu" lang="{{ content_lang }}">`; it equals
@@ -208,7 +214,8 @@ content, different languages, intended).
 declared languages and the default (`declared()`, `default()`), the suffix
 split (`split("about.en.md") -> ("about", "en")`), the resolution of one
 page for one language (`resolve(folder, name, lang)`), the resolution
-table (`table()`), the siblings of a page (`siblings(path)`) and the
+table (`table()`), the siblings of a page (`siblings(path)`, one per
+declared language) and the
 prefix of a language (`prefix(lang)`). In a monolingual site every
 function answers "one language, no prefix, no siblings".
 
