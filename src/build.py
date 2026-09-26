@@ -24,6 +24,7 @@ entry point):
     ansify.py        the text mirror -> its coloured twin
     highlight.py     syntax highlighting of code blocks
     contenttypes.py  the types (types/, theme/types/), collections, items, lists
+    sequence.py      a collection's order: sidebar, previous/next, the text line
     dates.py         dates in words, from [dates]
     seo.py           meta tags, structured data, sitemaps, robots.txt, manifest
     feeds.py         RSS and iCalendar

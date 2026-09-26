@@ -11,6 +11,9 @@ skip = "aller au contenu"
 nav = "Navigation principale"
 languages = "Langues"
 to_top = "↑ haut de page"
+collection_nav = "Dans cette section"
+prev = "précédent"
+next = "suivant"
 
 [[nav]]
 label = "accueil"

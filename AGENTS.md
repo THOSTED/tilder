@@ -74,6 +74,7 @@ src/
   ansify.py       the marked text -> its coloured twin
   highlight.py    syntax highlighting of code blocks
   contenttypes.py the types (types/, theme/types/), collections, items, lists
+  sequence.py     a collection's order: the sidebar, previous/next, their text line
   report.py       errors and warnings, one shape
   dates.py        dates in words, from [dates]
   seo.py          titles, meta, JSON-LD, sitemaps, robots.txt, SEO checks
