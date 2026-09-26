@@ -9,7 +9,8 @@ NAME = "talk"
 DATED = True
 ARTICLE = True
 DEFAULTS = {**event.DEFAULTS, "man": "SITE-TALKS(7)", "nav": "talks",
-            "speaker_label": "speaker", "feed_title": "talks", "feed_description": "Talks."}
+            "speaker_label": "speaker", "feed_title": "talks", "feed_description": "Talks.",
+            "none_upcoming": "No upcoming talk.", "none_past": "No past talk."}
 MARKERS = {"talks": event.MARKERS["upcoming"]}   # {talks}: upcoming talks, nearest first
 
 defaults = event.defaults

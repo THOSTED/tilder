@@ -37,3 +37,10 @@ class ThemeType(unittest.TestCase):
         items = {n: contenttypes.load_items(n, c) for n, c in colls.items()}
         self.assertTrue(contenttypes.summary(colls, items).startswith(
             "types: event, member, page, post; from theme: talk\n"))
+
+    def test_empty_list_text_is_the_talks_own(self):
+        load_config()
+        talk = contenttypes.load()["talk"]
+        chosen = talk.MARKERS["talks"]([], {**talk.DEFAULTS})
+        self.assertEqual(chosen["items"], [])
+        self.assertEqual(chosen["empty"], "No upcoming talk.")
