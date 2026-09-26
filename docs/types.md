@@ -25,7 +25,9 @@ An item is `<slug>.md` or `<slug>/index.md` in the folder (a folder, to keep
 images or files next to the page). For a `DATED` type the slug starts with
 `YYYY-MM-DD-`. Names starting with `_` are templates and skipped. A `.md`
 outside every collection is a `page`. The keys a collection may set are
-the type's `DEFAULTS`, plus `dir` (default: the collection's name).
+the type's `DEFAULTS`, plus `dir` (default: the collection's name) and
+`nav_label` (the sidebar's accessible name, see "Order, groups and
+navigation").
 
 ### The built-in types' settings
 
