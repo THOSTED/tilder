@@ -1,8 +1,8 @@
 """Icons and the share preview, made at every build - nothing committed.
 
 From the project's assets/logo.svg: favicon.ico (16, 32, 48), the PNG icons
-(180, 192, 512). From builder/theme/share.svg (or the project's own
-assets/share.svg), filled from site.toml: share.png, 1200x630.
+(180, 192, 512). From the theme's share.svg, if it has one, filled from
+site.toml: share.png, 1200x630.
 """
 
 import base64

@@ -54,7 +54,7 @@ description_min = 50
 description_max = 160
 
 # Link previews and icons. The PNG and ICO files are made from assets/logo.svg
-# at every build; share.png from builder/theme/share.svg, filled from here.
+# at every build; share.png from the theme's share.svg, filled from here.
 [share]
 logo_svg = "logo.svg"               # the source of every icon, in assets/
 image = "share.png"                 # the default preview, 1200x630, generated

@@ -56,30 +56,34 @@ content format; `docs/seo.md` is what the build does for search engines.
 ## 3. Layout
 
 ```
-build.py        the driver and CLI: once, --watch, --out DIR, --root DIR
-config.py       paths, site.toml over defaults.toml, what a build shares
-markdown.py     Markdown -> a tree of nodes
-inline.py       inline markup, for both outputs (and the link rules)
-page.py         the tree -> HTML, inside the site's theme/layout.html
-text.py         the tree -> the marked text mirror (75 columns)
-ansify.py       the marked text -> its coloured twin
-highlight.py    syntax highlighting of code blocks
-members.py      members: the {members} grid, a card on each page, profiles
-dated.py        blog posts and events: lists, cards, dates
-seo.py          titles, meta, JSON-LD, sitemaps, robots.txt, SEO checks
-feeds.py        RSS and iCalendar
-icons.py        icons and share.png from the site's assets/logo.svg
-images.py       image sizes, rasterising, .ico packing
-paths.py, fold.py, watch.py
+build.py        the entry point: `python3 builder/build.py`, hands over to src/
 defaults.toml   every key of site.toml, with neutral defaults
-docs/           markdown.md (the format), theme.md (the theme contract), seo.md
+src/
+  build.py        the driver and CLI: once, --watch, --out DIR, --root DIR
+  config.py       paths, site.toml over defaults.toml, what a build shares
+  markdown.py     Markdown -> a tree of nodes
+  inline.py       inline markup, for both outputs (and the link rules)
+  page.py         the tree -> HTML, inside the site's theme/layout.html
+  text.py         the tree -> the marked text mirror (75 columns)
+  ansify.py       the marked text -> its coloured twin
+  highlight.py    syntax highlighting of code blocks
+  members.py      members: the {members} grid, a card on each page, profiles
+  dated.py        blog posts and events: lists, cards, dates
+  seo.py          titles, meta, JSON-LD, sitemaps, robots.txt, SEO checks
+  feeds.py        RSS and iCalendar
+  icons.py        icons and share.png from the site's assets/logo.svg
+  images.py       image sizes, rasterising, .ico packing
+  paths.py, fold.py, watch.py
+docs/           markdown.md (the format), theme.md (the theme contract),
+                seo.md, screenshots/
 starter/        a minimal site to copy: content/, assets/, theme/ (a minimal theme)
-Caddyfile.example  the server contract, for Caddy
+examples/       Caddyfile, compose.yaml: serving a site
 Dockerfile      Python + rsvg-convert + woff2_decompress
 ```
 
-One concern per module; the map is repeated at the top of `build.py`. A
-module name must not shadow the standard library (`html`, `site`,
+The root holds what a visitor looks for; code goes in `src/`. One concern
+per module; the map is repeated at the top of `src/build.py`. A module
+name must not shadow the standard library (`html`, `site`,
 `collections`...).
 
 ---
@@ -133,7 +137,7 @@ file: `members.js` (search and filter on a `{members}` page), `code.js`
   creates its own controls.
 - No network, no storage, no cookie. No text of its own: wording arrives
   from `site.toml` through `data-*` attributes.
-- The CSP (`Caddyfile.example`) grants `script-src 'self'` and nothing
+- The CSP (`examples/Caddyfile`) grants `script-src 'self'` and nothing
   more.
 - The builder writes the markup they rely on (`data-*` attributes, class
   names) as documented in `docs/theme.md`. JSON-LD (`<script type="application/ld+json">`) is inert data, the

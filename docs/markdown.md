@@ -340,7 +340,7 @@ mirror:
 ### Code block
 
 Fenced with three backticks. A language name right after the fence turns on
-syntax highlighting, computed at build time (`builder/highlight.py`, no
+syntax highlighting, computed at build time (`src/highlight.py`, no
 JavaScript), and shows the language in the block's corner.
 
 If the theme ships `code.js`, every code block gets a **copy** button
@@ -661,7 +661,7 @@ On purpose, because every construct costs two renderings (HTML and text):
 - scripts in content: the site's two scripts are attached by the build
   (`members.js` by `{members}`, `code.js` by a code block).
 
-Adding a construct means teaching it to **both** outputs in `builder/build.py`
+Adding a construct means teaching it to **both** outputs in `src/`
 and documenting it here.
 
 ---

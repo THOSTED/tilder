@@ -1,0 +1,51 @@
+# Serve a man-page site with Docker. Copy next to your content/, theme/ and
+# assets/, with builder/ as a folder or a submodule, and examples/Caddyfile
+# as ./Caddyfile.
+#
+#   docker compose up -d
+#   http://site.localhost:8080        the site
+#   http://man.site.localhost:8080    the plain-text mirror
+#
+# `build` renders the site into the `site` volume at start-up, then watches
+# the sources and rebuilds on every change and at midnight. `web` starts
+# after the first render and serves the volume.
+
+services:
+  build:
+    build: ./builder
+    working_dir: /repo
+    command: ["python3", "-B", "builder/build.py", "--out", "/site", "--watch"]
+    volumes:
+      - ./content:/repo/content:ro
+      - ./theme:/repo/theme:ro
+      - ./assets:/repo/assets:ro
+      - ./builder:/repo/builder:ro
+      - site:/site
+    healthcheck:
+      test: ["CMD", "test", "-f", "/site/index.html"]
+      interval: 30s
+      start_period: 30s
+      start_interval: 1s
+
+  web:
+    image: caddy:2-alpine
+    depends_on:
+      build:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+      - "8081:81"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - site:/srv:ro
+    environment:
+      # In production: SITE_HOST=example.org, WWW_HOST=www.example.org,
+      # MAN_HOST=man.example.org, SITE_ORIGIN=https://example.org, AUTO_HTTPS=on
+      SITE_HOST: ${SITE_HOST:-http://site.localhost}
+      WWW_HOST: ${WWW_HOST:-http://www.site.localhost}
+      MAN_HOST: ${MAN_HOST:-http://man.site.localhost}
+      SITE_ORIGIN: ${SITE_ORIGIN:-http://site.localhost:8080}
+      AUTO_HTTPS: ${AUTO_HTTPS:-off}
+
+volumes:
+  site:

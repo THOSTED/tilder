@@ -17,7 +17,7 @@ import pathlib
 import re
 import tomllib
 
-BUILDER = pathlib.Path(__file__).resolve().parent
+BUILDER = pathlib.Path(__file__).resolve().parent.parent   # the generator's root
 DEFAULTS = BUILDER / "defaults.toml"
 
 

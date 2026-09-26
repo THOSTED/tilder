@@ -56,7 +56,7 @@ def html_list(b, res, ind):
 
 
 def icon(name):
-    """An inline SVG logo from builder/theme/icons/<name>.svg, drawn in the
+    """An inline SVG logo from the theme's icons/<name>.svg, drawn in the
     text colour (currentColor), hidden from screen readers. None if the
     theme has no such icon."""
     path = theme_file(f"icons/{name}.svg")

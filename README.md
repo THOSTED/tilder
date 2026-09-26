@@ -9,6 +9,12 @@ It knows nothing of any particular site: every name, word and value comes
 from the project's `content/site.toml`. Copy this `builder/` folder into
 your project, or keep it as a git submodule.
 
+![One Markdown file, two outputs: the page in a browser, and the same page in a terminal, through curl](docs/screenshots/hero.png)
+
+*One Markdown file, `starter/content/blog/2026-01-01-hello.md`, in the
+starter's minimal theme: the page, and what `curl` gets - 75 columns,
+coloured, code framed, tables aligned.*
+
 ---
 
 ## What it gives you
@@ -72,7 +78,7 @@ With Docker, `builder/Dockerfile` is Python plus `rsvg-convert` and
 `woff2_decompress`: the share image then uses the theme's own fonts. Without them, the build falls back to ImageMagick, or skips the
 images with a warning.
 
-To serve the result, any static server works. `Caddyfile.example` gives
+To serve the result, any static server works. `examples/Caddyfile` gives
 the whole contract, for Caddy: clean URLs, the text mirror served to `curl`
 directly, a plain-text host, the CSP (same-origin scripts only), caching
 and compression. Copy it next to your compose file and set the hosts
@@ -88,6 +94,9 @@ image, member categories. The builder holds no user-facing text.
 
 ## Themes
 
+![The starter theme, in the light and dark schemes](docs/screenshots/themes.png)
+
+
 The builder ships no theme: it writes semantic HTML with stable class
 names, and the site's `theme/` folder decides how it looks.
 `docs/theme.md` is the contract - the files a theme may provide, the
@@ -99,12 +108,15 @@ files; without them the build goes on and simply leaves them out.
 
 ## The code
 
-One concern per module; the map is at the top of `build.py`. Everything is
+The code is in `src/`, one concern per module; the map is at the top of
+`src/build.py`. Everything is
 the standard library. `docs/markdown.md` is the format; keep it in step
 with `markdown.py`, `page.py` and `text.py`, since every construct is
 rendered twice.
 
 ## Why 75 columns
+
+![The text mirror in a terminal: 75 columns, the code framed, the colours following the markup](docs/screenshots/terminal.png)
 
 The text mirror targets an 80-column terminal, the default since the VT100
 and still what `man` assumes. The 5 spare columns absorb a scrollbar, a
