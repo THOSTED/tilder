@@ -1,6 +1,7 @@
 # Serve a man-page site with Docker. Copy next to your content/, theme/ and
-# assets/, with builder/ as a folder or a submodule, and examples/Caddyfile
-# as ./Caddyfile.
+# assets/, with examples/Caddyfile as ./Caddyfile. The generator comes from
+# the published image; a builder/ folder or submodule is only needed to work
+# on the generator itself (see the comment in the build service).
 #
 #   docker compose up -d
 #   http://site.localhost:8080        the site
