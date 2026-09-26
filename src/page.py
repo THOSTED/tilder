@@ -220,16 +220,17 @@ def has_code(nodes):
     return any(n["k"] == "code" or has_code(n.get("blocks", [])) for n in nodes)
 
 
-def render_html(meta, sections, path, preamble=(), colls=None):
+def render_html(item, sections, preamble=(), colls=None):
+    meta, path, module = item["meta"], item["path"], item["type"]
     d = os.path.dirname(path)
     res = lambda u: relative(d, u)
 
     nav = []
-    for item in CFG["nav"]:
-        current = ' aria-current="page"' if meta.get("nav", "") == item["href"] else ""
-        href = item["href"]
+    for n in CFG["nav"]:
+        current = ' aria-current="page"' if meta.get("nav", "") == n["href"] else ""
+        href = n["href"]
         nav.append(f'\t<a href="{res(href)}"{current}{inline.link_attrs(href)}>'
-                   f'{inline.arrow(H.escape(item["label"]), inline.opens_new_tab(href))}</a>')
+                   f'{inline.arrow(H.escape(n["label"]), inline.opens_new_tab(href))}</a>')
     navhtml = '<span class="sep" aria-hidden="true">·</span>\n'.join(nav)
 
     feeds = ""
@@ -306,12 +307,12 @@ def render_html(meta, sections, path, preamble=(), colls=None):
         "root": res(""),
         "canonical": apex() + clean_url(path),
         "feeds": feeds,
-        "head": head_tags(meta, path),
+        "head": head_tags(item),
         "brand": brand,
         "nav": navhtml,
         # Posts and events are articles: Reader mode and read-aloud tools
         # look for one.
         "body": ("<article>\n" + "\n".join(body) + "</article>\n"
-                 if meta.get("_kind") in ("post", "event") else "\n".join(body)),
+                 if module.ARTICLE else "\n".join(body)),
         "script": script,
     }, meta)

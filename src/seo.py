@@ -16,9 +16,6 @@ from config import ASSETS, CFG, CONTENT, apex, theme_file
 from images import image_size
 from paths import clean_url
 
-# The kinds of page the build knows: set as meta["_kind"] by build.py.
-POST, EVENT, MEMBER, PAGE = "post", "event", "member", "page"
-
 
 # --- titles ----------------------------------------------------------------
 
@@ -72,19 +69,20 @@ def share_image(meta):
 
 # --- <head> ------------------------------------------------------------------
 
-def head_tags(meta, path):
+def head_tags(item):
     """Everything search engines and sharing read in <head>, after the
-    canonical link: robots, author, Open Graph, Twitter Card, JSON-LD."""
-    kind = meta.get("_kind", PAGE)
+    canonical link: robots, the type's name tags, Open Graph, the type's
+    property tags, Twitter Card, JSON-LD."""
+    meta, module, conf, path = item["meta"], item["type"], item["conf"], item["path"]
     image, width, height = share_image(meta)
     large = bool(width and height and width >= 600 and width > height)
+    extra = module.meta_tags(item, conf)
     out = [f'<meta name="robots" content="{H.escape(meta.get("robots", CFG["seo"]["robots"]))}">']
-    if kind == POST and meta.get("author"):
-        out.append(f'<meta name="author" content="{H.escape(meta["author"])}">')
+    out += [f'<meta name="{k}" content="{H.escape(v)}">' for a, k, v in extra if a == "name"]
     props = [
         ("og:site_name", CFG["site"]["name"]),
         ("og:locale", CFG["site"]["locale"]),
-        ("og:type", "article" if kind == POST else "website"),
+        ("og:type", module.OG_TYPE),
         ("og:title", page_heading(meta)),
         ("og:description", meta["description"]),
         ("og:url", apex() + clean_url(path)),
@@ -93,10 +91,7 @@ def head_tags(meta, path):
     ]
     if width and height:
         props += [("og:image:width", str(width)), ("og:image:height", str(height))]
-    if kind == POST:
-        props.append(("article:published_time", meta["_date"]))
-        if meta.get("tag"):
-            props.append(("article:tag", meta["tag"]))
+    props += [(k, v) for a, k, v in extra if a == "property"]
     out += [f'<meta property="{k}" content="{H.escape(v)}">' for k, v in props]
     out += [f'<meta name="{k}" content="{H.escape(v)}">' for k, v in [
         ("twitter:card", "summary_large_image" if large else "summary"),
@@ -104,63 +99,34 @@ def head_tags(meta, path):
         ("twitter:description", meta["description"]),
         ("twitter:image", image),
     ]]
-    out.append(json_ld(meta, path, image))
+    out.append(json_ld(item, image))
     return "\n".join(out)
 
 
 # --- structured data ---------------------------------------------------------
 
-def json_ld(meta, path, image):
-    a, kind = apex(), meta.get("_kind", PAGE)
+def json_ld(item, image):
+    """The graph: Organization, WebSite, the type's node (a WebPage when
+    the type gives none), BreadcrumbList."""
+    meta, path = item["meta"], item["path"]
+    a, lang = apex(), CFG["site"]["lang"]
     url = a + clean_url(path)
-    lang = CFG["site"]["lang"]
-    org = {"@type": "Organization", "@id": f"{a}/#organization",
+    org = {"@type": "Organization", "@id": org_ref()["@id"],
            "name": CFG["seo"]["organization"], "url": f"{a}/",
            "logo": f"{a}/{CFG['share']['logo']}"}
-    site = {"@type": "WebSite", "@id": f"{a}/#website", "name": CFG["site"]["name"],
-            "url": f"{a}/", "inLanguage": lang, "publisher": {"@id": org["@id"]}}
-    graph = [org, site]
-    ref = lambda node: {"@id": node["@id"]}
-
-    if kind == POST:
-        node = {"@type": "BlogPosting", "headline": page_heading(meta),
-                "description": meta["description"], "datePublished": meta["_date"],
-                "dateModified": meta.get("updated", meta["_date"]),
-                "publisher": ref(org), "image": image}
-        if meta.get("author"):
-            node["author"] = {"@type": "Person", "name": meta["author"]}
-    elif kind == EVENT:
-        place = {"@type": "Place", "name": meta.get("place", ""),
-                 "address": meta.get("place", "")}
-        if meta.get("lat") and meta.get("lon"):
-            place["geo"] = {"@type": "GeoCoordinates",
-                            "latitude": meta["lat"], "longitude": meta["lon"]}
-        node = {"@type": "Event", "name": page_heading(meta),
-                "description": meta["description"], "startDate": meta["_date"],
-                "endDate": meta.get("end", meta["_date"]),
-                "eventStatus": "https://schema.org/EventScheduled",
-                "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-                "location": place, "organizer": ref(org), "image": image}
-    elif kind == MEMBER:
-        person = {"@type": "Person", "name": page_heading(meta), "memberOf": ref(org)}
-        same = [url for k in ("linkedin", "github", "gitlab", "mastodon", "bluesky",
-                              "website") for url in meta.get(k, "").split()]
-        if same:
-            person["sameAs"] = same  # links the profiles to the person
-        if meta.get("affiliation"):
-            person["affiliation"] = {"@type": "Organization", "name": meta["affiliation"]}
-        node = {"@type": "ProfilePage", "name": page_title(meta), "mainEntity": person}
-    else:
-        node = {"@type": "WebPage", "name": page_title(meta),
-                "description": meta["description"], "isPartOf": ref(site)}
+    site = {"@type": "WebSite", "@id": site_ref()["@id"], "name": CFG["site"]["name"],
+            "url": f"{a}/", "inLanguage": lang, "publisher": org_ref()}
+    node = item["type"].json_ld(item, item["conf"]) or {
+        "@type": "WebPage", "name": page_title(meta),
+        "description": meta["description"], "isPartOf": site_ref()}
     node.update({"@id": f"{url}#page", "url": url, "inLanguage": lang})
-    graph.append(node)
+    graph = [org, site, node]
 
     crumbs = breadcrumbs(meta, path)
     if len(crumbs) > 1:
         graph.append({"@type": "BreadcrumbList", "itemListElement": [
-            {"@type": "ListItem", "position": n, "name": name, "item": item}
-            for n, (name, item) in enumerate(crumbs, 1)]})
+            {"@type": "ListItem", "position": n, "name": name, "item": link}
+            for n, (name, link) in enumerate(crumbs, 1)]})
     data = json.dumps({"@context": "https://schema.org", "@graph": graph},
                       ensure_ascii=False, separators=(",", ":"))
     # "</" would close the element early; JSON allows "<\/" for it.
@@ -188,13 +154,12 @@ def breadcrumbs(meta, path):
 
 # --- sitemaps, robots, manifest ----------------------------------------------
 
-def sitemap_xml(pages):
-    """pages: (path, meta). lastmod: `updated:`, else an item's date, else
-    [site] updated."""
+def sitemap_xml(items):
+    """lastmod: `updated:`, else an item's date, else [site] updated."""
     rows = []
-    for path, meta in sorted(pages, key=lambda p: clean_url(p[0])):
-        lastmod = meta.get("updated") or meta.get("_date") or CFG["site"]["updated"]
-        rows.append(f"\t<url>\n\t\t<loc>{H.escape(apex() + clean_url(path))}</loc>\n"
+    for it in sorted(items, key=lambda it: clean_url(it["path"])):
+        lastmod = it["meta"].get("updated") or it["date"] or CFG["site"]["updated"]
+        rows.append(f"\t<url>\n\t\t<loc>{H.escape(apex() + clean_url(it['path']))}</loc>\n"
                     f"\t\t<lastmod>{lastmod}</lastmod>\n\t</url>\n")
     return ('<?xml version="1.0" encoding="utf-8"?>\n'
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
@@ -226,13 +191,14 @@ def manifest():
 
 # --- checks ------------------------------------------------------------------
 
-def check(pages):
+def check(items):
     """Warn, without failing the build, about what search engines penalise
     or truncate: titles past 60 characters, descriptions outside 50-160,
     duplicates. The 404 and pages marked noindex are skipped."""
     limits = CFG["seo"]
     seen_t, seen_d, warnings = {}, {}, []
-    for path, meta in pages:
+    for it in items:
+        path, meta = it["path"], it["meta"]
         if "noindex" in meta.get("robots", ""):
             continue
         title, desc = page_title(meta), meta.get("description", "")

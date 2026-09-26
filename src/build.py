@@ -86,10 +86,10 @@ def build():
         it = by_src[src] if src in by_src else contenttypes.page_item(src, meta)
         meta = it["meta"]
         meta["_dir"] = site_path(src)
-        _compat(it)  # Tasks 7-9 remove this
+        _compat(it)  # Task 8 removes this
         pages.append(it)
         contenttypes.fill_lists(sections, src, it["path"], colls, items)
-        out[it["path"]] = render_html(meta, sections, it["path"], preamble, colls)
+        out[it["path"]] = render_html(it, sections, preamble, colls)
         if meta.get("text", "yes") != "no":
             marked = render_txt(meta, sections)
             out[f"txt/{txt_name(it['path'])}.txt"] = plain(marked)
@@ -106,13 +106,12 @@ def build():
             if conf.get("calendar"):
                 out[conf["calendar"]] = calendar(items[name])
     a = apex()
-    meta_pages = [(it["path"], it["meta"]) for it in pages]
-    indexed = [(p, m) for p, m in meta_pages if "noindex" not in m.get("robots", "")]
+    indexed = [it for it in pages if "noindex" not in it["meta"].get("robots", "")]
     out["sitemap.xml"] = sitemap_xml(indexed)
-    out["sitemap.txt"] = "".join(f"{a}{clean_url(p)}\n" for p, _ in
-                                 sorted(indexed, key=lambda p: clean_url(p[0])))
+    out["sitemap.txt"] = "".join(f"{a}{clean_url(it['path'])}\n" for it in
+                                 sorted(indexed, key=lambda it: clean_url(it["path"])))
     out["robots.txt"] = robots(CFG["robots"], f"{a}/sitemap.xml")
-    check(meta_pages)
+    check(pages)
     # txt/ is the root of the plain-text host: this is its /robots.txt.
     out["txt/robots.txt"] = robots(CFG["robots_man"])
     out["site.webmanifest"] = manifest()
@@ -139,11 +138,8 @@ def build():
 
 
 def _compat(it):
-    """Until seo.py, feeds.py and page.py ask the type (Tasks 7-9): the
-    old keys they read."""
-    it["meta"]["_kind"] = it["type"].NAME
+    """Until feeds.py asks the type (Tasks 8-9): the old keys it reads."""
     if it["date"]:
-        it["meta"]["_date"] = it["date"]
         it["iso"] = it["date"]
 
 
