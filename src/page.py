@@ -241,13 +241,15 @@ def render_html(item, sections, preamble=(), colls=None):
             feeds += (f'\n<link rel="alternate" type="application/rss+xml" '
                       f'title="{title}" href="{res(c["feed"])}">')
 
-    # The site's only scripts, each loaded where it serves: search on the
-    # members page, a copy button on code blocks. The page is complete
-    # without them (AGENTS.md §4.4).
-    script = ""
-    # Only when the theme ships the script.
-    if any("members" in s["cls"] for s in sections) and theme_file("members.js").is_file():
-        script += f'<script src="{res("members.js")}" defer></script>\n'
+    # Scripts, each loaded where it serves and only if the theme ships the
+    # file: the ones the listed types name, then code.js on pages with
+    # code. The page is complete without them (AGENTS.md §6).
+    named = []
+    for s in sections:
+        sc = s.get("script")
+        if sc and sc not in named and theme_file(sc).is_file():
+            named.append(sc)
+    script = "".join(f'<script src="{res(sc)}" defer></script>\n' for sc in named)
     if has_code(list(preamble) + sections) and theme_file("code.js").is_file():
         labels = CFG["labels"]
         script += (f'<script src="{res("code.js")}" defer'
