@@ -30,11 +30,12 @@
 <nav class="nav" aria-label="{{ labels.nav }}">
 {{ nav }}
 </nav>
+{{ languages }}
 
 {{ brand }}
 <p class="tagline">{{ page.tagline }}</p>
 
-<main id="contenu">
+<main id="contenu" lang="{{ content_lang }}">
 
 {{ body }}
 </main>

@@ -8,7 +8,8 @@ import sys
 
 import highlight
 import inline
-from config import CFG, CONTENT, apex, layout, theme_file
+import languages
+from config import CFG, CONTENT, STATE, apex, layout, theme_file
 from paths import clean_url, relative
 from images import image_size
 from markdown import front_matter
@@ -223,6 +224,21 @@ def has_code(nodes):
     return any(n["k"] == "code" or has_code(n.get("blocks", [])) for n in nodes)
 
 
+def switcher(item, res):
+    """{{ languages }}: every declared language, linking to this page's
+    sibling; the current one marked. Empty in a monolingual site."""
+    if not languages.multilingual():
+        return ""
+    names = languages.CONFIGS[languages.default()].get("languages", {})
+    links = []
+    for L in languages.declared():
+        current = ' aria-current="page"' if L == STATE["lang"] else ""
+        href = res("/" + clean_url(item["path"], L).lstrip("/"))
+        links.append(f'\t<a href="{href}" hreflang="{L}" lang="{L}"{current}>{H.escape(names.get(L, L))}</a>')
+    label = H.escape(CFG["labels"]["languages"])
+    return f'<nav class="languages" aria-label="{label}">\n' + "\n".join(links) + "\n</nav>"
+
+
 def render_html(item, sections, preamble=(), colls=None):
     meta, path, module = item["meta"], item["path"], item["type"]
     d = os.path.dirname(path)
@@ -289,6 +305,8 @@ def render_html(item, sections, preamble=(), colls=None):
         # Each folder of the page's URL is a segment too, linking to its
         # index: ~/<site>/blog/<title>, ~/<site>/events/<title>.
         parents = ""
+        if STATE["prefix"]:
+            parents += f'{slash}<a href="{res("")}">{H.escape(STATE["lang"])}</a>'
         # A folder's own page (blog/index.html) is that folder: not a parent.
         folders = d.split("/") if d else []
         if path.endswith("/index.html"):
@@ -320,6 +338,8 @@ def render_html(item, sections, preamble=(), colls=None):
         "head": head_tags(item),
         "brand": brand,
         "nav": navhtml,
+        "languages": switcher(item, res),
+        "content_lang": STATE["content_lang"],
         # Posts and events are articles: Reader mode and read-aloud tools
         # look for one.
         "body": ("<article>\n" + "\n".join(body) + "</article>\n"

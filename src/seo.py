@@ -12,6 +12,7 @@ import json
 import posixpath
 import sys
 
+import languages
 from config import ASSETS, CFG, CONTENT, apex, theme_file
 from contenttypes import call
 from images import image_size
@@ -70,19 +71,37 @@ def share_image(meta):
 
 # --- <head> ------------------------------------------------------------------
 
+def alternates(item):
+    """<link rel="alternate" hreflang> for every declared language, and
+    x-default for the default one; nothing in a monolingual site."""
+    if not languages.multilingual():
+        return []
+    path = item["path"]
+    out = [f'<link rel="alternate" hreflang="{L}" href="{apex() + clean_url(path, L)}">'
+           for L in languages.declared()]
+    out.append(f'<link rel="alternate" hreflang="x-default" href="{apex() + clean_url(path, languages.default())}">')
+    return out
+
+
 def head_tags(item):
     """Everything search engines and sharing read in <head>, after the
-    canonical link: robots, the type's name tags, Open Graph, the type's
-    property tags, Twitter Card, JSON-LD."""
+    canonical link: hreflang alternates, robots, the type's name tags, Open
+    Graph, the type's property tags, Twitter Card, JSON-LD."""
     meta, module, conf, path = item["meta"], item["type"], item["conf"], item["path"]
     image, width, height = share_image(meta)
     large = bool(width and height and width >= 600 and width > height)
     extra = call(item["src"], module, "meta_tags", item, conf)
-    out = [f'<meta name="robots" content="{H.escape(meta.get("robots", CFG["seo"]["robots"]))}">']
+    out = alternates(item) + [
+        f'<meta name="robots" content="{H.escape(meta.get("robots", CFG["seo"]["robots"]))}">']
     out += [f'<meta name="{k}" content="{H.escape(v)}">' for a, k, v in extra if a == "name"]
     props = [
         ("og:site_name", CFG["site"]["name"]),
         ("og:locale", CFG["site"]["locale"]),
+    ]
+    if languages.multilingual():
+        props += [("og:locale:alternate", languages.CONFIGS[L]["site"]["locale"])
+                  for L in languages.declared() if L != CFG["site"]["lang"]]
+    props += [
         ("og:type", module.OG_TYPE),
         ("og:title", page_heading(meta)),
         ("og:description", meta["description"]),
@@ -120,7 +139,7 @@ def json_ld(item, image):
     node = call(item["src"], item["type"], "json_ld", item, item["conf"]) or {
         "@type": "WebPage", "name": page_title(meta),
         "description": meta["description"], "isPartOf": site_ref()}
-    node.update({"@id": f"{url}#page", "url": url, "inLanguage": lang})
+    node.update({"@id": f"{url}#page", "url": url, "inLanguage": item["content_lang"]})
     graph = [org, site, node]
 
     crumbs = breadcrumbs(meta, path)
@@ -141,12 +160,12 @@ def breadcrumbs(meta, path):
     if is_landing(meta):
         return []
     home = CFG["nav"][0]
-    out = [(home["label"], f"{a}/")]
+    out = [(home["label"], a + clean_url("index.html"))]
     section = next((n for n in CFG["nav"] if n["href"] == meta.get("nav")
                     and n["href"] and not n["href"].startswith("http")), None)
     url = a + clean_url(path)
     if section:
-        s_url = a + "/" + section["href"]
+        s_url = f"{a}/{languages.prefix()}{section['href']}"
         if s_url != url:
             out.append((section["label"], s_url))
     out.append((page_heading(meta), url))
