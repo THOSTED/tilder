@@ -37,9 +37,10 @@ the regression test.
   `contenttypes.load_items` returns the items, per language (each language
   pass has its own items, fallback included).
 - A page **belongs** to a collection when it is one of its items. The
-  collection's own index page (`content/<dir>/index.md`, and its
-  translations) is not an item but **shows** the collection's navigation,
-  with no current item and no neighbours.
+  collection's own page - `content/<dir>/index.md`, or `content/<dir>.md`
+  beside the folder, the same rule as a bare list marker's - is not an
+  item but **shows** the collection's navigation, with no current item and
+  no neighbours.
 - Any other page: the three placeholders are empty strings.
 
 ## 3. Groups
