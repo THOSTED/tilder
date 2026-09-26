@@ -43,6 +43,16 @@ def is_landing(meta):
     return meta.get("nav", "-") == ""
 
 
+def org_ref():
+    """The Organization node of the JSON-LD graph, by reference."""
+    return {"@id": f"{apex()}/#organization"}
+
+
+def site_ref():
+    """The WebSite node of the JSON-LD graph, by reference."""
+    return {"@id": f"{apex()}/#website"}
+
+
 # --- share image ------------------------------------------------------------
 
 def share_image(meta):

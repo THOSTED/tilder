@@ -83,7 +83,7 @@ def calendar(events):
              f"X-WR-CALDESC:{to_ascii(c['description'])}"]
     for e in events:
         meta = e["meta"]
-        day = datetime.date.fromisoformat(e["iso"])
+        day = datetime.date.fromisoformat(e.get("date") or e["iso"])
         last = datetime.date.fromisoformat(meta["end"]) if meta.get("end") else day
         end = last + datetime.timedelta(days=1)  # DTEND is exclusive
         lines += ["BEGIN:VEVENT", f"UID:{e['slug']}@{c['uid_domain']}",
