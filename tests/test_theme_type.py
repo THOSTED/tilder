@@ -7,6 +7,7 @@ import unittest
 
 from tests.helpers import build_site, rebuild
 import contenttypes
+import languages
 from config import STATE, THEME, load_config
 
 
@@ -34,7 +35,7 @@ class ThemeType(unittest.TestCase):
         self.assertNotIn("types/talk.py", out)                     # never served
 
     def test_summary_names_the_theme_type(self):
-        load_config()
+        languages.setup()
         contenttypes.load()
         colls = contenttypes.collections()
         items = {n: contenttypes.load_items(n, c) for n, c in colls.items()}
@@ -74,7 +75,7 @@ class ThemeType(unittest.TestCase):
             for cached in (THEME / "types" / "__pycache__").glob("member.*"):
                 cached.unlink()
         self.assertIn("(theme card)", out["members.html"])
-        self.assertEqual(STATE["summary"].splitlines()[1],  # [0]: the languages
-                         "types: event, page, post; from theme: member, talk")
+        self.assertIn("types: event, page, post; from theme: member, talk",
+                      STATE["summary"].splitlines())
         self.assertNotIn("member", "".join(l for l in err.getvalue().splitlines(True)
                                            if l.startswith("warning:")))

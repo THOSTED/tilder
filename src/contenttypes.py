@@ -227,6 +227,9 @@ def load_items(name, conf):
                     groups.setdefault(f.name, {})[languages.split(g.stem)[1]] = g
     for slug, candidates in groups.items():
         src, content_lang = languages.pick(candidates, STATE["lang"])
+        if src is None:
+            raise error(base / slug, "no file serves this item in the current language",
+                        "Run languages.setup() before load_items(): the declared languages are unknown")
         date = None
         if module.DATED:
             m = DATED.match(slug)

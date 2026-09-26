@@ -53,8 +53,8 @@ import inline
 import languages
 import report
 from ansify import ansify
-from config import (ASSETS, BUILDER, CFG, CONFIG, CONTENT, EXTRA, ROOT, STATE,
-                    THEME, apex, served)
+from config import (ASSETS, BUILDER, CFG, CONTENT, EXTRA, ROOT, STATE,
+                    THEME, apex, config_file, served)
 from icons import generated
 from fold import to_ascii
 from feeds import feed
@@ -89,8 +89,9 @@ def build():
         items = {name: contenttypes.load_items(name, conf) for name, conf in colls.items()}
         by_src = {it["src"]: it for its in items.values() for it in its}
         if lang == langs[0]:
-            # The table needs paths.ITEM_FOLDERS, which load_items fills; the
-            # folders are the same in every language.
+            # The table needs paths.ITEM_FOLDERS, which load_items fills. The
+            # item folders come from the first pass; an item kept flat in one
+            # language and as a folder in another is not supported.
             table = languages.pages()
             head = (f"languages: {langs[0]} (default), {', '.join(langs[1:])}\n"
                     if languages.multilingual() else "")
@@ -139,10 +140,10 @@ def build():
                                  sorted(indexed, key=lambda it: clean_url(it["path"], it["lang"])))
     out = {k: v.encode("utf-8") for k, v in out.items()}
     # Files next to the pages (images of a post or an event...) are copied
-    # as they are, at the same path. Markdown and site.toml are not.
+    # as they are, at the same path. Markdown and the configuration files are not.
     for f in sorted(CONTENT.rglob("*")):
         rel = f.relative_to(CONTENT)
-        if f.is_file() and f.suffix != ".md" and f != CONFIG \
+        if f.is_file() and f.suffix != ".md" and not config_file(f.name) \
                 and not any(part.startswith("_") for part in rel.parts):
             out[str(rel)] = f.read_bytes()
     # The theme, then the project's assets/, which win over it by name.

@@ -45,6 +45,8 @@ DATED = re.compile(r"^(\d{4}-\d{2}-\d{2})-[a-z0-9-]+$")
 # build and never served.
 UNSERVED = ("layout.html", "share.svg", "theme.toml")
 UNSERVED_DIRS = ("icons/", "layouts/", "types/")
+# site.toml, theme.toml and their per-language twins (site.fr.toml).
+CONFIG_FILE = re.compile(r"^(site|theme)(\.[^.]+)?\.toml$")
 
 # content/site.toml over theme/theme.toml over builder/defaults.toml, re-read at every build (see
 # load_config). Every user-facing string and site-wide value comes from
@@ -65,9 +67,15 @@ def theme_file(name):
     return own if own.is_file() else THEME / name
 
 
+def config_file(name):
+    """site.toml, theme.toml and their site.<lang>.toml / theme.<lang>.toml
+    twins: read by the build, never served."""
+    return bool(CONFIG_FILE.match(name))
+
+
 def served(rel):
     """Is this theme- or assets-relative path a file to serve as-is?"""
-    return rel not in UNSERVED and not rel.startswith(UNSERVED_DIRS)
+    return rel not in UNSERVED and not config_file(rel) and not rel.startswith(UNSERVED_DIRS)
 
 
 def layout(name=None, asked_by=None):

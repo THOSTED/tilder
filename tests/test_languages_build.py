@@ -62,6 +62,10 @@ class Passes(unittest.TestCase):
             self.assertIn(f, out)
             self.assertNotIn(f"fr/{f}", out)
 
+    def test_no_configuration_file_is_served(self):
+        out = build_site()
+        self.assertFalse([k for k in out if k.endswith(".toml")], [k for k in out if k.endswith(".toml")])
+
     def test_summary_names_the_languages(self):
         from config import STATE
         build_site()

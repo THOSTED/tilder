@@ -4,14 +4,15 @@ import unittest
 
 from tests.helpers import build_site  # triggers tests.__init__ setup
 import contenttypes
+import languages
 import paths
 import report
-from config import CFG, CONTENT, load_config
+from config import CFG, CONTENT
 
 
 class Collections(unittest.TestCase):
     def setUp(self):
-        load_config()
+        languages.setup()
         contenttypes.load()
 
     def test_declared_collections_merge_type_defaults(self):
@@ -137,7 +138,7 @@ class Lists(unittest.TestCase):
         self.assertIn("GitHub: https://github.com/ada", out["txt/members/ada-lovelace.txt"])
 
     def test_named_marker_must_exist(self):
-        load_config()
+        languages.setup()
         contenttypes.load()
         colls = contenttypes.collections()
         sections = [{"k": "section", "title": "x", "cls": ["upcoming:nope"], "id": None, "blocks": []}]
@@ -160,7 +161,7 @@ class Lists(unittest.TestCase):
         self.assertEqual(sections[0]["blocks"], [{"k": "entry", "title": "b", "cls": ["x"]}])
 
     def test_summary(self):
-        load_config()
+        languages.setup()
         contenttypes.load()
         colls = contenttypes.collections()
         items = {n: contenttypes.load_items(n, c) for n, c in colls.items()}
