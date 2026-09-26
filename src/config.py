@@ -39,7 +39,6 @@ INDENT = 5
 # A dated item: a blog post or an event, as `NAME.md` or `NAME/index.md`
 # (a folder, to keep its images next to it).
 DATED = re.compile(r"^(\d{4}-\d{2}-\d{2})-[a-z0-9-]+$")
-COLLECTIONS = ("blog", "events")
 
 # Files read by the build, never served. The theme's are replaced by the
 # project's own copy in assets/, if it has one.

@@ -31,5 +31,5 @@ image_alt = "~/my site"
 card = ["a website that reads", "like a man page"]
 short_name = "mysite"
 
-[blog]
+[collections.blog]
 man = "MYSITE-BLOG(7)"

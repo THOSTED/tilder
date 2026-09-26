@@ -25,9 +25,9 @@ def rss(title, link, self_href, description, items):
 """
 
 
-def events_feed(events):
-    """Every event, the nearest date first."""
-    a, f = apex(), CFG["feeds"]["events"]
+def events_feed(events, c):
+    """An events collection's RSS: every event, the latest date first."""
+    a = apex()
     items = "".join(f"""
 	<item>
 		<title>{H.escape(e['meta']['title'])}</title>
@@ -37,12 +37,12 @@ def events_feed(events):
 		<description>{H.escape(e['meta']['description'])}</description>
 	</item>
 """ for e in reversed(events))
-    return rss(f["title"], f"{a}/events", f"{a}/events.xml", f["description"], items)
+    return rss(c["feed_title"], f"{a}/{c['nav']}", f"{a}/{c['feed']}", c["feed_description"], items)
 
 
-def blog_feed(posts):
-    """Every post, newest first."""
-    a, f = apex(), CFG["feeds"]["blog"]
+def posts_feed(posts, c):
+    """A posts collection's RSS: every post, newest first."""
+    a = apex()
     items = ""
     for it in reversed(posts):
         iso, url, meta, title = it["iso"], clean_url(it["path"]), it["meta"], it["meta"]["title"]
@@ -55,7 +55,7 @@ def blog_feed(posts):
 		<description>{H.escape(meta['description'])}</description>
 	</item>
 """
-    return rss(f["title"], f"{a}/blog/", f"{a}/blog/feed.xml", f["description"], items)
+    return rss(c["feed_title"], f"{a}/{c['nav']}", f"{a}/{c['feed']}", c["feed_description"], items)
 
 
 def fold_ics(line):

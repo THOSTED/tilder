@@ -19,7 +19,7 @@ terminal mirror (`curl example.org`, or a plain-text host such as
 - [Blocks](#blocks)
 - [Inline markup](#inline-markup)
 - [Links](#links)
-- [Blog posts and events](#blog-posts-and-events)
+- [Collections: posts and events](#collections-posts-and-events)
 - [Images](#images)
 - [Members](#members)
 - [What is not supported](#what-is-not-supported)
@@ -136,10 +136,10 @@ line. Values are plain text, not quoted.
 | `text` | no | `text: no` skips the text mirror for this page (the 404 does). |
 | `image` | no | Preview image for link sharing, relative to the page's folder. Default: `share.image`. |
 
-\* Blog posts and events may leave `man`, `nav` and `tagline` out: `man` and
-`nav` come from `[blog]` / `[events]` in `site.toml`, the tagline is the date.
-They have fields of their own too (see [Blog posts and
-events](#blog-posts-and-events)).
+\* Items of a collection (posts, events) may leave `man`, `nav` and
+`tagline` out: `man` and `nav` come from their collection in `site.toml`,
+the tagline is the date. They have fields of their own too (see
+[Collections](#collections-posts-and-events)).
 
 `title`, `description` and `image` also feed the page's sharing tags - Open
 Graph (`og:*`) and Twitter Card (`twitter:*`) - so a link pasted into
@@ -499,20 +499,48 @@ In the text mirror, an internal link keeps only its label (it is visited with
 
 ---
 
-## Blog posts and events
+## Collections: posts and events
 
-`content/blog/` and `content/events/` are **dated collections**: one item
-per `YYYY-MM-DD-slug`, written either as a file, `YYYY-MM-DD-slug.md`, or
-as a folder, `YYYY-MM-DD-slug/index.md`, when it has images to keep next to
-it. The date in the name is the post's publication date, or the event's
-date. Start from `content/blog/_template.md` or `content/events/_template.md`.
+A **collection** is a folder of dated items: one item per
+`YYYY-MM-DD-slug`, written either as a file, `YYYY-MM-DD-slug.md`, or as a
+folder, `YYYY-MM-DD-slug/index.md`, when it has images to keep next to it.
+The date in the name is a post's publication date, or an event's date.
+
+Collections are declared in `site.toml`. There are two types:
+
+| Type | Items | Lists | Feeds | Structured data |
+|---|---|---|---|---|
+| `posts` | articles, notes, news | newest first | RSS | `BlogPosting` |
+| `events` | meetups, talks, releases | upcoming and past, by the date of the build | RSS and iCalendar | `Event` |
+
+```toml
+[collections.blog]          # the name, used by markers and `feed:`
+type = "posts"
+dir = "blog"                # content/blog/, served at /blog/...
+feed = "blog/feed.xml"
+
+[collections.talks]
+type = "events"
+dir = "talks"
+nav = "talks"               # the nav entry of its items, and its feed's link
+feed = "talks.xml"
+calendar = "talks.ics"
+upcoming_tag = "soon"
+```
+
+Every key a type needs has a default in `[collection_defaults.posts]` and
+`[collection_defaults.events]` (`defaults.toml`): man-page name, nav,
+empty-list texts, tags, link labels, feed titles. A collection sets only
+what differs. `builder/defaults.toml` declares `blog` and `events`; each
+stays inactive - no page, no feed - until its folder exists. A site may
+declare as many collections as it likes, of either type.
 
 | Field | Posts | Events |
 |---|---|---|
 | `title` | the post's title | the event's name |
 | `description` | one sentence: card text, feed summary | the same |
 | `author` | a named author | - |
-| `tag` | one word, the card's tag | - (set by the date: `à venir` / `passé`) |
+| `tag` | one word, the card's tag | - (set by the date: `upcoming_tag` / `past_tag`) |
 | `place` | - | where; the iCalendar `LOCATION` |
 | `link` | - | the event's own site |
 | `end` | - | `YYYY-MM-DD`, for an event over several days |
@@ -521,37 +549,40 @@ date. Start from `content/blog/_template.md` or `content/events/_template.md`.
 On an event's page, its card links to the event's own site (`link`) and to
 the place on **OpenStreetMap**: a marker at `lat`/`lon` when given, else a
 search for `place`. It is a link, not an embedded map: an iframe would make
-every visitor's browser call openstreetmap.org, which the site never does
-(the theme's rule: no third-party request). Do not look up coordinates you
-are not given. The text
-mirror leaves the map link out: the address is on the card, and the URL
-would not fit in 75 columns.
+every visitor's browser call openstreetmap.org. Do not look up coordinates
+you are not given. The text mirror leaves the map link out: the address is
+on the card, and the URL would not fit in 75 columns.
 
-In a list, a post's or an event's card is clickable as a whole: its title's
-link covers the card.
+In a list, an item's card is clickable as a whole: its title's link covers
+the card.
 
 Nothing else is written by hand. From these files the build makes:
 
-- each item's page, with its card (date, author or place, tag) at the end of
-  its first section;
+- each item's page, with its card (date, author or place, tag) at the end
+  of its first section;
 - the lists, in the sections that carry these markers:
 
 | Marker | Fills the section with |
 |---|---|
-| `{posts}` | every post, newest first (`content/blog/index.md`) |
-| `{upcoming}` | events dated today or later, nearest first, the first highlighted (`content/events.md`) |
+| `{posts}` | every post, newest first |
+| `{upcoming}` | events dated today or later, nearest first, the first highlighted |
 | `{past}` | events before today, latest first |
-| `{next-event}` | the next event only (the landing page's `Prochain`) |
+| `{next-event}` | the next event only |
 
-  An empty list shows the empty-state text set in `site.toml`. Blocks
-  written under the heading stay, after the cards.
-- `blog/feed.xml`, `events.xml` and the iCalendar file (`calendar.file`):
-  every post, every event,
-  with its own URL.
+  Each marker may name its collection: `{posts:news}`, `{upcoming:talks}`,
+  `{next-event:talks}`. A bare marker lists the page's own collection -
+  the one whose folder the page is in, or is named like (`events.md` for
+  `events/`) - else the first collection of the marker's type. An empty
+  list shows the collection's empty-state text. Blocks written under the
+  heading stay, after the cards.
+- per collection, its `feed` (RSS) and, for events, its `calendar`
+  (iCalendar): every item, with its own URL. Leave either empty for none.
+  A page's `feed:` front-matter key names a collection (or `all`) to
+  advertise its RSS in `<link rel="alternate">`.
 
 "Upcoming" and "past" depend on the date of the build. The site is built at
 every start, on every change, and again each midnight, so an event moves to
-`Passés` the day after it ends without anyone touching it.
+the past list the day after it ends without anyone touching it.
 
 ---
 
@@ -670,7 +701,7 @@ and documenting it here.
 
 | Source | HTML | Text |
 |---|---|---|
-| `## Title {#id} {html} {text} {grid} {members} {posts} {upcoming} {past} {next-event}` | `<section class="s">` + `<h2>` | `TITLE` at column 0 |
+| `## Title {#id} {html} {text} {grid} {members} {posts} {upcoming:name} {past} {next-event}` | `<section class="s">` + `<h2>` | `TITLE` at column 0 |
 | `### Title {next} {full}` | `.entry`, `.entry--next` | indented title, `[ tag ]` right-aligned |
 | a list right after `###` | `.meta` spans | one line each |
 | `- YYYY-MM-DD \| date` in meta | `<time>` | the human date |

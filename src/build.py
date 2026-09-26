@@ -47,9 +47,9 @@ from ansify import ansify
 from config import (ASSETS, BUILDER, CFG, CONFIG, CONTENT, EXTRA, ROOT, STATE, TEMPLATES,
                     THEME, apex, load_config)
 from icons import generated
-from dated import fill_collections, item_defaults, load_items
+from dated import EVENTS, POSTS, collections, fill_collections, item_defaults, load_items
 from fold import to_ascii
-from feeds import blog_feed, calendar, events_feed
+from feeds import calendar, events_feed, posts_feed
 from markdown import parse, site_path
 from members import fill_members, load_members
 from page import render_html
@@ -73,10 +73,12 @@ def build():
     STATE["today"] = os.environ.get("BUILD_TODAY") or datetime.date.today().isoformat()
     out = {}
     members = load_members()
-    posts, events = load_items("blog"), load_items("events")
-    for it in posts + events:
+    colls = collections()
+    items = {name: load_items(name, conf) for name, conf in colls.items()}
+    every = [it for its in items.values() for it in its]
+    for it in every:
         item_defaults(it)
-    by_src = {it["src"]: it for it in posts + events}
+    by_src = {it["src"]: it for it in every}
     pages = []  # (path, meta) of every HTML page: sitemap and SEO checks
     for src in sorted(p for p in CONTENT.rglob("*.md") if rendered(p)):
         path = page_path(src)
@@ -86,22 +88,28 @@ def build():
             it = by_src[src]
             meta = it["meta"]
             meta.update(_slug=it["slug"], _date=it["iso"],
-                        _kind=POST if it["collection"] == "blog" else EVENT)
+                        _kind=POST if it["type"] == POSTS else EVENT)
         meta["_dir"] = site_path(src)
         pages.append((path, meta))
         fill_members(sections, members, path)
-        fill_collections(sections, path, posts, events)
-        out[path] = render_html(meta, sections, path, preamble)
+        fill_collections(sections, path, colls, items)
+        out[path] = render_html(meta, sections, path, preamble, colls)
         if meta.get("text", "yes") != "no":
             marked = render_txt(meta, sections)
             out[f"txt/{txt_name(path)}.txt"] = plain(marked)
             out[f"ansi/{txt_name(path)}.txt"] = ansify(marked)
-    # Feeds only for the collections the site has.
-    if (CONTENT / "events").is_dir():
-        out["events.xml"] = events_feed(events)
-        out[CFG["calendar"]["file"]] = calendar(events)
-    if (CONTENT / "blog").is_dir():
-        out["blog/feed.xml"] = blog_feed(posts)
+    # Feeds only for the collections the site has: a folder in content/, a
+    # `feed` (and for events a `calendar`) not left empty.
+    for name, conf in colls.items():
+        if not (CONTENT / conf["dir"]).is_dir():
+            continue
+        if conf["type"] == POSTS and conf.get("feed"):
+            out[conf["feed"]] = posts_feed(items[name], conf)
+        if conf["type"] == EVENTS:
+            if conf.get("feed"):
+                out[conf["feed"]] = events_feed(items[name], conf)
+            if conf.get("calendar"):
+                out[conf["calendar"]] = calendar(items[name])
     a = apex()
     indexed = [(p, m) for p, m in pages if "noindex" not in m.get("robots", "")]
     out["sitemap.xml"] = sitemap_xml(indexed)

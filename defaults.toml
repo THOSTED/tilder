@@ -68,20 +68,22 @@ muted_color = "#506C75"
 rule_color = "#DED7C3"
 short_name = "site"                 # web manifest
 
-[feeds.events]
-title = "events"
-description = "Upcoming and past events."
+# Dated collections: folders of YYYY-MM-DD-slug items, as files or
+# folders. A site declares its own as [collections.<name>]: a type, a dir
+# under content/, and whatever differs from the type's defaults below. A
+# collection whose folder does not exist is simply empty. Lists are shown
+# by section markers: {posts}, {upcoming}, {past}, {next-event}, each with
+# an optional collection name - {upcoming:talks}.
 
-[feeds.blog]
-title = "blog"
-description = "Posts."
+[collection_defaults.posts]
+man = "SITE-BLOG(7)"                # items' man-page name, unless they set one
+nav = "blog/"                       # items' nav entry, and the feed's link
+empty = "No post yet."              # a {posts} list with nothing in it
+feed = ""                           # RSS path, e.g. "blog/feed.xml"; empty for none
+feed_title = "posts"
+feed_description = "Posts."
 
-[blog]
-man = "SITE-BLOG(7)"
-nav = "blog/"
-empty = "No post yet."
-
-[events]
+[collection_defaults.events]
 man = "SITE-EVENTS(7)"
 nav = "events"
 upcoming_tag = "upcoming"
@@ -90,6 +92,24 @@ none_upcoming = "No upcoming event."
 none_past = "No past event."
 link_label = "event website ↗"
 map_label = "see on OpenStreetMap ↗"
+feed = ""                           # RSS path, e.g. "events.xml"; empty for none
+feed_title = "events"
+feed_description = "Upcoming and past events."
+calendar = ""                       # iCalendar path, e.g. "events.ics"; empty for none
+
+# The two collections most sites have. Inactive until content/blog/ or
+# content/events/ exists.
+[collections.blog]
+type = "posts"
+dir = "blog"
+feed = "blog/feed.xml"
+
+[collections.events]
+type = "events"
+dir = "events"
+nav = "events"
+feed = "events.xml"
+calendar = "calendar.ics"
 
 [dates]
 weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -98,8 +118,8 @@ months = ["January", "February", "March", "April", "May", "June", "July",
 first = "1"                         # the first day of a month
 format = "{weekday} {day} {month} {year}"
 
+# Settings shared by every iCalendar feed ([collections.*] calendar).
 [calendar]
-file = "calendar.ics"               # the iCalendar feed, at the site root
 name = "events"
 description = "Events."
 prodid = "-//site//events//EN"

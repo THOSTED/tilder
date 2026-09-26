@@ -24,8 +24,9 @@ coloured, code framed, tables aligned.*
   (`docs/markdown.md`).
 - A text mirror of every page, 75 columns, plain and ANSI-coloured, for
   terminals and braille displays.
-- Blog posts and events as dated files or folders, their lists, RSS feeds
-  and an iCalendar feed; members with a searchable grid.
+- Collections of dated posts or events, declared in `site.toml` - a blog,
+  news, meetups, talks, as many as you like - with their lists, RSS feeds
+  and iCalendar feeds; members with a searchable grid.
 - SEO: one `<h1>` per page, canonical URLs, Open Graph and Twitter Card,
   JSON-LD structured data, `sitemap.xml`, `robots.txt`, build-time checks
   (`docs/seo.md`).
@@ -130,4 +131,5 @@ folds them.
 
 ## Licence
 
-AGPL-3.0-or-later (`LICENSE`).
+MIT (`LICENSE`). The starter's example content and theme are under the same
+licence: copy them, change them, ship them.

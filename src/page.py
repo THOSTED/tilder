@@ -220,7 +220,7 @@ def has_code(nodes):
     return any(n["k"] == "code" or has_code(n.get("blocks", [])) for n in nodes)
 
 
-def render_html(meta, sections, path, preamble=()):
+def render_html(meta, sections, path, preamble=(), colls=None):
     d = os.path.dirname(path)
     res = lambda u: relative(d, u)
 
@@ -233,11 +233,12 @@ def render_html(meta, sections, path, preamble=()):
     navhtml = '<span class="sep" aria-hidden="true">·</span>\n'.join(nav)
 
     feeds = ""
-    for key, href in [("events", "events.xml"), ("blog", "blog/feed.xml")]:
-        if meta.get("feed", "") in (key, "all"):
-            title = H.escape(CFG["feeds"][key]["title"])
+    # `feed:` names a collection, or `all`: its RSS in <link rel="alternate">.
+    for name, c in (colls or {}).items():
+        if c.get("feed") and meta.get("feed", "") in (name, "all"):
+            title = H.escape(c["feed_title"])
             feeds += (f'\n<link rel="alternate" type="application/rss+xml" '
-                      f'title="{title}" href="{res(href)}">')
+                      f'title="{title}" href="{res(c["feed"])}">')
 
     # The site's only scripts, each loaded where it serves: search on the
     # members page, a copy button on code blocks. The page is complete
@@ -257,7 +258,9 @@ def render_html(meta, sections, path, preamble=()):
         if "text" in s["cls"]:
             continue
         ident = f' id="{s["id"]}"' if s["id"] else ""
-        extra = [c for c in s["cls"] if c not in ("html", "text")]
+        # A marker naming a collection ({upcoming:talks}) is a class without
+        # its name.
+        extra = [c.partition(":")[0] for c in s["cls"] if c not in ("html", "text")]
         bcls = " ".join(["b"] + extra)
         data = ""
         if "members" in s["cls"]:
