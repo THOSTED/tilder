@@ -204,7 +204,9 @@ def txt_blocks(blocks, ind):
     return out
 
 
-def render_txt(meta, sections):
+def render_txt(meta, sections, around=""):
+    """The page's text mirror. `around`: the line of a sequential type's
+    neighbours (sequence.txt_line), set before the footer rule."""
     man = meta["man"]
     out = [rule(man, to_ascii(CFG["site"]["manual"]), man)]
     if languages.multilingual():
@@ -215,6 +217,8 @@ def render_txt(meta, sections):
         out.append("")
         out.append(to_ascii(s["title"]).upper())
         out.extend(txt_blocks(s["blocks"], " " * INDENT))
+    if around:
+        out += ["", around]
     out.append("")
     foot = CFG["footer"]
     out.append(rule(to_ascii(foot["left"]), CFG["site"]["updated"], to_ascii(foot["right"])))

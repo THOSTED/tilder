@@ -1,5 +1,6 @@
 import json
 import pathlib
+import re
 import shutil
 import tempfile
 import textwrap
@@ -118,3 +119,33 @@ class Placeholders(unittest.TestCase):
         self.assertNotIn("collection-nav", post)
         self.assertNotIn('rel="prev"', post)
         self.assertNotIn('rel="next"', post)
+
+
+ESC = re.compile(r"\x1b\[[0-9;]*m")
+
+
+class TextLine(unittest.TestCase):
+    def test_before_the_footer(self):
+        lines = build_site()["txt/guides/setup.txt"].splitlines()
+        self.assertEqual(lines[-3], "previous: Introduction" + " " * 37 + "next: Deployment")
+        self.assertEqual(lines[-2], "")
+        self.assertTrue(lines[-1].startswith("TESTS"))
+
+    def test_ends(self):
+        out = build_site()
+        self.assertEqual(out["txt/guides/intro.txt"].splitlines()[-3], " " * 64 + "next: Setup")
+        self.assertEqual(out["txt/guides/tuning.txt"].splitlines()[-3], "previous: Deployment")
+
+    def test_french_is_folded(self):
+        lines = build_site()["txt/fr/guides/tuning.txt"].splitlines()
+        self.assertEqual(lines[-3], "precedent: Deployment")
+
+    def test_only_sequential_types(self):
+        out = build_site()
+        self.assertNotIn("next:", out["txt/guides.txt"])
+        self.assertNotIn("previous:", out["txt/blog/2026-01-01-hello.txt"])
+
+    def test_ansi_matches_txt(self):
+        out = build_site()
+        for page in ("guides/setup", "fr/guides/tuning"):
+            self.assertEqual(ESC.sub("", out[f"ansi/{page}.txt"]), out[f"txt/{page}.txt"], page)
