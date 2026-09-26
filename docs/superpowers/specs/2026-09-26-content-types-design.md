@@ -72,7 +72,8 @@ Everything is optional except `NAME` and `entry`. Attributes first:
 ```python
 NAME = "event"          # the value of `type =` in [collections.*]
 DATED = True            # items are named YYYY-MM-DD-slug; else <slug>
-ARTICLE = True          # wrap the body in <article>; og:type "article"
+ARTICLE = True          # wrap the body in <article> (posts and events do)
+OG_TYPE = "website"     # Open Graph og:type; "article" for posts
 LAYOUT = "event"        # theme/layouts/event.html, falling back to layout.html
 SCRIPT = ""             # a theme script to load on pages that list this type,
                         # if the theme ships it ("members.js" for member)
@@ -106,8 +107,15 @@ def entry(item, link, conf):
     page. Nodes only - never HTML."""
 
 def json_ld(item, conf):
-    """The item's main schema.org node as a dict, or None. seo.py wraps it
-    in the graph (Organization, WebSite, BreadcrumbList) as it does today."""
+    """The item's main schema.org node as a dict, or None (then a WebPage
+    node). seo.py wraps it in the graph (Organization, WebSite,
+    BreadcrumbList) as it does today; seo.org_ref(), seo.site_ref() and
+    seo.share_image() give a type what its node refers to."""
+
+def meta_tags(item, conf):
+    """Extra <meta> tags: [("name" | "property", key, value)]. "name" tags
+    go before Open Graph, "property" tags after it (a post's author,
+    article:published_time, article:tag)."""
 
 def feed_item(item, conf):
     """{"title", "link", "description", "date"} for the collection's RSS
@@ -126,9 +134,10 @@ A marker function selects and orders the items a section lists:
 
 ```python
 def upcoming(items, conf):
-    """-> ([(item, extra_classes)], empty_text). Items to list, in order,
-    each with the classes its card gets ("next" on the first upcoming
-    event); and the text shown when there is none."""
+    """-> {"items": [(item, extra_classes)], "empty": text, "cls": [...]}.
+    The items to list, in order, each with the classes its card gets
+    ("next" on the first upcoming event); the text shown when there is
+    none; and, optionally, classes for the section body ("grid")."""
 ```
 
 The `page` type has no folder, no markers, no feed: `NAME = "page"`,
@@ -226,11 +235,18 @@ generic: a marker belongs to the type that declares it.
 All errors of steps 1-3 are gathered and reported together (§9) before the
 build stops: one run shows every problem, not the first.
 
-Modules are imported with `importlib` under a private package name so a
+Modules are imported with `importlib` under a private module name so a
 theme type called `event.py` does not shadow anything on `sys.path`. A type
 module imports what it needs from `src/` (`config`, `feeds`, `fold`...) the
 way built-in modules do; that surface is documented in `docs/types.md` and
-is the public API of the generator toward themes.
+is the public API of the generator toward themes. A theme type may build
+on a built-in one: built-in types are loaded first and reachable as
+`contenttypes.TYPES["event"]` while the theme's modules import.
+
+Two names are constrained by the standard library: the loader module is
+`src/contenttypes.py`, not `types.py`, which would shadow the stdlib
+`types`; and the `types/` folder at the root has no `__init__.py`, so it
+is never a package on `sys.path` (a test pins this).
 
 Trust: a theme runs code at build time. The theme belongs to the site's
 owner, as the generator does; `docs/theme.md` says so in one sentence.
@@ -250,8 +266,8 @@ A `layout:` that names no file stops the build: silence would hide a typo.
 Layouts share the placeholders and the "unknown placeholder stops the
 build" rule of `layout.html` (`docs/theme.md`). `layouts/` joins
 `layout.html` and `share.svg` among the files read by the build and never
-served. A copy in the site's `assets/` wins over the theme's, as for any
-theme file.
+served, and so do `types/` and `theme.toml`. A copy in the site's `assets/`
+wins over the theme's, as for any theme file.
 
 The layout gets one new placeholder, `{{ type }}`, the type's name (computed
 by the build, not a front-matter value), so a theme can hang a class on
@@ -327,7 +343,7 @@ Name the file YYYY-MM-DD-slug.md with the event's date.
 - Warnings keep the `warning:` prefix and never stop the build.
 - **The build says what it understood**, two lines at start:
   ```
-  types: page, post, event, member; from theme: doc
+  types: event, member, page, post; from theme: doc
   collections: blog (post, 1 item), events (event, 1), members (member, 3)
   ```
 - In `--watch`, the waiting message says what it waits for: a change in
@@ -344,10 +360,11 @@ ad-hoc wording as they are touched.
 
 ```
 types/            NEW  the built-in types: page.py, post.py, event.py, member.py
-src/types.py      NEW  load, validate and index the types; resolve markers
+src/contenttypes.py NEW  load, validate and index the types; collections, items, lists
 src/report.py     NEW  errors and warnings, one shape
+src/dates.py      NEW  human_date, from dated.py
 src/members.py    GONE -> types/member.py
-src/dated.py      GONE -> types/post.py, types/event.py, and src/types.py (loading items)
+src/dated.py      GONE -> types/post.py, types/event.py, and src/contenttypes.py (loading items)
 src/build.py      knows no content kind: types, collections, items, pages
 src/seo.py        drops its four JSON-LD branches; asks item["type"].json_ld
 src/feeds.py      one generic RSS from feed_item(); iCalendar helpers, called by types/event.py
@@ -358,7 +375,10 @@ defaults.toml     loses [collection_defaults.*] and [members]; keeps the three d
 ```
 
 `human_date` (words from `[dates]`) moves to a small `src/dates.py`: types
-need it, and it is not a type's business.
+need it, and it is not a type's business. Every page becomes an item of a
+type - a plain page is an item of `page`, with no collection - so
+`render_html`, `head_tags`, `sitemap_xml` and `check` take items, and
+`meta["_kind"]`, `_date` and `_slug` disappear.
 
 The four built-in types carry the code they replace, reshaped to the
 interface, with the same output: the member card's meta line, search data
@@ -400,15 +420,15 @@ the `Dockerfile` on every push to `main` and every `v*` tag, and pushes to
 `ghcr.io/thosted/tilder` with the tags `latest`, `<major>`, `<major.minor>`
 and `<version>`. The image ships **the runtime and the generator** at that
 version: Python, `rsvg-convert`, `woff2`, and `build.py`, `defaults.toml`,
-`src/`, `types/` under `/tilder`. Its entry point is
-`python3 -B /tilder/build.py --root /site`, so a site can drop the
-submodule:
+`src/`, `types/` under `/tilder`. Its default command is
+`python3 -B /tilder/build.py --root /site --out /out --watch` (a command,
+not an entry point, so a site's compose file that names its own command
+keeps working), so a site can drop the submodule:
 
 ```yaml
 services:
   build:
     image: ghcr.io/thosted/tilder:1
-    command: ["--out", "/out", "--watch"]
     volumes:
       - ./content:/site/content:ro
       - ./theme:/site/theme:ro
