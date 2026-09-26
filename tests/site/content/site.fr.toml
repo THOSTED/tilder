@@ -44,3 +44,6 @@ weekdays = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanc
 months = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
           "août", "septembre", "octobre", "novembre", "décembre"]
 first = "1er"
+
+[collections.guides]
+nav_label = "Sommaire du guide"

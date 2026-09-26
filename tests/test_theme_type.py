@@ -15,7 +15,7 @@ class ThemeType(unittest.TestCase):
     def test_loaded_from_the_theme(self):
         load_config()
         types = contenttypes.load()
-        self.assertEqual(list(types), ["event", "member", "page", "post", "talk"])
+        self.assertEqual(list(types), ["event", "member", "page", "post", "guide", "talk"])
         self.assertEqual(types["talk"].PATH.parent.name, "types")
         self.assertEqual(contenttypes.MARKERS["talks"], "talk")
 
@@ -40,7 +40,7 @@ class ThemeType(unittest.TestCase):
         colls = contenttypes.collections()
         items = {n: contenttypes.load_items(n, c) for n, c in colls.items()}
         self.assertTrue(contenttypes.summary(colls, items).startswith(
-            "types: event, member, page, post; from theme: talk\n"))
+            "types: event, member, page, post; from theme: guide, talk\n"))
 
     def test_empty_list_text_is_the_talks_own(self):
         load_config()
@@ -75,7 +75,7 @@ class ThemeType(unittest.TestCase):
             for cached in (THEME / "types" / "__pycache__").glob("member.*"):
                 cached.unlink()
         self.assertIn("(theme card)", out["members.html"])
-        self.assertIn("types: event, page, post; from theme: member, talk",
+        self.assertIn("types: event, page, post; from theme: member, guide, talk",
                       STATE["summary"].splitlines())
         self.assertNotIn("member", "".join(l for l in err.getvalue().splitlines(True)
                                            if l.startswith("warning:")))
