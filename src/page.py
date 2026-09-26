@@ -201,7 +201,8 @@ PLACEHOLDER = re.compile(r"\{\{\s*([\w.]+)\s*\}\}")
 def fill(template, computed, meta, path):
     """Replace {{ name }} in the layout. `computed` values are HTML built
     here and go in as-is; `page.*` (front matter) and `section.key` (from
-    site.toml) are escaped. An unknown name stops the build."""
+    site.toml) are escaped. An unknown name stops the build; `path` names
+    the layout file in that error."""
     def value(m):
         name = m.group(1)
         if name in computed:

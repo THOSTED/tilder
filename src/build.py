@@ -121,7 +121,7 @@ def build():
                 and not any(part.startswith("_") for part in rel.parts):
             out[str(rel)] = f.read_bytes()
     # The theme, then the project's assets/, which win over it by name.
-    # config.UNSERVED(_DIRS) are read by the build, not served.
+    # config.UNSERVED and UNSERVED_DIRS name the files the build reads and never serves.
     for base in (THEME, ASSETS):
         for f in sorted(base.rglob("*")) if base.is_dir() else []:
             rel = str(f.relative_to(base))

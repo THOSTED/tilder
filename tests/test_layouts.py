@@ -1,8 +1,9 @@
 import unittest
 
+from tests.helpers import build_site
+
 import report
 from config import CONTENT, layout
-from tests.helpers import build_site
 
 
 class Layouts(unittest.TestCase):
