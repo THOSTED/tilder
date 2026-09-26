@@ -75,7 +75,16 @@ def config_file(name):
 
 
 def served(rel):
-    """Is this theme- or assets-relative path a file to serve as-is?"""
+    """Is this theme- or assets-relative path a file to serve as-is? Not
+    what the build reads (UNSERVED, UNSERVED_DIRS, the configuration
+    files), and not what belongs to the folder's own repository rather
+    than to the site: git files (.git, .gitignore, .gitmodules...) and a
+    README or LICENSE at its root. .well-known/ and the like are served."""
+    parts = rel.split("/")
+    if any(part.startswith(".git") for part in parts):
+        return False
+    if len(parts) == 1 and (rel == "README.md" or rel.startswith("LICENSE")):
+        return False
     return rel not in UNSERVED and not config_file(rel) and not rel.startswith(UNSERVED_DIRS)
 
 

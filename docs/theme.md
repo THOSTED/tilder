@@ -27,7 +27,7 @@ A file of the same name in the site's `assets/` wins over the theme's.
 Everything in `theme/` but `layout.html`, `layouts/`, `share.svg`,
 `icons/`, `types/` and `theme.toml` (and its `theme.<lang>.toml` twins) is
 copied to the site as it is. Like `site.toml`, `theme.toml` and its twins
-are read at build time and never served.
+are read at build time and never served. A theme kept in its own repository may carry a `README.md`, a `LICENSE` and git files (`.git`, `.gitignore`): they are never served either.
 
 ---
 
