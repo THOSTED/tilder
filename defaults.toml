@@ -37,6 +37,9 @@ table = "table"                     # names a scrollable table region
 toc = "contents"                    # the [TOC] block
 website = "website"                 # a member's own site, in the profile links
 languages = "Languages"             # the language switcher, {{ languages }}
+collection_nav = "In this section"  # names the {{ collection_nav }} sidebar; a collection may set nav_label
+prev = "previous"                   # {{ prev }}, and the text mirror's line of a sequential type
+next = "next"                       # {{ next }}
 
 # External links: open in a new tab or not. `same_tab` lists hosts (and
 # their subdomains) that stay in the same tab when new_tab is on.
