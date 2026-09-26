@@ -107,16 +107,28 @@ The text mirror shows the languages after its header: `LANGUAGES: en fr`.
 
 Two placeholders (`docs/theme.md`): `{{ content_lang }}`, and
 `{{ languages }}`, a `<nav class="languages">` with one link per declared
-language, the current one `aria-current="page"`, named from `[languages]`.
+language, the current one `aria-current="page"`. The switcher's names come
+from the default language's `[languages]` table, in `site.toml`: every
+language is named the same way on every page, each in its own words. A
+`[languages]` table in `site.fr.toml` is not read.
+
+`{{ root }}` is the site root even on a page under `/fr/`: the stylesheet,
+the icons and the manifest are written once. `{{ home }}` is the
+language's landing page, for links to pages (`{{ home }}{{ footer.left_link }}`).
+
 The wordmark gains a segment: `~/site/fr/blog/hello`, `fr` linking to the
 language's landing page; `~/site` links to the site root, and each folder
 segment is named from the folder's page in the language of the pass
-(`blog/index.fr.md`'s title on a French page).
+(`blog/index.fr.md`'s title on a French page). A prefixed language's
+landing page shows `~/site` alone, like the default one: `<html lang>`
+says the language.
 
 ## The server
 
 `examples/Caddyfile`: one `@fr path /fr/*` matcher per prefixed language in
-`handle_errors`, so `/fr/nothing` gets `/fr/404.html`. An undeclared prefix
+`handle_errors`, so `/fr/nothing` gets `/fr/404.html`, and one
+`/fr/index /fr/index.html` pair in the `@index` matcher, so `/fr/index`
+redirects to `/fr/`. An undeclared prefix
 is a plain 404; redirect it if you like (`redir /de/* / permanent`). The
 text-mirror rewrite (`try_files {path}.txt ...`) follows the prefix on its
 own.

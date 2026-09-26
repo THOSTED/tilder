@@ -69,7 +69,10 @@ def use(lang):
 
 
 def _language_files():
-    """(path, lang) of every site.<lang>.toml and theme.<lang>.toml."""
+    """(path, lang) of every site.<lang>.toml and theme.<lang>.toml.
+    Everything between the first and the last dot is the language:
+    theme.x.y.toml reads as language "x.y", which setup refuses as
+    undeclared."""
     out = []
     for folder, stem in ((CONTENT, "site"), (THEME, "theme")):
         for p in sorted(folder.glob(f"{stem}.*.toml")) if folder.is_dir() else []:

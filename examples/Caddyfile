@@ -134,8 +134,10 @@
 		header @rss Content-Type "application/rss+xml; charset=utf-8"
 
 		# One URL per page. /events.html and /index redirect to /events and
-		# / - the site's own links are already in their clean form.
-		@index path /index /index.html /blog/index /blog/index.html
+		# / - the site's own links are already in their clean form. The
+		# /fr/ pair: one pair per prefixed language, next to its 404 line
+		# in handle_errors below.
+		@index path /index /index.html /blog/index /blog/index.html /fr/index /fr/index.html
 		redir @index {http.request.uri.path.dir} permanent
 		# A directory has one URL, with its slash: /blog -> /blog/. Without
 		# this, /blog and /blog/ would be the same page twice.

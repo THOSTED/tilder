@@ -1,13 +1,53 @@
+import contextlib
+import io
 import json
 import re
 import unittest
 
 from tests.helpers import build_site
+import languages
+import seo
+from config import CFG
 
 
 def graph(html):
     data = re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.S).group(1)
     return json.loads(data.replace("<\\/", "</"))["@graph"]
+
+
+class HeadUnits(unittest.TestCase):
+    def setUp(self):
+        languages.setup()
+
+    def tearDown(self):
+        languages.setup()
+
+    def test_alternate_hrefs_are_escaped(self):
+        tags = seo.alternates({"path": "a&b.html"})
+        self.assertIn('hreflang="fr" href="https://test.example/fr/a&amp;b"', tags[1])
+        self.assertIn('hreflang="x-default" href="https://test.example/a&amp;b"', tags[2])
+
+    def test_alternate_locales_skip_the_current_one_and_repeats(self):
+        self.assertEqual(seo.alternate_locales(), ["fr_FR"])
+        languages.CONFIGS["fr"]["site"]["locale"] = CFG["site"]["locale"]   # shares en_GB
+        self.assertEqual(seo.alternate_locales(), [])
+        languages.CONFIGS["fr"]["site"]["locale"] = "fr_FR"
+        saved = languages.STATE["languages"]
+        languages.STATE["languages"] = saved + ["de", "ch"]
+        languages.CONFIGS["de"] = {"site": {"locale": "de_DE"}}
+        languages.CONFIGS["ch"] = {"site": {"locale": "de_DE"}}
+        try:
+            self.assertEqual(seo.alternate_locales(), ["fr_FR", "de_DE"])
+        finally:
+            languages.STATE["languages"] = saved
+
+    def test_seo_warnings_name_the_language(self):
+        languages.use("fr")
+        item = {"path": "x.html", "meta": {"title": "t" * 80, "description": "short"}}
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            seo.check([item])
+        self.assertIn("seo: [fr] x.html: title is", err.getvalue())
 
 
 class Head(unittest.TestCase):

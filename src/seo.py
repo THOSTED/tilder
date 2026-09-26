@@ -13,7 +13,7 @@ import posixpath
 import sys
 
 import languages
-from config import ASSETS, CFG, CONTENT, apex, theme_file
+from config import ASSETS, CFG, CONTENT, STATE, apex, theme_file
 from contenttypes import call
 from images import image_size
 from paths import clean_url
@@ -77,9 +77,24 @@ def alternates(item):
     if not languages.multilingual():
         return []
     path = item["path"]
-    out = [f'<link rel="alternate" hreflang="{L}" href="{apex() + clean_url(path, L)}">'
+    out = [f'<link rel="alternate" hreflang="{L}" href="{H.escape(apex() + clean_url(path, L))}">'
            for L in languages.declared()]
-    out.append(f'<link rel="alternate" hreflang="x-default" href="{apex() + clean_url(path, languages.default())}">')
+    out.append(f'<link rel="alternate" hreflang="x-default" '
+               f'href="{H.escape(apex() + clean_url(path, languages.default()))}">')
+    return out
+
+
+def alternate_locales():
+    """og:locale:alternate: every other declared language's locale once, in
+    declaration order. Two languages may share one, and the current one is
+    og:locale already. Nothing in a monolingual site."""
+    if not languages.multilingual():
+        return []
+    out = []
+    for L in languages.declared():
+        loc = languages.CONFIGS[L]["site"]["locale"]
+        if loc != CFG["site"]["locale"] and loc not in out:
+            out.append(loc)
     return out
 
 
@@ -98,9 +113,7 @@ def head_tags(item):
         ("og:site_name", CFG["site"]["name"]),
         ("og:locale", CFG["site"]["locale"]),
     ]
-    if languages.multilingual():
-        props += [("og:locale:alternate", languages.CONFIGS[L]["site"]["locale"])
-                  for L in languages.declared() if L != CFG["site"]["lang"]]
+    props += [("og:locale:alternate", loc) for loc in alternate_locales()]
     props += [
         ("og:type", module.OG_TYPE),
         ("og:title", page_heading(meta)),
@@ -225,7 +238,8 @@ def manifest():
 def check(items):
     """Warn, without failing the build, about what search engines penalise
     or truncate: titles past 60 characters, descriptions outside 50-160,
-    duplicates. The 404 and pages marked noindex are skipped."""
+    duplicates. The 404 and pages marked noindex are skipped. On a
+    multilingual site each line names the language of the pass."""
     limits = CFG["seo"]
     seen_t, seen_d, warnings = {}, {}, []
     for it in items:
@@ -242,6 +256,7 @@ def check(items):
             if value in seen:
                 warnings.append(f"{path}: same {what} as {seen[value]}")
             seen.setdefault(value, path)
+    lang = f"[{STATE['lang']}] " if languages.multilingual() else ""
     for w in warnings:
-        print(f"seo: {w}", file=sys.stderr)
+        print(f"seo: {lang}{w}", file=sys.stderr)
     return warnings

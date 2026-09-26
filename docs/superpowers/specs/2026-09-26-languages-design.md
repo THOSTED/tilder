@@ -131,6 +131,19 @@ piece of syntax. Absolute links and anchors are unchanged. Links written
 by the generator (cards, nav, feeds, `to_top`, the wordmark) follow the same
 rule.
 
+*Amended (final review):* only a target that names a **page** stays inside
+the language: no extension (`events`, `blog/hello`), ending in `/`
+(`blog/`), or empty. A target whose last segment has a file extension
+(`style.css`, `logo.svg`, `events.ics`, an image beside a post) resolves
+from the **site root**, because the build writes those files once, at the
+root. Feeds are the one file kind written under the prefix: the
+generator's own `<link rel="alternate">` for a page's feed keeps the
+language (`relative(..., page=True)`); a feed linked from content is the
+root one unless the link says `/fr/blog/feed.xml`. In the layout,
+`{{ root }}` is the site root (assets) and `{{ home }}` the language's
+landing page; the wordmark's site name links to the site root, its
+language segment to the language's landing page.
+
 **Navigation** comes from the language's configuration; entries are
 resolved in the language, the current one marked as today.
 
@@ -212,13 +225,17 @@ content, different languages, intended).
 ## 6. Mechanics
 
 **`src/languages.py`, new**, holds everything the feature adds: the
-declared languages and the default (`declared()`, `default()`), the suffix
-split (`split("about.en.md") -> ("about", "en")`), the resolution of one
-page for one language (`resolve(folder, name, lang)`), the resolution
-table (`table()`), the siblings of a page (`siblings(path)`, one per
-declared language) and the
-prefix of a language (`prefix(lang)`). In a monolingual site every
-function answers "one language, no prefix, no siblings".
+declared languages and the default (`declared()`, `default()`,
+`multilingual()`), the suffix split (`split("about.en") -> ("about",
+"en")`; no suffix is read in a monolingual site), the file that serves a
+page in a language and its content language (`pick(candidates, lang)`),
+the table of pages by logical path (`pages()`, computed once per build
+and kept in `STATE["pages"]`), the prefix of a language (`prefix(lang)`),
+the check and loading of every language's configuration (`setup()`, into
+`CONFIGS`), and the switch to a language's pass (`use(lang)`). There is no
+siblings function: the switcher and the `hreflang` alternates iterate
+`declared()`, every language being a complete tree. In a monolingual site
+every function answers "one language, no prefix".
 
 **What changes elsewhere.**
 - `config.py`: `load_config(lang=None)` adds the `theme.L.toml` and
@@ -228,12 +245,14 @@ function answers "one language, no prefix, no siblings".
   declared language producing that language's pages, mirror and feeds
   under the prefix; then the sitemap, the calendar and `robots.txt` once.
   The start-up summary gains a line: `languages: fr (default), en`.
-- `paths.py`: `page_path` and `txt_name` take the prefix; `relative()`
-  resolves from the language root, and a `/`-leading target from the site
-  root; `rendered()` recognises language suffixes.
+- `paths.py`: paths stay logical; `clean_url(path, lang)` and
+  `absolute(rel, lang)` add the prefix, `build.py` adds it to the output
+  paths. `relative()` resolves a page target from the language root, and
+  a `/`-leading or file target from the site root (§4); `rendered()` and
+  `page_path()` recognise language suffixes.
 - `contenttypes.py`: `load_items` resolves each item in the current
   language with the same fallback; the dated slug is recognised without
-  suffix; an item's `path` carries the prefix.
+  suffix; an item's `path` stays logical.
 - `page.py`: `{{ languages }}`, `{{ content_lang }}`, the language segment
   of the wordmark, links resolved in the language.
 - `seo.py`: `hreflang`, `og:locale:alternate`, `inLanguage`, the sitemap
