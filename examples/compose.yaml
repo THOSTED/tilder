@@ -12,17 +12,21 @@
 
 services:
   build:
-    build: ./builder
-    working_dir: /repo
-    command: ["python3", "-B", "builder/build.py", "--out", "/site", "--watch"]
+    # The published image holds the generator: no submodule needed. Pin a
+    # major (`:1`) or a version (`:1.2.3`).
+    image: ghcr.io/thosted/tilder:1
     volumes:
-      - ./content:/repo/content:ro
-      - ./theme:/repo/theme:ro
-      - ./assets:/repo/assets:ro
-      - ./builder:/repo/builder:ro
-      - site:/site
+      - ./content:/site/content:ro
+      - ./theme:/site/theme:ro
+      - ./assets:/site/assets:ro
+      - site:/out
+    # With the generator as a submodule in ./builder instead, build the
+    # image locally and mount the code:
+    #   build: ./builder
+    #   command: ["python3", "-B", "/site/builder/build.py", "--root", "/site", "--out", "/out", "--watch"]
+    #   volumes: the four above, plus ./builder:/site/builder:ro
     healthcheck:
-      test: ["CMD", "test", "-f", "/site/index.html"]
+      test: ["CMD", "test", "-f", "/out/index.html"]
       interval: 30s
       start_period: 30s
       start_interval: 1s
