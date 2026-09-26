@@ -47,9 +47,9 @@ Everything in `theme/` but `layout.html`, `layouts/`, `share.svg`,
 | `{{ body }}` | the sections of the page |
 | `{{ script }}` | the `<script>` tags the page needs, if the theme has the files |
 
-Values are HTML-escaped, except the ones the builder computes (`brand`,
-`nav`, `feeds`, `head`, `body`, `script`). The starter's `layout.html` is a
-complete example.
+Values are HTML-escaped, except the ones the builder computes (`type`,
+`root`, `canonical`, `brand`, `nav`, `feeds`, `head`, `body`, `script`).
+The starter's `layout.html` is a complete example.
 
 The layout must keep: `lang="{{ site.lang }}"`, one `{{ brand }}` (it is
 the page's only `<h1>`), a `<main id="contenu">` or equivalent target for

@@ -654,10 +654,10 @@ affiliation: Example Corp
 | `first_name`, `last_name` | The person's names. `last_name` sorts the list. |
 | `display_name` | The name to show, when it differs from first + last (chosen name, pseudonym, single name). When set, it is the only name displayed; the others stay searchable. |
 | `pronouns` | Written as the person writes them (`il/lui`, `elle`, `iel`...). Ask, never guess; leave empty if they prefer. |
-| `category` | `admin`, `mentor` or `membre`. Shown as the card's tag and used by the filter. |
+| `category` | one of the collection's `categories` (`admin` and `member` by default; a site lists its own under `[collections.members]`). Shown as the card's tag and used by the filter. |
 | `affiliation` | Company, school or project, if they want one shown. |
-| `capacity` | Mentors only: quarterly capacity, e.g. `2 dossiers par trimestre`. |
-| `full` | Mentors only: `yes` when the capacity is reached (the tag turns to the warning colour, and "full" is said in words). |
+| `capacity` | A note on remaining capacity, e.g. `2 per term` - for any category that tracks one, such as a site's own `mentor` category. |
+| `full` | `yes` when the capacity above is reached (the tag turns to the warning colour, and "full" is said in words). |
 | `linkedin`, `github`, `gitlab`, `mastodon`, `bluesky`, `website` | Public profile URLs: a row of logos on the card and the page, `rel="me"`, `sameAs` in structured data, `Network: url` in text. Several URLs for one network go on one line, separated by spaces (`github: https://github.com/me https://github.com/my-company`); each is then named with its handle. |
 
 Empty fields are omitted. There is deliberately no gender, age or photo
@@ -666,8 +666,9 @@ field.
 From these fields the build makes:
 
 - a card in every section marked `{members}` - on `/members`, the grid of
-  all members, ordered by category (`admin`, `mentor`, `membre`, then any
-  other) and last name, each card linking to the member's page;
+  all members, ordered by category (in the order of `categories`, unknown
+  categories last), then by last name, each card linking to the member's
+  page;
 - the same card, without the link, at the end of the first section of the
   member's own page;
 - the text mirror of both.

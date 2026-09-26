@@ -8,7 +8,7 @@
     python3 builder/build.py --version       print the builder version and exit
 
 The source is restricted, accented Markdown (builder/docs/markdown.md). Each page
-comes out twice: HTML, and pure ASCII for the terminal (AGENTS.md §11).
+comes out twice: HTML, and pure ASCII for the terminal (AGENTS.md §4).
 
 The builder, one concern per module, all in src/ (../build.py is only the
 entry point):
