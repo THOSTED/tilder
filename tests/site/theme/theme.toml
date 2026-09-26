@@ -1,0 +1,6 @@
+# What is the theme's, not the site's: its colours. The site's site.toml
+# wins on every key it sets.
+
+[share]
+theme_color = "#123456"
+background_color = "#000000"   # the fixture site overrides this one

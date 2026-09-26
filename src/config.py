@@ -31,6 +31,7 @@ def _root():
 ROOT = _root()
 CONTENT = ROOT / "content"
 THEME = ROOT / "theme"             # the site's own theme (builder/starter/theme to begin)
+THEME_TOML = THEME / "theme.toml"
 ASSETS = ROOT / "assets"
 EXTRA = [p for p in [ROOT / "LICENSE"] if p.is_file()]  # served as-is at the root
 CONFIG = CONTENT / "site.toml"
@@ -45,7 +46,7 @@ DATED = re.compile(r"^(\d{4}-\d{2}-\d{2})-[a-z0-9-]+$")
 UNSERVED = ("layout.html", "share.svg", "theme.toml")
 UNSERVED_DIRS = ("icons/", "layouts/", "types/")
 
-# content/site.toml over builder/defaults.toml, re-read at every build (see
+# content/site.toml over theme/theme.toml over builder/defaults.toml, re-read at every build (see
 # load_config). Every user-facing string and site-wide value comes from
 # there: the builder holds none. Mutated in place, so `from config import
 # CFG` stays valid.
@@ -96,8 +97,13 @@ def _merge(base, over):
 
 
 def load_config():
+    """defaults.toml, then the theme's theme.toml if it has one, then the
+    site's content/site.toml: the site has the last word."""
     with DEFAULTS.open("rb") as f:
         data = tomllib.load(f)
+    if THEME_TOML.is_file():
+        with THEME_TOML.open("rb") as f:
+            _merge(data, tomllib.load(f))
     with CONFIG.open("rb") as f:
         _merge(data, tomllib.load(f))
     CFG.clear()
