@@ -1,6 +1,6 @@
 ---
 man: MYSITE(1)
-title: mon site - un site qui se lit comme une page de manuel
+title: my site - un site qui se lit comme une page de manuel
 description: Un site construit à partir de fichiers Markdown : HTML pour les navigateurs, texte brut pour les terminaux.
 tagline: un site qui se lit comme une page de manuel
 nav:

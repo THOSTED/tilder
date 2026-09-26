@@ -5,7 +5,8 @@
 lang = "fr"
 locale = "fr_FR"
 manual = "Manuel de mon site"
-title_suffix = " - mon site"
+# The name of the site is a brand: it stays as it is in every language.
+title_suffix = " - my site"
 
 [labels]
 skip = "aller au contenu"
