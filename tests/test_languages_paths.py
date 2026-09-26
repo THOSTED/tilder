@@ -1,15 +1,18 @@
-import pathlib
 import unittest
 
 from tests import helpers  # noqa: F401 - sys.path and SITE_ROOT
+import contenttypes
 import languages
 import paths
-from config import CONTENT, STATE
+from config import CONTENT
 
 
 class Table(unittest.TestCase):
     def setUp(self):
         languages.setup()
+        contenttypes.load()
+        for name, conf in contenttypes.collections().items():
+            contenttypes.load_items(name, conf)
 
     def test_pages_grouped_by_logical_path(self):
         table = languages.pages()
