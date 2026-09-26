@@ -52,8 +52,10 @@ UNSERVED_DIRS = ("icons/", "layouts/", "types/")
 # CFG` stays valid.
 CFG = {}
 
-# What one build shares: the date that decides upcoming and past events.
-STATE = {"today": ""}
+# What one build shares: the date that decides upcoming and past events,
+# and the language of the current pass (languages.py).
+STATE = {"today": "", "lang": "", "default": "", "languages": [], "prefix": "",
+         "content_lang": ""}
 
 
 def theme_file(name):
@@ -96,16 +98,27 @@ def _merge(base, over):
     return base
 
 
-def load_config():
-    """defaults.toml, then the theme's theme.toml if it has one, then the
-    site's content/site.toml: the site has the last word."""
+def _layer(data, path):
+    if path.is_file():
+        with path.open("rb") as f:
+            _merge(data, tomllib.load(f))
+
+
+def load_config(lang=None):
+    """defaults.toml, the theme's theme.toml, the site's content/site.toml,
+    and with a language its theme.<lang>.toml and site.<lang>.toml, each
+    over the previous: the site has the last word. With a language, [site]
+    lang is that language."""
     with DEFAULTS.open("rb") as f:
         data = tomllib.load(f)
-    if THEME_TOML.is_file():
-        with THEME_TOML.open("rb") as f:
-            _merge(data, tomllib.load(f))
+    _layer(data, THEME_TOML)
+    if lang:
+        _layer(data, THEME / f"theme.{lang}.toml")
     with CONFIG.open("rb") as f:
         _merge(data, tomllib.load(f))
+    if lang:
+        _layer(data, CONTENT / f"site.{lang}.toml")
+        data["site"]["lang"] = lang
     CFG.clear()
     CFG.update(data)
     CFG["site"]["updated"] = str(CFG["site"]["updated"])

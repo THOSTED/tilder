@@ -50,6 +50,7 @@ if "--root" in sys.argv:
 import ansify as ansify_module
 import contenttypes
 import inline
+import languages
 import report
 from ansify import ansify
 from config import (ASSETS, BUILDER, CFG, CONFIG, CONTENT, EXTRA, ROOT, STATE,
@@ -67,7 +68,7 @@ import watch as watch_module
 
 def build():
     """Every output file, as {relative path: bytes}."""
-    load_config()
+    languages.setup()
     inline.EXTERNAL = CFG["labels"]["external"]
     inline.NEW_TAB_LABEL = CFG["labels"]["new_tab"]
     inline.NEW_TAB = CFG["links"]["new_tab"]

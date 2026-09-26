@@ -8,6 +8,7 @@ locale = "en_GB"
 manual = "Test Site Manual"
 updated = 2026-06-01
 title_suffix = " - test site"
+languages = ["en", "fr"]        # the default first; fr is served under /fr/
 
 [footer]
 left = "TESTS"
@@ -38,6 +39,10 @@ image_alt = "~/test site"
 card = ["a fixture"]
 short_name = "test"
 background_color = "#ABCDEF"
+
+[languages]                     # names shown by the language switcher
+en = "English"
+fr = "Français"
 
 [collections.blog]
 type = "post"

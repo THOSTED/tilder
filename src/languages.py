@@ -1,0 +1,107 @@
+"""Languages: the default at the root, every other declared language under
+its own prefix (/en/); page.<lang>.md next to page.md; a fallback so that
+every declared language is a complete tree. docs/languages.md.
+
+The build runs one pass per language (languages.use). Paths stay logical
+everywhere; the prefix is added at the edges (paths.py, build.py).
+"""
+
+import copy
+import re
+import tomllib
+
+from config import CFG, CONFIG, CONTENT, STATE, THEME, load_config
+from report import error, fail
+
+# What looks like a language code after the last dot of a file stem: en,
+# fr, pt-br. A stem like "v1.2" or "notes.final" is a plain name.
+SUFFIX = re.compile(r"^[a-z]{2,3}(-[a-z0-9]{2,4})?$")
+
+CONFIGS = {}   # lang -> the full configuration of that language (a copy)
+
+
+def split(stem):
+    """"about.en" -> ("about", "en"); "about" -> ("about", None)."""
+    name, dot, suffix = stem.rpartition(".")
+    if dot and SUFFIX.match(suffix):
+        return name, suffix
+    return stem, None
+
+
+def declared():
+    return list(STATE["languages"])
+
+
+def default():
+    return STATE["default"]
+
+
+def multilingual():
+    return len(STATE["languages"]) > 1
+
+
+def prefix(lang=None):
+    """"" for the default language (and before setup), "fr/" for another."""
+    lang = lang or STATE["lang"]
+    return "" if not lang or lang == STATE["default"] else f"{lang}/"
+
+
+def pick(candidates, lang):
+    """The file that serves a page in `lang`, and its content language.
+    candidates: {lang or None: path}. Order: the language, the default, no
+    suffix, then the other declared languages in declaration order."""
+    order = [lang, STATE["default"], None]
+    order += [l for l in STATE["languages"] if l not in order]
+    for key in order:
+        if key in candidates:
+            return candidates[key], key or STATE["default"]
+    return None, None
+
+
+def use(lang):
+    """Load the language's configuration and make it the current pass."""
+    load_config(lang)
+    STATE["lang"], STATE["prefix"] = lang, prefix(lang)
+
+
+def _language_files():
+    """(path, lang) of every site.<lang>.toml and theme.<lang>.toml."""
+    out = []
+    for folder, stem in ((CONTENT, "site"), (THEME, "theme")):
+        for p in sorted(folder.glob(f"{stem}.*.toml")) if folder.is_dir() else []:
+            out.append((p, p.name[len(stem) + 1:-5]))
+    return out
+
+
+def setup():
+    """Read [site] lang and languages, check them and the language files,
+    load every language's configuration into CONFIGS, and leave the
+    default one loaded. Every problem is reported before the build stops."""
+    load_config()
+    dflt = CFG["site"]["lang"]
+    langs = list(CFG["site"].get("languages") or [dflt])
+    errs = []
+    if dflt not in langs:
+        errs.append(error(CONFIG, f'[site] languages does not contain the default language "{dflt}"',
+                          "Add it, or change [site] lang"))
+        langs.insert(0, dflt)
+    listed = ", ".join(langs)
+    for path, lang in _language_files():
+        if lang not in langs:
+            errs.append(error(path, f'"{lang}" is not a declared language',
+                              f"Declared: {listed} ([site] languages in {CONFIG.relative_to(CONTENT.parent)})"))
+            continue
+        with path.open("rb") as f:
+            said = tomllib.load(f).get("site", {}).get("lang")
+        if said and said != lang:
+            errs.append(error(path, f'[site] lang is "{said}", not "{lang}"',
+                              "A language's file sets its own lang, or leaves it out"))
+    if errs:
+        fail(errs)
+    STATE["default"], STATE["languages"] = dflt, langs
+    CONFIGS.clear()
+    for lang in langs:
+        load_config(lang)
+        CONFIGS[lang] = copy.deepcopy(CFG)
+    use(dflt)
+    return langs

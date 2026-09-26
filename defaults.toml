@@ -11,6 +11,8 @@ locale = "en_GB"                    # Open Graph
 manual = "My Site Manual"           # centre of the man-page header rule
 updated = 2026-01-01                # date in the footer rule and the feeds
 title_suffix = " - my site"         # appended to every <title> that lacks the name
+languages = []                      # every language served, the default (lang) first;
+                                    # empty: one language, no prefix (docs/languages.md)
 
 [footer]
 left = "SITE"                       # links to footer.left_link
@@ -34,12 +36,17 @@ new_tab = "opens in a new tab"      # said by screen readers
 table = "table"                     # names a scrollable table region
 toc = "contents"                    # the [TOC] block
 website = "website"                 # a member's own site, in the profile links
+languages = "Languages"             # the language switcher, {{ languages }}
 
 # External links: open in a new tab or not. `same_tab` lists hosts (and
 # their subdomains) that stay in the same tab when new_tab is on.
 [links]
 new_tab = false
 same_tab = []
+
+# The names the language switcher shows, by code: en = "English". A language
+# without a name shows its code.
+[languages]
 
 # The navigation, in order. `href` is written from the site root ("" is the
 # landing page); `https://` links are external.
