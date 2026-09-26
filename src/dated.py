@@ -13,19 +13,12 @@ import datetime
 import urllib.parse
 
 from config import CFG, CONTENT, DATED, STATE
+from dates import human_date
 from markdown import front_matter
 
 POSTS, EVENTS = "posts", "events"
 # Section markers that list a collection: {posts}, {upcoming:talks}...
 LIST_MARKERS = {"posts": POSTS, "upcoming": EVENTS, "past": EVENTS, "next-event": EVENTS}
-
-
-def human_date(iso):
-    """2026-11-21 -> "samedi 21 novembre 2026", words from [dates]."""
-    d, day = CFG["dates"], datetime.date.fromisoformat(iso)
-    return d["format"].format(
-        weekday=d["weekdays"][day.weekday()], month=d["months"][day.month - 1],
-        day=d["first"] if day.day == 1 else day.day, year=day.year)
 
 
 def collections():
