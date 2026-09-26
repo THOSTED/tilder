@@ -67,6 +67,7 @@ from seo import check, manifest, robots, sitemap_xml
 from text import plain, render_txt
 from watch import snapshot, watch
 import watch as watch_module
+import sequence
 
 def build():
     """Every output file, as {relative path: bytes}: one pass per declared
@@ -111,7 +112,7 @@ def build():
                 contenttypes.fill_lists(sections, src, it["path"], colls, items)
                 out[prefix + it["path"]] = render_html(it, sections, preamble, colls, items)
                 if meta.get("text", "yes") != "no":
-                    marked = render_txt(meta, sections)
+                    marked = render_txt(meta, sections, sequence.txt_line(it, colls, items))
                     out[f"txt/{prefix}{txt_name(it['path'])}.txt"] = plain(marked)
                     out[f"ansi/{prefix}{txt_name(it['path'])}.txt"] = ansify(marked)
             except report.BuildError:
