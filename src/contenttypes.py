@@ -30,7 +30,8 @@ ERRORS = []    # what load() and collections() found, reported together by check
 # Attributes a type may leave out, with their defaults. LAYOUT None means
 # "the type's NAME".
 FLAGS = {"DATED": False, "ARTICLE": False, "OG_TYPE": "website", "SCRIPT": "",
-         "LAYOUT": None, "DEFAULTS": {}, "MARKERS": {}}
+         "LAYOUT": None, "DEFAULTS": {}, "MARKERS": {},
+         "SEQUENTIAL": False, "LOCALIZED_OUTPUTS": False}
 # Functions a type may leave out, with what the build does then.
 HOOKS = {
     "defaults": lambda item, conf: None,

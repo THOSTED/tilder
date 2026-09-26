@@ -65,3 +65,7 @@ categories = ["admin", "mentor", "member"]
 [collections.talks]
 type = "talk"
 feed = "talks.xml"
+
+[collections.guides]
+type = "guide"
+nav_label = "Guide contents"

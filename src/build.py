@@ -119,14 +119,20 @@ def build():
                 raise report.error(src, f"cannot be built: {e.__class__.__name__}: {e}",
                                    "Run with --debug for the traceback", exc=e)
         # Feeds per language; the types' own files (an iCalendar) once, in
-        # the default language: a calendar has no interface language.
+        # the default language, unless the type sets LOCALIZED_OUTPUTS: a
+        # calendar has no interface language.
         for name, conf in colls.items():
             if not (CONTENT / conf["dir"]).is_dir():
                 continue
             module = contenttypes.TYPES[conf["type"]]
             if conf.get("feed") and module.HAS_FEED:
                 out[prefix + conf["feed"]] = feed(items[name], conf)
-            if lang == langs[0]:
+            # LOCALIZED_OUTPUTS: the type's files in every language, under
+            # its prefix (a search index); else once, in the default.
+            if module.LOCALIZED_OUTPUTS:
+                files = contenttypes.call(CONTENT / conf["dir"], module, "outputs", items[name], conf)
+                out.update({prefix + p: text for p, text in files.items()})
+            elif lang == langs[0]:
                 out.update(contenttypes.call(CONTENT / conf["dir"], module, "outputs", items[name], conf))
         check(pages)
         every.extend(pages)
