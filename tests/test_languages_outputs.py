@@ -61,3 +61,12 @@ class Monolingual(unittest.TestCase):
         self.assertIn('<main id="contenu" lang="en">', index)
         self.assertNotIn("xmlns:xhtml", (out / "sitemap.xml").read_text())
         self.assertNotIn("LANGUAGES:", (out / "txt" / "index.txt").read_text())
+
+    def test_no_suffix_rule(self):
+        # A monolingual site reads no language suffix: notes.old.md is a page.
+        (self.site / "content" / "notes.old.md").write_text(
+            "---\nman: TEST-NOTES(7)\ntitle: Old notes\ndescription: Notes kept under an old name, to test that a monolingual site reads no suffix.\n---\n\n"
+            "## Name\n\nold notes - a page {mono}\n")
+        code, err = run(self.site)
+        self.assertEqual(code, 0, err)
+        self.assertTrue((self.site / "out" / "notes.old.html").is_file())

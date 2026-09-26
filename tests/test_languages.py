@@ -14,6 +14,13 @@ from config import BUILDER, CFG, CONTENT, STATE, load_config
 
 
 class Split(unittest.TestCase):
+    def setUp(self):
+        self.saved = STATE["languages"]
+        STATE["languages"] = ["en", "fr"]
+
+    def tearDown(self):
+        STATE["languages"] = self.saved
+
     def test_suffix(self):
         self.assertEqual(languages.split("about.en"), ("about", "en"))
         self.assertEqual(languages.split("about"), ("about", None))
@@ -21,6 +28,13 @@ class Split(unittest.TestCase):
         self.assertEqual(languages.split("2026-01-01-hello.fr"), ("2026-01-01-hello", "fr"))
         self.assertEqual(languages.split("v1.2"), ("v1.2", None))          # not a language code
         self.assertEqual(languages.split("notes.final"), ("notes.final", None))
+
+    def test_no_suffix_in_a_monolingual_site(self):
+        STATE["languages"] = ["en"]
+        self.assertEqual(languages.split("notes.old"), ("notes.old", None))
+        self.assertEqual(languages.split("about.fr"), ("about.fr", None))
+        STATE["languages"] = []                                              # before setup
+        self.assertEqual(languages.split("about.fr"), ("about.fr", None))
 
 
 class Setup(unittest.TestCase):

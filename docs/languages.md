@@ -58,6 +58,10 @@ A stem like `v1.2` or `notes.final` is a plain name, but a stem ending in
 a two- or three-letter word - `readme.txt.md` - is read as a language
 suffix.
 
+A monolingual site reads no suffix on pages: `notes.old.md` is the page
+`notes.old`. A `site.xx.toml` or `theme.xx.toml` there still stops the
+build.
+
 ## Links
 
 Links are written from the site root, as always (`[events](events)`), and
@@ -105,7 +109,9 @@ Two placeholders (`docs/theme.md`): `{{ content_lang }}`, and
 `{{ languages }}`, a `<nav class="languages">` with one link per declared
 language, the current one `aria-current="page"`, named from `[languages]`.
 The wordmark gains a segment: `~/site/fr/blog/hello`, `fr` linking to the
-language's landing page.
+language's landing page; `~/site` links to the site root, and each folder
+segment is named from the folder's page in the language of the pass
+(`blog/index.fr.md`'s title on a French page).
 
 ## The server
 

@@ -68,3 +68,17 @@ class Switcher(unittest.TestCase):
         self.assertIn('<a href="./">fr</a>', out["fr/events.html"])           # the segment links to /fr/
         self.assertNotIn(">en</a>", out["events.html"])
         self.assertIn('<a href="../">fr</a>', out["fr/blog/2026-01-01-hello.html"])
+
+    def test_site_name_links_to_the_site_root(self):
+        out = build_site()
+        self.assertIn('<h1 class="wordmark"><a href="../"><span class="tilde" aria-hidden="true">~/</span>'
+                      'test site</a><span class="slash" aria-hidden="true">/</span><span class="sr-only">, </span>'
+                      '<a href="./">fr</a>', out["fr/events.html"])
+        self.assertIn('<h1 class="wordmark"><a href="../../"><span class="tilde"', out["fr/blog/2026-01-01-hello.html"])
+        self.assertIn('<h1 class="wordmark"><a href="../"><span class="tilde"', out["blog/2026-01-01-hello.html"])
+
+    def test_parent_segments_in_the_language(self):
+        out = build_site()
+        self.assertIn('<a href="./">le blogue</a>', out["fr/blog/2026-01-01-hello.html"])
+        self.assertIn('<a href="./">blog</a>', out["blog/2026-01-01-hello.html"])
+        self.assertNotIn(">le blogue</a>", out["blog/2026-01-01-hello.html"])

@@ -21,7 +21,11 @@ CONFIGS = {}   # lang -> the full configuration of that language (a copy)
 
 
 def split(stem):
-    """"about.en" -> ("about", "en"); "about" -> ("about", None)."""
+    """"about.en" -> ("about", "en"); "about" -> ("about", None). In a
+    monolingual site (and before setup) there is no suffix to read:
+    "notes.old" -> ("notes.old", None)."""
+    if len(STATE["languages"]) <= 1:
+        return stem, None
     name, dot, suffix = stem.rpartition(".")
     if dot and SUFFIX.match(suffix):
         return name, suffix
@@ -96,7 +100,10 @@ def setup():
         if said and said != lang:
             errs.append(error(path, f'[site] lang is "{said}", not "{lang}"',
                               "A language's file sets its own lang, or leaves it out"))
-    for f in sorted(CONTENT.rglob("*.md")):
+    # split() reads suffixes only once the site is known to be multilingual;
+    # a monolingual site has no suffix to check: notes.old.md is a page.
+    STATE["default"], STATE["languages"] = dflt, langs
+    for f in sorted(CONTENT.rglob("*.md")) if len(langs) > 1 else []:
         if any(part.startswith("_") for part in f.relative_to(CONTENT).parts):
             continue
         _, lang = split(f.stem)
@@ -105,7 +112,6 @@ def setup():
                               f"Declared: {listed} ([site] languages in {CONFIG.relative_to(CONTENT.parent)})"))
     if errs:
         fail(errs)
-    STATE["default"], STATE["languages"] = dflt, langs
     CONFIGS.clear()
     for lang in langs:
         load_config(lang)

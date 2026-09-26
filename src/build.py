@@ -93,7 +93,7 @@ def build():
             # The table needs paths.ITEM_FOLDERS, which load_items fills. The
             # item folders come from the first pass; an item kept flat in one
             # language and as a folder in another is not supported.
-            table = languages.pages()
+            table = STATE["pages"] = languages.pages()
             head = (f"languages: {langs[0]} (default), {', '.join(langs[1:])}\n"
                     if languages.multilingual() else "")
             STATE["summary"] = head + contenttypes.summary(colls, items)

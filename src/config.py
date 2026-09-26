@@ -55,9 +55,10 @@ CONFIG_FILE = re.compile(r"^(site|theme)(\.[^.]+)?\.toml$")
 CFG = {}
 
 # What one build shares: the date that decides upcoming and past events,
-# and the language of the current pass (languages.py).
+# the language of the current pass (languages.py), and the table of pages
+# by logical path (languages.pages), computed once per build.
 STATE = {"today": "", "lang": "", "default": "", "languages": [], "prefix": "",
-         "content_lang": ""}
+         "content_lang": "", "pages": None}
 
 
 def theme_file(name):

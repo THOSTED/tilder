@@ -295,8 +295,8 @@ def render_html(item, sections, preamble=(), colls=None):
         body.append("</section>\n")
 
     # The <h1> is the wordmark, as a path: ~/<site> on the landing page,
-    # ~/<site>/<title> elsewhere, the site's name linking home. Screen
-    # readers hear "<site>, <title>": the ~/ and the / are decoration.
+    # ~/<site>/<title> elsewhere, the site's name linking to the site root.
+    # Screen readers hear "<site>, <title>": the ~/ and the / are decoration.
     name = H.escape(CFG["site"]["name"])
     cursor = '<span class="cursor" aria-hidden="true"></span>'
     tilde = '<span class="tilde" aria-hidden="true">~/</span>'
@@ -313,18 +313,24 @@ def render_html(item, sections, preamble=(), colls=None):
         folders = d.split("/") if d else []
         if path.endswith("/index.html"):
             folders = folders[:-1]
+        table = STATE["pages"] or languages.pages()
         for i, part in enumerate(folders):
             target = "/".join(d.split("/")[:i + 1])
-            folder_page = CONTENT / target / "index.md"
-            index = target + "/" if folder_page.is_file() else target
-            # The segment is named like the page it links to, so the path
-            # reads the same everywhere: that page's `name:`, else its title
-            # (what its own <h1> shows), else the folder's name.
-            src = folder_page if folder_page.is_file() else CONTENT / (target + ".md")
-            parent = front_matter(src.read_text())[0] if src.is_file() else {}
+            # The folder's index in any language makes the link blog/;
+            # else the page beside the folder, if any: blog.
+            candidates = table.get(target + "/index.md")
+            index = target + "/" if candidates else target
+            # The segment is named like the page it links to, in the language
+            # of the pass, so the path reads the same everywhere: that page's
+            # `name:`, else its title (what its own <h1> shows), else the
+            # folder's name.
+            src, _ = languages.pick(candidates or table.get(target + ".md") or {}, STATE["lang"])
+            parent = front_matter(src.read_text())[0] if src else {}
             shown = page_heading(parent) if parent.get("title") else None
             parents += f'{slash}<a href="{res(index)}">{H.escape(shown or part)}</a>'
-        brand = (f'<h1 class="wordmark"><a href="{res("")}">{tilde}{name}</a>{parents}'
+        # The site's name links to the site root; the language's segment to
+        # the language's landing page.
+        brand = (f'<h1 class="wordmark"><a href="{res("/")}">{tilde}{name}</a>{parents}'
                  f'{slash}<span class="here">{H.escape(page_heading(meta))}</span>{cursor}</h1>')
 
     if meta.get("layout"):
