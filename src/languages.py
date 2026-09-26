@@ -105,3 +105,20 @@ def setup():
         CONFIGS[lang] = copy.deepcopy(CFG)
     use(dflt)
     return langs
+
+
+def pages():
+    """Every rendered .md, grouped by logical path: {"about.md": {None:
+    Path("content/about.md"), "fr": Path("content/about.fr.md")}}. Keys are
+    content/-relative, suffix stripped; a folder item keeps its
+    "<folder>/index.md" key."""
+    import paths  # paths imports this module
+    table = {}
+    for f in sorted(CONTENT.rglob("*.md")):
+        if not paths.rendered(f):
+            continue
+        rel = f.relative_to(CONTENT)
+        name, lang = split(rel.stem)
+        key = str(rel.with_name(name + ".md"))
+        table.setdefault(key, {})[lang] = f
+    return table

@@ -60,7 +60,7 @@ from fold import to_ascii
 from feeds import feed
 from markdown import parse, site_path
 from page import render_html
-from paths import clean_url, rendered, txt_name
+from paths import clean_url, txt_name
 from seo import check, manifest, robots, sitemap_xml
 from text import plain, render_txt
 from watch import snapshot, watch
@@ -85,7 +85,10 @@ def build():
     by_src = {it["src"]: it for its in items.values() for it in its}
     STATE["summary"] = contenttypes.summary(colls, items)
     out, pages = {}, []  # pages: every item that is an HTML page, for sitemap and SEO checks
-    for src in sorted(p for p in CONTENT.rglob("*.md") if rendered(p)):
+    table = languages.pages()
+    for key in sorted(table):
+        src, content_lang = languages.pick(table[key], STATE["lang"])
+        STATE["content_lang"] = content_lang
         try:
             meta, sections, preamble = parse(src)
             it = by_src[src] if src in by_src else contenttypes.page_item(src, meta)

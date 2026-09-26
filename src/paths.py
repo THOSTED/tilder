@@ -1,8 +1,11 @@
-"""From content/ paths to output paths, URLs and relative links."""
+"""From content/ paths to output paths, URLs and relative links. Paths are
+logical, without a language prefix; the prefix is added here where a URL
+or a link leaves the language (clean_url, absolute, a /-leading target)."""
 
 import os
 
-from config import CONTENT, DATED
+from config import CONTENT, DATED, STATE, apex
+from languages import prefix, split
 
 # content/-relative folders that are one item each (a member kept as a
 # folder with a file beside its page): only their index.md is a page, and
@@ -22,21 +25,35 @@ def txt_name(html_path):
     return n
 
 
-def clean_url(html_path):
+def clean_url(html_path, lang=None):
+    """The URL path of a page in a language (default: the current pass):
+    "/", "/fr/", "/fr/events", "/blog/"."""
     n = html_path[:-5]
+    p = prefix(lang)
     if n == "index":
-        return "/"
+        return "/" + p
     if n.endswith("/index"):
-        return "/" + n[: -len("/index")] + "/"
-    return "/" + n
+        return "/" + p + n[: -len("/index")] + "/"
+    return "/" + p + n
+
+
+def absolute(rel, lang=None):
+    """The absolute URL of a root-relative file of a language: feeds."""
+    return f"{apex()}/{prefix(lang)}{rel}"
 
 
 def relative(from_dir, target):
-    """Resolve a root-relative target ("", "events", "blog/", "./#id") from
-    the directory of the page being rendered. A bare "#id" stays on the page."""
+    """Resolve a target from the directory of the page being rendered. A
+    root-relative target ("", "events", "blog/", "./#id") is inside the
+    language; a target starting with "/" is from the site root, so a page
+    may link to another language ("/events", "/fr/events"). A bare "#id"
+    stays on the page."""
     if target.startswith("http") or target.startswith("#"):
         return target
     target, hash_, frag = target.partition("#")
+    if target.startswith("/"):
+        base = (STATE["prefix"] + from_dir).rstrip("/")
+        return _relative(base, target[1:]) + hash_ + frag
     if target in ("", "."):
         target = ""
     return _relative(from_dir, target.removeprefix("./")) + hash_ + frag
@@ -59,17 +76,21 @@ def _relative(from_dir, target):
 
 def rendered(path):
     """A Markdown file is a page unless a part of its path starts with `_`
-    (templates), or it sits in an item's folder without being its index.md."""
+    (templates), or it sits in an item's folder without being its index
+    (index.md, index.fr.md)."""
     rel = path.relative_to(CONTENT)
     if any(part.startswith("_") for part in rel.parts):
         return False
-    return rel.name == "index.md" or not item_folder(rel.parent)
+    name, _ = split(rel.stem)
+    return name == "index" or not item_folder(rel.parent)
 
 
 def page_path(src):
     """content/blog/X/index.md -> blog/X.html: an item folder's page sits
-    next to the folder, so the URL does not change with the layout."""
+    next to the folder. The language suffix is not part of the path:
+    about.fr.md -> about.html."""
     rel = src.relative_to(CONTENT)
-    if rel.name == "index.md" and item_folder(rel.parent):
+    name, _ = split(rel.stem)
+    if name == "index" and item_folder(rel.parent):
         return str(rel.parent) + ".html"
-    return str(rel.with_suffix(".html"))
+    return str(rel.with_name(name + ".html"))
