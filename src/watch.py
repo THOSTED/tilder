@@ -8,6 +8,23 @@ import time
 import report
 from config import ASSETS, BUILDER, CONTENT, EXTRA, THEME
 
+CODE = (str(BUILDER), str(THEME / "types"))
+
+
+def restarts(moved):
+    """Did the code itself change - the generator, or a theme type? The
+    process still runs the old code: it must restart to load the new."""
+    for k in moved:
+        # Check THEME/types first (highest priority)
+        if k.startswith(str(THEME / "types")):
+            return True
+        # Check BUILDER, but exclude paths under THEME or CONTENT if they're under BUILDER
+        if k.startswith(str(BUILDER)):
+            if not (k.startswith(str(THEME)) or k.startswith(str(CONTENT))):
+                return True
+    return False
+
+
 def snapshot():
     """mtime and size of every source file, the builder included."""
     state = {}
@@ -20,7 +37,6 @@ def snapshot():
 
 
 def watch(dest, interval, build_into):
-    code = str(BUILDER)
     before, day = snapshot(), datetime.date.today()
     while True:
         time.sleep(interval)
@@ -37,9 +53,9 @@ def watch(dest, interval, build_into):
             continue
         moved = {k for k in now.keys() | before.keys() if now.get(k) != before.get(k)}
         before = now
-        if any(k.startswith(code) for k in moved):
+        if restarts(moved):
             # The renderer itself changed: restart to load the new code.
-            print("builder/ changed, restarting", flush=True)
+            print("builder/ or theme/types/ changed, restarting", flush=True)
             os.execv(sys.executable, [sys.executable] + sys.argv)
         try:
             build_into(dest)

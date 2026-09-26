@@ -5,6 +5,7 @@
     python3 builder/build.py --out DIR       build into DIR
     python3 builder/build.py --watch         build, then rebuild on every change
     python3 builder/build.py --debug         show Python tracebacks after error messages
+    python3 builder/build.py --version       print the builder version and exit
 
 The source is restricted, accented Markdown (builder/docs/markdown.md). Each page
 comes out twice: HTML, and pure ASCII for the terminal (AGENTS.md §11).
@@ -61,6 +62,7 @@ from paths import clean_url, rendered, txt_name
 from seo import check, manifest, robots, sitemap_xml
 from text import plain, render_txt
 from watch import snapshot, watch
+import watch as watch_module
 
 def build():
     """Every output file, as {relative path: bytes}."""
@@ -175,14 +177,25 @@ def main():
     if args[:1] and args[0] in ("-h", "--help"):
         print(__doc__)
         return 0
+    if "--version" in args:
+        print(os.environ.get("TILDER_VERSION", "dev"))
+        return 0
     report.DEBUG = "--debug" in args
     if "--out" in args:
         dest = pathlib.Path(args[args.index("--out") + 1]).resolve()
     dest.mkdir(parents=True, exist_ok=True)
     if "--watch" in args:
         interval = float(os.environ.get("BUILD_INTERVAL", "1"))
-        own_code = lambda: {k: v for k, v in snapshot().items()
-                            if k.startswith(str(BUILDER))}
+        def own_code():
+            result = {}
+            for k, v in snapshot().items():
+                # Use the same logic as watch.restarts()
+                if k.startswith(str(THEME / "types")):
+                    result[k] = v
+                elif k.startswith(str(BUILDER)):
+                    if not (k.startswith(str(THEME)) or k.startswith(str(CONTENT))):
+                        result[k] = v
+            return result
         code = own_code()
         while True:
             try:
@@ -193,10 +206,10 @@ def main():
                 # this process still runs the code that failed.
                 report.report(e)
                 print("build failed: waiting for a change in content/, theme/ or assets/ "
-                      "(a change in builder/ restarts)", flush=True)
+                      "(a change in builder/ or theme/types/ restarts)", flush=True)
                 time.sleep(interval * 5)
                 if own_code() != code:
-                    print("builder/ changed, restarting", flush=True)
+                    print("builder/ or theme/types/ changed, restarting", flush=True)
                     os.execv(sys.executable, [sys.executable] + sys.argv)
         watch(dest, interval, build_into)
     else:
