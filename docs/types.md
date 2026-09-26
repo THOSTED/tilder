@@ -132,8 +132,10 @@ A collection's order is the type's `sort_key`. A theme shows it with
 `{{ collection_nav }}`, `{{ prev }}` and `{{ next }}` (`docs/theme.md`).
 An item may set `group` in its front matter: the sidebar gathers the items
 by group, the groups in the order of their first item, the items without a
-group first. A collection may set `nav_label`, the sidebar's accessible
-name; else `labels.collection_nav`.
+group first. Group labels are compared as written, per language: an item's
+`group` must be translated the same way in every file of a language, else
+two groups appear in the sidebar. A collection may set `nav_label`, the
+sidebar's accessible name; else `labels.collection_nav`.
 
 ### Functions
 
