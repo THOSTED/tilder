@@ -83,7 +83,7 @@ docs/           markdown.md (the format), theme.md (the theme contract),
                 types.md (the content-type contract), seo.md, screenshots/
 starter/        a minimal site to copy: content/, assets/, theme/ (a minimal theme)
 examples/       Caddyfile, compose.yaml: serving a site
-tests/          the suite: `python3 -m unittest discover -s tests -v`
+tests/          the suite: `python3 -m unittest discover -s tests -t . -v`
 Dockerfile      Python + rsvg-convert + woff2_decompress
 ```
 
@@ -183,7 +183,7 @@ canonical link, description or structured data.
 
 ```bash
 # 0. The test suite must be green.
-python3 -m unittest discover -s tests
+python3 -m unittest discover -s tests -t .
 
 # 1. The output does not change unless the change meant it to. Build the
 #    site you work with before and after, and compare.

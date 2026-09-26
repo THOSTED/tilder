@@ -1,10 +1,13 @@
+import contextlib
+import io
 import json
 import re
+import textwrap
 import unittest
 
-from tests.helpers import build_site
+from tests.helpers import build_site, rebuild
 import contenttypes
-from config import load_config
+from config import STATE, THEME, load_config
 
 
 class ThemeType(unittest.TestCase):
@@ -44,3 +47,34 @@ class ThemeType(unittest.TestCase):
         chosen = talk.MARKERS["talks"]([], {**talk.DEFAULTS})
         self.assertEqual(chosen["items"], [])
         self.assertEqual(chosen["empty"], "No upcoming talk.")
+
+    def test_theme_member_replaces_the_builtin_silently(self):
+        mine = THEME / "types" / "member.py"
+        mine.write_text(textwrap.dedent('''
+            from contenttypes import TYPES
+            builtin = TYPES["member"]
+            NAME = "member"
+            SCRIPT = builtin.SCRIPT
+            DEFAULTS = builtin.DEFAULTS
+            MARKERS = {"members": builtin.MARKERS["members"]}
+            defaults, sort_key = builtin.defaults, builtin.sort_key
+            json_ld, list_data = builtin.json_ld, builtin.list_data
+
+            def entry(item, link, conf):
+                node = builtin.entry(item, link, conf)
+                node["title"] += " (theme card)"
+                return node
+        '''))
+        err = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(err):
+                out = rebuild()
+        finally:
+            mine.unlink()
+            for cached in (THEME / "types" / "__pycache__").glob("member.*"):
+                cached.unlink()
+        self.assertIn("(theme card)", out["members.html"])
+        self.assertEqual(STATE["summary"].splitlines()[0],
+                         "types: event, page, post; from theme: member, talk")
+        self.assertNotIn("member", "".join(l for l in err.getvalue().splitlines(True)
+                                           if l.startswith("warning:")))

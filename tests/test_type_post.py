@@ -1,5 +1,6 @@
 import unittest
 
+from tests import helpers  # noqa: F401 - sys.path and SITE_ROOT
 import contenttypes
 from config import STATE, load_config
 

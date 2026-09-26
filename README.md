@@ -123,8 +123,8 @@ the standard library. `docs/markdown.md` is the format; keep it in step
 with `markdown.py`, `page.py` and `text.py`, since every construct is
 rendered twice.
 
-`tests/`: `python3 -m unittest discover -s tests` builds a fixture site and
-checks it.
+`tests/`: `python3 -m unittest discover -s tests -t .` builds a fixture
+site and checks it.
 
 ## Why 75 columns
 

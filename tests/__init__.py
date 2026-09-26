@@ -1,6 +1,7 @@
-"""The test suite: `python3 -m unittest discover -s tests -v` from the
-repository root. Every test builds the fixture site in tests/site/, with
-a fixed date, and looks at the files the build returns."""
+"""The test suite: `python3 -m unittest discover -s tests -t . -v` from
+the repository root. With `-t .` the modules import as tests.<name>, so
+this file always runs first. Every test builds the fixture site in
+tests/site/, with a fixed date, and looks at the files the build returns."""
 
 import os
 import pathlib

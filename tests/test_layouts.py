@@ -17,7 +17,7 @@ class Layouts(unittest.TestCase):
     def test_front_matter_layout_wins(self):
         # The event layout, asked for by a plain page.
         page = CONTENT / "special.md"
-        page.write_text("---\nman: TEST(1)\ntitle: special\ndescription: A page that asks for the event layout.\n"
+        page.write_text("---\nman: TEST(1)\ntitle: special\ndescription: A page of the fixture that asks for the event layout in its front matter.\n"
                         "tagline: t\nnav: -\nlayout: event\n---\n\n## Name\n\nspecial {mono}\n")
         try:
             from tests.helpers import rebuild
