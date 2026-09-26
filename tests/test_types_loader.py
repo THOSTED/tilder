@@ -5,6 +5,7 @@ import tempfile
 import textwrap
 import unittest
 
+from tests import helpers  # noqa: F401 - sys.path and SITE_ROOT
 import contenttypes
 import report
 
@@ -71,8 +72,9 @@ class Loader(unittest.TestCase):
         self.assertEqual(contenttypes.load([self.dir]), {})
 
     def errors(self, *dirs):
+        contenttypes.load(list(dirs))   # gathers, does not raise
         with self.assertRaises(report.BuildError) as cm:
-            contenttypes.load(list(dirs))
+            contenttypes.check()
         return [m for m, _ in cm.exception.items]
 
     def test_missing_name_and_entry(self):

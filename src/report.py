@@ -11,7 +11,7 @@ enough.
 import sys
 import traceback
 
-from config import ROOT
+from config import BUILDER, ROOT
 
 DEBUG = False  # --debug: tracebacks after the messages
 
@@ -25,11 +25,15 @@ class BuildError(Exception):
 
 
 def rel(path):
-    """A path as the user knows it: relative to the site root when under it."""
-    try:
-        return str(path.relative_to(ROOT))
-    except (AttributeError, ValueError):
-        return str(path)
+    """A path as the user knows it: relative to the site root when under
+    it, else to the generator's root (types/post.py, in Docker too), else
+    as given."""
+    for base in (ROOT, BUILDER):
+        try:
+            return str(path.relative_to(base))
+        except (AttributeError, ValueError):
+            pass
+    return str(path)
 
 
 def message(path, what, hint="", line=None):

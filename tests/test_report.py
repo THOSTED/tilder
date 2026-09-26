@@ -5,7 +5,7 @@ import unittest
 
 from tests import helpers  # noqa: F401 - triggers tests.__init__ setup
 import report
-from config import ROOT
+from config import BUILDER, ROOT
 
 
 class Report(unittest.TestCase):
@@ -23,6 +23,14 @@ class Report(unittest.TestCase):
     def test_path_outside_root_is_kept(self):
         e = report.error(pathlib.Path("/elsewhere/t.py"), "boom")
         self.assertEqual(str(e), "/elsewhere/t.py: boom")
+
+    def test_generator_paths_are_relative_to_the_generator(self):
+        # The site root first (the fixture lives inside the generator), then
+        # the generator's root: messages read types/post.py, in Docker too.
+        self.assertEqual(report.rel(ROOT / "theme" / "types" / "talk.py"), "theme/types/talk.py")
+        self.assertEqual(report.rel(BUILDER / "types" / "post.py"), "types/post.py")
+        self.assertEqual(report.rel(BUILDER / "src" / "page.py"), "src/page.py")
+        self.assertEqual(str(report.error(BUILDER / "types" / "post.py", "boom")), "types/post.py: boom")
 
     def test_fail_gathers(self):
         with self.assertRaises(report.BuildError) as cm:

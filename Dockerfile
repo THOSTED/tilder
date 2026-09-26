@@ -9,7 +9,7 @@ FROM python:3-alpine
 RUN apk add --no-cache rsvg-convert fontconfig woff2
 ARG VERSION=dev
 ENV TILDER_VERSION=$VERSION
-COPY build.py defaults.toml /tilder/
+COPY build.py defaults.toml LICENSE /tilder/
 COPY src/ /tilder/src/
 COPY types/ /tilder/types/
 WORKDIR /site

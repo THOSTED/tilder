@@ -10,11 +10,12 @@ from config import BUILDER, THEME
 
 class Watch(unittest.TestCase):
     def test_restart_predicate(self):
-        code = ("/site/builder", "/site/theme/types")
+        code = ("/site/builder/", "/site/theme/types/")
         self.assertTrue(watch.restarts({"/site/builder/src/page.py"}, code))
         self.assertTrue(watch.restarts({"/site/theme/types/talk.py"}, code))
         self.assertFalse(watch.restarts({"/site/theme/style.css", "/site/content/index.md"}, code))
-        self.assertEqual(watch.CODE, (str(BUILDER), str(THEME / "types")))
+        self.assertFalse(watch.restarts({"/site/theme/typesetting.css"}, code))
+        self.assertEqual(watch.CODE, (str(BUILDER) + os.sep, str(THEME / "types") + os.sep))
 
     def test_version_flag(self):
         entry = str(BUILDER / "build.py")

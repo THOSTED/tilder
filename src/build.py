@@ -13,24 +13,24 @@ comes out twice: HTML, and pure ASCII for the terminal (AGENTS.md §4).
 The builder, one concern per module, all in src/ (../build.py is only the
 entry point):
 
-    build.py      this driver: one build, the CLI, the first-build retry
-    config.py     paths, content/site.toml, what a build shares (STATE)
-    report.py     errors and warnings, one shape
-    markdown.py   Markdown -> a tree of nodes (sections, entries, blocks)
-    inline.py     inline markup, for both outputs
-    page.py       the tree -> HTML, inside assets/layout.html
-    text.py       the tree -> the text mirror, 75 columns
-    ansify.py     the text mirror -> its coloured twin
-    highlight.py  syntax highlighting of code blocks
-    contenttypes.py the types (types/, theme/types/), collections, items, lists
-    dates.py      dates in words, from [dates]
-    seo.py        meta tags, structured data, sitemaps, robots.txt, manifest
-    feeds.py      RSS and iCalendar
-    paths.py      content paths -> output paths, URLs, relative links
-    fold.py       ASCII folding
-    watch.py      polling, rebuild on change and at midnight
-    icons.py      the favicon, app icons and share.png, made at every build
-    images.py     an image's width and height, read from the file itself
+    build.py         this driver: one build, the CLI, the first-build retry
+    config.py        paths, content/site.toml, what a build shares (STATE)
+    report.py        errors and warnings, one shape
+    markdown.py      Markdown -> a tree of nodes (sections, entries, blocks)
+    inline.py        inline markup, for both outputs
+    page.py          the tree -> HTML, inside the site's theme/layout.html
+    text.py          the tree -> the text mirror, 75 columns
+    ansify.py        the text mirror -> its coloured twin
+    highlight.py     syntax highlighting of code blocks
+    contenttypes.py  the types (types/, theme/types/), collections, items, lists
+    dates.py         dates in words, from [dates]
+    seo.py           meta tags, structured data, sitemaps, robots.txt, manifest
+    feeds.py         RSS and iCalendar
+    paths.py         content paths -> output paths, URLs, relative links
+    fold.py          ASCII folding
+    watch.py         polling, rebuild on change and at midnight
+    icons.py         the favicon, app icons and share.png, made at every build
+    images.py        an image's width and height, read from the file itself
 
 types/ holds the built-in content types, one module each (docs/types.md).
 
@@ -85,17 +85,23 @@ def build():
     STATE["summary"] = contenttypes.summary(colls, items)
     out, pages = {}, []  # pages: every item that is an HTML page, for sitemap and SEO checks
     for src in sorted(p for p in CONTENT.rglob("*.md") if rendered(p)):
-        meta, sections, preamble = parse(src)
-        it = by_src[src] if src in by_src else contenttypes.page_item(src, meta)
-        meta = it["meta"]
-        meta["_dir"] = site_path(src)
-        pages.append(it)
-        contenttypes.fill_lists(sections, src, it["path"], colls, items)
-        out[it["path"]] = render_html(it, sections, preamble, colls)
-        if meta.get("text", "yes") != "no":
-            marked = render_txt(meta, sections)
-            out[f"txt/{txt_name(it['path'])}.txt"] = plain(marked)
-            out[f"ansi/{txt_name(it['path'])}.txt"] = ansify(marked)
+        try:
+            meta, sections, preamble = parse(src)
+            it = by_src[src] if src in by_src else contenttypes.page_item(src, meta)
+            meta = it["meta"]
+            meta["_dir"] = site_path(src)
+            pages.append(it)
+            contenttypes.fill_lists(sections, src, it["path"], colls, items)
+            out[it["path"]] = render_html(it, sections, preamble, colls)
+            if meta.get("text", "yes") != "no":
+                marked = render_txt(meta, sections)
+                out[f"txt/{txt_name(it['path'])}.txt"] = plain(marked)
+                out[f"ansi/{txt_name(it['path'])}.txt"] = ansify(marked)
+        except report.BuildError:
+            raise
+        except Exception as e:  # a missing `title:`...: name the page, not a traceback
+            raise report.error(src, f"cannot be built: {e.__class__.__name__}: {e}",
+                               "Run with --debug for the traceback", exc=e)
     # Feeds and the types' own files (an iCalendar), for the collections
     # whose folder exists.
     for name, conf in colls.items():
@@ -104,7 +110,7 @@ def build():
         module = contenttypes.TYPES[conf["type"]]
         if conf.get("feed") and module.HAS_FEED:
             out[conf["feed"]] = feed(items[name], conf)
-        out.update(module.outputs(items[name], conf))
+        out.update(contenttypes.call(CONTENT / conf["dir"], module, "outputs", items[name], conf))
     a = apex()
     indexed = [it for it in pages if "noindex" not in it["meta"].get("robots", "")]
     out["sitemap.xml"] = sitemap_xml(indexed)

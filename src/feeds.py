@@ -5,6 +5,7 @@ import html as H
 import re
 
 from config import CFG, apex, rfc822
+from contenttypes import call
 from fold import to_ascii
 from paths import clean_url
 
@@ -29,7 +30,7 @@ def feed(items, conf):
     """A collection's RSS: every item its type puts in a feed, newest first."""
     rows = ""
     for it in reversed(items):
-        f = it["type"].feed_item(it, conf)
+        f = call(it["src"], it["type"], "feed_item", it, conf)
         if f is None:
             continue
         rows += f"""

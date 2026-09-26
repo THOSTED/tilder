@@ -13,6 +13,7 @@ import posixpath
 import sys
 
 from config import ASSETS, CFG, CONTENT, apex, theme_file
+from contenttypes import call
 from images import image_size
 from paths import clean_url
 
@@ -76,7 +77,7 @@ def head_tags(item):
     meta, module, conf, path = item["meta"], item["type"], item["conf"], item["path"]
     image, width, height = share_image(meta)
     large = bool(width and height and width >= 600 and width > height)
-    extra = module.meta_tags(item, conf)
+    extra = call(item["src"], module, "meta_tags", item, conf)
     out = [f'<meta name="robots" content="{H.escape(meta.get("robots", CFG["seo"]["robots"]))}">']
     out += [f'<meta name="{k}" content="{H.escape(v)}">' for a, k, v in extra if a == "name"]
     props = [
@@ -116,7 +117,7 @@ def json_ld(item, image):
            "logo": f"{a}/{CFG['share']['logo']}"}
     site = {"@type": "WebSite", "@id": site_ref()["@id"], "name": CFG["site"]["name"],
             "url": f"{a}/", "inLanguage": lang, "publisher": org_ref()}
-    node = item["type"].json_ld(item, item["conf"]) or {
+    node = call(item["src"], item["type"], "json_ld", item, item["conf"]) or {
         "@type": "WebPage", "name": page_title(meta),
         "description": meta["description"], "isPartOf": site_ref()}
     node.update({"@id": f"{url}#page", "url": url, "inLanguage": lang})

@@ -27,6 +27,57 @@ images or files next to the page). For a `DATED` type the slug starts with
 outside every collection is a `page`. The keys a collection may set are
 the type's `DEFAULTS`, plus `dir` (default: the collection's name).
 
+### The built-in types' settings
+
+The `DEFAULTS` of the built-in types, as `types/<type>.py` lists them. A
+collection sets any of them under `[collections.<name>]`, in its own
+language. `page` has none.
+
+`post` - lists: `{posts}`, newest first.
+
+| Key | Default | |
+|---|---|---|
+| `man` | `"SITE-BLOG(7)"` | the items' man-page name, unless one sets its own |
+| `nav` | `"blog/"` | the items' nav entry, and the feed's link |
+| `empty` | `"No post yet."` | a `{posts}` list with nothing in it |
+| `feed` | `""` | RSS path, e.g. `"blog/feed.xml"`; empty for none |
+| `feed_title` | `"posts"` | the feed's title |
+| `feed_description` | `"Posts."` | the feed's description |
+
+`event` - lists: `{upcoming}`, `{past}`, `{next-event}`, by the build's date.
+
+| Key | Default | |
+|---|---|---|
+| `man` | `"SITE-EVENTS(7)"` | the items' man-page name, unless one sets its own |
+| `nav` | `"events"` | the items' nav entry, and the feed's link |
+| `upcoming_tag` | `"upcoming"` | the tag of an upcoming event's card |
+| `past_tag` | `"past"` | the tag of a past event's card |
+| `none_upcoming` | `"No upcoming event."` | an `{upcoming}` list with nothing in it |
+| `none_past` | `"No past event."` | a `{past}` list with nothing in it |
+| `link_label` | `"event website ↗"` | the link to the event's own site |
+| `map_label` | `"see on OpenStreetMap ↗"` | the link to the place on the map |
+| `feed` | `""` | RSS path, e.g. `"events.xml"`; empty for none |
+| `feed_title` | `"events"` | the feed's title |
+| `feed_description` | `"Upcoming and past events."` | the feed's description |
+| `calendar` | `""` | iCalendar path, e.g. `"events.ics"`; empty for none |
+
+`member` - lists: `{members}`, a searchable grid.
+
+| Key | Default | |
+|---|---|---|
+| `man` | `"SITE-MEMBERS(7)"` | the items' man-page name, unless one sets its own |
+| `nav` | `"members"` | the items' nav entry |
+| `categories` | `["admin", "member"]` | the categories, in display and sort order |
+| `default_category` | `"member"` | a member's category when the front matter sets none |
+| `empty` | `"No member listed yet."` | a `{members}` list with nothing in it |
+| `search_label` | `"search"` | the search field's label (members.js) |
+| `search_placeholder` | `"first or last name"` | the search field's placeholder |
+| `all` | `"all"` | the filter that shows every category |
+| `one` | `"entry"` | the count's noun, singular |
+| `many` | `"entries"` | the count's noun, plural |
+| `none` | `"No entry matches."` | a search that finds nothing |
+| `full` | `"full"` | a mentor at capacity, said in words |
+
 ---
 
 ## The module
@@ -149,9 +200,16 @@ error: theme/types/talk.py: MARKERS["upcoming"] is already claimed by type "even
 error: content/site.toml: collection "talks" has type "tlak", which no type defines. Types loaded: event, member, page, post (types/), talk (theme/types/talk.py)
 ```
 
-`--debug` adds the Python traceback of an import failure. In `--watch`, a
-change under `theme/types/` restarts the process, as a change in the
-generator does.
+An error raised inside a type's function is reported the same way, at the
+file being built, naming the module and the function:
+
+```
+error: content/talks/2099-03-01-first-talk.md: theme/types/talk.py: entry() failed: KeyError: 'speaker'. Run with --debug for the traceback
+```
+
+`--debug` adds the Python traceback of an import failure or of a failed
+function. In `--watch`, a change under `theme/types/` restarts the process,
+as a change in the generator does.
 
 A theme runs code at build time. The theme, like the generator, is the
 site owner's: review one before you use it.

@@ -18,12 +18,13 @@ import importlib.util
 import paths
 from config import BUILDER, CFG, CONFIG, CONTENT, DATED, THEME
 from markdown import front_matter
-from report import error, fail, rel
+from report import BuildError, error, fail, rel
 
 BUILTIN = BUILDER / "types"
 
 TYPES = {}     # NAME -> module, in load order; updated after each folder
 MARKERS = {}   # section marker word -> NAME of the type that lists it
+ERRORS = []    # what load() and collections() found, reported together by check()
 
 # Attributes a type may leave out, with their defaults. LAYOUT None means
 # "the type's NAME".
@@ -94,12 +95,15 @@ def _complete(module, path):
 def load(dirs=None):
     """Load the type modules: the generator's types/, then theme/types/ (or
     `dirs`, in order). A later folder replaces an earlier type of the same
-    NAME. Every problem is reported before the build stops."""
+    NAME. Problems are gathered in ERRORS, not raised: collections() adds
+    its own, and check() reports them all together. A module that cannot
+    be imported or fails its checks is left out of TYPES."""
     dirs = [BUILTIN, THEME / "types"] if dirs is None else list(dirs)
     TYPES.clear()
     MARKERS.clear()
     paths.ITEM_FOLDERS.clear()
-    errs = []
+    ERRORS.clear()
+    errs = ERRORS
     for n, folder in enumerate(dirs):
         seen = {}  # NAME -> path, within this folder
         for path in sorted(folder.glob("*.py")) if folder.is_dir() else []:
@@ -130,11 +134,14 @@ def load(dirs=None):
                                   f'MARKERS["{word}"] is already claimed by type "{other.NAME}" ({rel(other.PATH)})',
                                   f'Rename the marker, or replace that type by naming yours "{other.NAME}"'))
             claimed.setdefault(word, name)
-    if errs:
-        TYPES.clear()
-        fail(errs)
     MARKERS.update(claimed)
     return dict(TYPES)
+
+
+def check():
+    """Stop the build on what load() and collections() gathered."""
+    if ERRORS:
+        fail(list(ERRORS))
 
 
 def _loaded():
@@ -147,12 +154,16 @@ def _loaded():
 
 def collections():
     """{name: settings} of every [collections.<name>] in site.toml, each
-    over its type's DEFAULTS, in declaration order. Every problem is
-    reported before the build stops."""
-    out, errs = {}, []
+    over its type's DEFAULTS, in declaration order. Its problems join
+    load()'s, and every one is reported before the build stops."""
+    out, errs = {}, ERRORS
     if "members" in CFG:
         errs.append(error(CONFIG, "[members] is no longer read",
                           'Move its keys under [collections.members], with type = "member"'))
+    if "collection_defaults" in CFG:
+        errs.append(error(CONFIG, "[collection_defaults] is no longer read",
+                          "Set a type's words under each [collections.<name>]; "
+                          "the defaults live in types/<type>.py"))
     for name, conf in CFG.get("collections", {}).items():
         kind = conf.get("type", "post")
         if kind in ("posts", "events"):
@@ -176,9 +187,22 @@ def collections():
                 errs.append(error(CONFIG, f'collections "{other}" and "{name}" share the folder content/{d}',
                                   "Give each collection its own dir"))
         seen[name] = d
-    if errs:
-        fail(errs)
+    check()
     return out
+
+
+def call(path, module, hook, *args, fn=None):
+    """Call a type's hook (or `fn`, a marker function, named `hook`); an
+    error it raises is reported as the build's own, at `path` (the item's
+    file, the page, the collection's folder), naming the type module and
+    the hook. The traceback is kept for --debug."""
+    try:
+        return (fn or getattr(module, hook))(*args)
+    except BuildError:
+        raise
+    except Exception as e:
+        raise error(path, f"{rel(module.PATH)}: {hook}() failed: {e.__class__.__name__}: {e}",
+                    "Run with --debug for the traceback", exc=e)
 
 
 def load_items(name, conf):
@@ -209,8 +233,8 @@ def load_items(name, conf):
                       "path": f"{conf['dir']}/{slug}.html", "collection": name,
                       "conf": conf, "type": module})
     for it in items:
-        module.defaults(it, conf)
-    return sorted(items, key=lambda it: module.sort_key(it, conf))
+        call(it["src"], module, "defaults", it, conf)
+    return sorted(items, key=lambda it: call(it["src"], module, "sort_key", it, conf))
 
 
 def page_item(src, meta):
@@ -220,7 +244,7 @@ def page_item(src, meta):
 
 
 def _target(marker, src, path, colls):
-    """The collection a marker lists: {upcoming:talks} names it; a bare
+    """The collection a marker lists: {upcoming:meetups} names it; a bare
     {upcoming} is the page's own collection of that type (its folder, or
     the page named like the folder: events.md for events/), else the first
     collection of the type. None when the site has none."""
@@ -238,7 +262,7 @@ def _target(marker, src, path, colls):
 
 
 def fill_lists(sections, src, path, colls, items):
-    """Fill every section carrying a list marker ({posts}, {upcoming:talks},
+    """Fill every section carrying a list marker ({posts}, {upcoming:meetups},
     {members}...) with cards, and put an item's own card at the top of
     its page. items: {collection name: [item]}."""
     for s in sections:
@@ -249,20 +273,22 @@ def fill_lists(sections, src, path, colls, items):
             module = TYPES[MARKERS[word]]
             name = _target(marker, src, path, colls)
             conf, its = colls.get(name, {}), items.get(name, [])
-            chosen = module.MARKERS[word](its, conf)
+            chosen = call(src, module, f'MARKERS["{word}"]', its, conf, fn=module.MARKERS[word])
             cards = []
             for it, extra in chosen["items"]:
-                node = module.entry(it, True, conf)
-                node["cls"] = list(extra) + node["cls"]
+                node = call(it["src"], module, "entry", it, True, conf)
+                if node is None:
+                    continue
+                node["cls"] = list(extra) + node.get("cls", [])
                 cards.append(node)
             s["cls"].extend(chosen.get("cls", []))
             s["blocks"] = (cards or [{"k": "empty", "text": chosen.get("empty", "")}]) + s["blocks"]
-            s["data"] = module.list_data(conf) if name else {}
+            s["data"] = call(src, module, "list_data", conf) if name else {}
             s["script"] = module.SCRIPT
     for its in items.values():
         for it in its:
             if it["path"] == path and sections:
-                card = it["type"].entry(it, False, it["conf"])
+                card = call(it["src"], it["type"], "entry", it, False, it["conf"])
                 if card is not None:
                     sections[0]["blocks"].append(card)
 

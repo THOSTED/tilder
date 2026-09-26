@@ -8,7 +8,7 @@ import time
 import report
 from config import ASSETS, BUILDER, CONTENT, EXTRA, THEME
 
-CODE = (str(BUILDER), str(THEME / "types"))
+CODE = (str(BUILDER) + os.sep, str(THEME / "types") + os.sep)
 
 
 def restarts(moved, code=CODE):

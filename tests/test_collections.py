@@ -1,6 +1,8 @@
+import pathlib
+import tempfile
 import unittest
 
-from tests.helpers import build_site, rebuild  # triggers tests.__init__ setup
+from tests.helpers import build_site  # triggers tests.__init__ setup
 import contenttypes
 import paths
 import report
@@ -73,6 +75,11 @@ class Collections(unittest.TestCase):
         CFG["members"] = {"categories": ["a"]}
         self.fails_with("[members] is no longer read", "[collections.members]")
 
+    def test_old_collection_defaults_table_is_refused(self):
+        CFG["collection_defaults"] = {"empty": "x"}
+        self.fails_with("content/site.toml: [collection_defaults] is no longer read",
+                        "the defaults live in types/<type>.py")
+
     def test_overlapping_dirs(self):
         CFG["collections"]["also"] = {"type": "post", "dir": "blog"}
         self.fails_with('collections "blog" and "also" share the folder content/blog')
@@ -83,6 +90,20 @@ class Collections(unittest.TestCase):
         with self.assertRaises(report.BuildError) as cm:
             contenttypes.collections()
         self.assertEqual(len(cm.exception.items), 2)
+
+    def test_type_and_collection_errors_are_reported_together(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pathlib.Path(tmp, "clash.py").write_text(
+                'NAME = "clash"\nMARKERS = {"upcoming": lambda items, conf: {}}\n'
+                "def entry(item, link, conf): return None\n")
+            contenttypes.load([contenttypes.BUILTIN, pathlib.Path(tmp)])   # gathers, does not raise
+        CFG["collections"]["talks"]["type"] = "tlak"
+        with self.assertRaises(report.BuildError) as cm:
+            contenttypes.collections()
+        msgs = [m for m, _ in cm.exception.items]
+        self.assertEqual(len(msgs), 2, msgs)
+        self.assertIn('MARKERS["upcoming"] is already claimed by type "event" (types/event.py)', msgs[0])
+        self.assertIn('content/site.toml: collection "talks" has type "tlak", which no type defines', msgs[1])
 
 
 class Lists(unittest.TestCase):
@@ -124,6 +145,19 @@ class Lists(unittest.TestCase):
             contenttypes.fill_lists(sections, CONTENT / "index.md", "index.html", colls, {})
         self.assertIn("content/index.md: {upcoming:nope} names no event collection", str(cm.exception))
         self.assertIn("Collections of that type: events", str(cm.exception))
+
+    def test_none_card_is_skipped_and_cls_may_be_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pathlib.Path(tmp, "odd.py").write_text(
+                'NAME = "odd"\n'
+                'MARKERS = {"odds": lambda items, conf: {"items": [(it, ["x"]) for it in items]}}\n'
+                "def entry(item, link, conf):\n"
+                '    return None if item["slug"] == "a" else {"k": "entry", "title": item["slug"]}\n')
+            contenttypes.load([pathlib.Path(tmp)])
+        items = {"o": [{"slug": s, "src": CONTENT / f"o/{s}.md", "path": f"o/{s}.html"} for s in "ab"]}
+        sections = [{"k": "section", "title": "x", "cls": ["odds"], "id": None, "blocks": []}]
+        contenttypes.fill_lists(sections, CONTENT / "o.md", "o.html", {"o": {"type": "odd", "dir": "o"}}, items)
+        self.assertEqual(sections[0]["blocks"], [{"k": "entry", "title": "b", "cls": ["x"]}])
 
     def test_summary(self):
         load_config()

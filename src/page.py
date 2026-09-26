@@ -264,7 +264,7 @@ def render_html(item, sections, preamble=(), colls=None):
         if "text" in s["cls"]:
             continue
         ident = f' id="{s["id"]}"' if s["id"] else ""
-        # A marker naming a collection ({upcoming:talks}) is a class without
+        # A marker naming a collection ({upcoming:meetups}) is a class without
         # its name.
         extra = [c.partition(":")[0] for c in s["cls"] if c not in ("html", "text")]
         bcls = " ".join(["b"] + extra)
