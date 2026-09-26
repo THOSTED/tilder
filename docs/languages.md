@@ -90,6 +90,7 @@ language's (`blog/feed.xml`) unless the link says `/fr/blog/feed.xml`.
 | RSS | `blog/feed.xml` | `fr/blog/feed.xml` |
 | 404 | `404.html` | `fr/404.html` |
 | calendar, sitemap, robots.txt, manifest, icons | once, at the root | - |
+| a type's files with `LOCALIZED_OUTPUTS` (see `docs/types.md`) | `guides/index.json` | `fr/guides/index.json` |
 
 Configuration files (`site.toml`, `site.<lang>.toml`, `theme.toml`,
 `theme.<lang>.toml`) are read at build time and never served.
