@@ -84,7 +84,7 @@ DEFAULTS = {            # the type's words and settings, English and neutral;
     ...
 }
 MARKERS = {             # section markers that list this type's items:
-    "upcoming": upcoming,        # {upcoming}, {upcoming:talks}
+    "upcoming": upcoming,        # {upcoming}, {upcoming:meetups}
     "past": past,
     "next-event": next_one,
 }
@@ -212,8 +212,10 @@ worth a folder.
 `{upcoming}` lists the page's own collection of the marker's type - the
 page in the collection's folder, or the page named like the folder
 (`events.md` for `events/`) - else the first collection of that type.
-`{upcoming:talks}` names one. This is today's `_target` rule, kept, made
-generic: a marker belongs to the type that declares it.
+`{upcoming:meetups}` names one (an `event` collection called `meetups`).
+This is today's `_target` rule, kept, made generic: a marker belongs to the
+type that declares it. A collection of a theme type lists through that
+type's own markers (`{talks}` in the fixture), not through `{upcoming}`.
 
 ---
 
@@ -228,7 +230,7 @@ generic: a marker belongs to the type that declares it.
 2. Each module is checked: `NAME` present, a valid identifier, unique among
    loaded modules; `entry` present and callable; every other attribute of
    the interface, if present, of the right kind; `MARKERS` keys not claimed
-   by another loaded type; `DEFAULTS` a dict of TOML-able values.
+   by another loaded type; `DEFAULTS` a dict.
 3. Every `[collections.*].type` names a loaded type; `dir` folders do not
    overlap (a folder belongs to one collection).
 
@@ -320,14 +322,16 @@ error: <file>[:<line>]: <what is wrong>. <what to do>
 ```
 
 ```
-error: content/site.toml: collection "talks" has type "talk", which no
-type defines. Types loaded: page, post, event, member (types/), doc
-(theme/types/doc.py).
 error: theme/types/doc.py: MARKERS["posts"] is already claimed by type
-"post" (types/post.py). Rename the marker, or replace the post type
-by naming yours "post".
+"post" (types/post.py). Rename the marker, or replace that type by
+naming yours "post"
+error: content/site.toml: collection "talks" has type "talk", which no
+type defines. Types loaded: event, member, page, post (types/), doc
+(theme/types/doc.py)
 error: content/events/2026-13-01-meetup.md: "2026-13-01" is not a date.
-Name the file YYYY-MM-DD-slug.md with the event's date.
+Name the file YYYY-MM-DD-slug.md with the event's date
+error: content/talks/2099-03-01-first-talk.md: theme/types/talk.py:
+entry() failed: KeyError: 'speaker'. Run with --debug for the traceback
 ```
 
 **Rules:**

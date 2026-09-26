@@ -77,7 +77,7 @@ short_name = "site"                 # web manifest
 # types/<type>.py (DEFAULTS), and documented in docs/types.md. A collection
 # whose folder does not exist is simply empty: no page, no feed. Lists are
 # shown by section markers: {posts}, {upcoming}, {past}, {next-event},
-# {members}, each with an optional collection name - {upcoming:talks}.
+# {members}, each with an optional collection name - {upcoming:meetups}.
 #
 # The three collections most sites have. Inactive until content/blog/,
 # content/events/ or content/members/ exists.

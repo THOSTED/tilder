@@ -577,8 +577,8 @@ Nothing else is written by hand. From these files the build makes:
 | `{next-event}` | the next event only |
 | `{members}` | every member, a grid, category order then last name |
 
-  Each marker may name its collection: `{posts:news}`, `{upcoming:talks}`,
-  `{next-event:talks}`. A bare marker lists the page's own collection -
+  Each marker may name its collection: `{posts:news}`, `{upcoming:meetups}`,
+  `{next-event:meetups}`. A bare marker lists the page's own collection -
   the one whose folder the page is in, or is named like (`events.md` for
   `events/`) - else the first collection of the marker's type. An empty
   list shows the collection's empty-state text. Blocks written under the
