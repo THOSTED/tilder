@@ -1,4 +1,4 @@
-"""RSS for posts and events, iCalendar for events."""
+"""RSS for any collection whose type gives feed items; iCalendar, used by the event type."""
 
 import datetime
 import html as H
@@ -25,37 +25,25 @@ def rss(title, link, self_href, description, items):
 """
 
 
-def events_feed(events, c):
-    """An events collection's RSS: every event, the latest date first."""
-    a = apex()
-    items = "".join(f"""
+def feed(items, conf):
+    """A collection's RSS: every item its type puts in a feed, newest first."""
+    rows = ""
+    for it in reversed(items):
+        f = it["type"].feed_item(it, conf)
+        if f is None:
+            continue
+        rows += f"""
 	<item>
-		<title>{H.escape(e['meta']['title'])}</title>
-		<link>{a}{clean_url(e['path'])}</link>
-		<guid isPermaLink="true">{a}{clean_url(e['path'])}</guid>
-		<pubDate>{rfc822(e['iso'])}</pubDate>
-		<description>{H.escape(e['meta']['description'])}</description>
-	</item>
-""" for e in reversed(events))
-    return rss(c["feed_title"], f"{a}/{c['nav']}", f"{a}/{c['feed']}", c["feed_description"], items)
-
-
-def posts_feed(posts, c):
-    """A posts collection's RSS: every post, newest first."""
-    a = apex()
-    items = ""
-    for it in reversed(posts):
-        iso, url, meta, title = it["iso"], clean_url(it["path"]), it["meta"], it["meta"]["title"]
-        items += f"""
-	<item>
-		<title>{H.escape(title)}</title>
-		<link>{a}{url}</link>
-		<guid isPermaLink="true">{a}{url}</guid>
-		<pubDate>{rfc822(iso)}</pubDate>
-		<description>{H.escape(meta['description'])}</description>
+		<title>{H.escape(f['title'])}</title>
+		<link>{f['link']}</link>
+		<guid isPermaLink="true">{f['link']}</guid>
+		<pubDate>{rfc822(f['date'])}</pubDate>
+		<description>{H.escape(f['description'])}</description>
 	</item>
 """
-    return rss(c["feed_title"], f"{a}/{c['nav']}", f"{a}/{c['feed']}", c["feed_description"], items)
+    a = apex()
+    return rss(conf["feed_title"], f"{a}/{conf['nav']}", f"{a}/{conf['feed']}",
+               conf["feed_description"], rows)
 
 
 def fold_ics(line):
@@ -83,7 +71,7 @@ def calendar(events):
              f"X-WR-CALDESC:{to_ascii(c['description'])}"]
     for e in events:
         meta = e["meta"]
-        day = datetime.date.fromisoformat(e.get("date") or e["iso"])
+        day = datetime.date.fromisoformat(e["date"])
         last = datetime.date.fromisoformat(meta["end"]) if meta.get("end") else day
         end = last + datetime.timedelta(days=1)  # DTEND is exclusive
         lines += ["BEGIN:VEVENT", f"UID:{e['slug']}@{c['uid_domain']}",

@@ -54,7 +54,7 @@ from config import (ASSETS, BUILDER, CFG, CONFIG, CONTENT, EXTRA, ROOT, STATE, T
                     THEME, apex, load_config)
 from icons import generated
 from fold import to_ascii
-from feeds import calendar, events_feed, posts_feed
+from feeds import feed
 from markdown import parse, site_path
 from page import render_html
 from paths import clean_url, rendered, txt_name
@@ -86,7 +86,6 @@ def build():
         it = by_src[src] if src in by_src else contenttypes.page_item(src, meta)
         meta = it["meta"]
         meta["_dir"] = site_path(src)
-        _compat(it)  # Task 8 removes this
         pages.append(it)
         contenttypes.fill_lists(sections, src, it["path"], colls, items)
         out[it["path"]] = render_html(it, sections, preamble, colls)
@@ -94,17 +93,15 @@ def build():
             marked = render_txt(meta, sections)
             out[f"txt/{txt_name(it['path'])}.txt"] = plain(marked)
             out[f"ansi/{txt_name(it['path'])}.txt"] = ansify(marked)
-    # Feeds and the type's own files, for the collections whose folder exists.
+    # Feeds and the types' own files (an iCalendar), for the collections
+    # whose folder exists.
     for name, conf in colls.items():
         if not (CONTENT / conf["dir"]).is_dir():
             continue
-        if conf["type"] == "post" and conf.get("feed"):
-            out[conf["feed"]] = posts_feed(items[name], conf)
-        if conf["type"] == "event":
-            if conf.get("feed"):
-                out[conf["feed"]] = events_feed(items[name], conf)
-            if conf.get("calendar"):
-                out[conf["calendar"]] = calendar(items[name])
+        module = contenttypes.TYPES[conf["type"]]
+        if conf.get("feed") and module.HAS_FEED:
+            out[conf["feed"]] = feed(items[name], conf)
+        out.update(module.outputs(items[name], conf))
     a = apex()
     indexed = [it for it in pages if "noindex" not in it["meta"].get("robots", "")]
     out["sitemap.xml"] = sitemap_xml(indexed)
@@ -135,12 +132,6 @@ def build():
     for f in EXTRA:
         out[f.name] = f.read_bytes()
     return out
-
-
-def _compat(it):
-    """Until feeds.py asks the type (Tasks 8-9): the old keys it reads."""
-    if it["date"]:
-        it["iso"] = it["date"]
 
 
 def write(outputs, dest):
