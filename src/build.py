@@ -4,6 +4,7 @@
     python3 builder/build.py                 build once into public/
     python3 builder/build.py --out DIR       build into DIR
     python3 builder/build.py --watch         build, then rebuild on every change
+    python3 builder/build.py --debug         show Python tracebacks after error messages
 
 The source is restricted, accented Markdown (builder/docs/markdown.md). Each page
 comes out twice: HTML, and pure ASCII for the terminal (AGENTS.md §11).
@@ -43,6 +44,7 @@ if "--root" in sys.argv:
     os.environ["SITE_ROOT"] = sys.argv[sys.argv.index("--root") + 1]
 import ansify as ansify_module
 import inline
+import report
 from ansify import ansify
 from config import (ASSETS, BUILDER, CFG, CONFIG, CONTENT, EXTRA, ROOT, STATE, TEMPLATES,
                     THEME, apex, load_config)
@@ -177,6 +179,7 @@ def main():
     if args[:1] and args[0] in ("-h", "--help"):
         print(__doc__)
         return 0
+    report.DEBUG = "--debug" in args
     if "--out" in args:
         dest = pathlib.Path(args[args.index("--out") + 1]).resolve()
     dest.mkdir(parents=True, exist_ok=True)
@@ -192,14 +195,20 @@ def main():
             except Exception as e:
                 # Wait for a fix. If it is in builder/, restart to load it:
                 # this process still runs the code that failed.
-                print(f"build failed, waiting for a change: {e!r}", flush=True)
+                report.report(e)
+                print("build failed: waiting for a change in content/, theme/ or assets/ "
+                      "(a change in builder/ restarts)", flush=True)
                 time.sleep(interval * 5)
                 if own_code() != code:
                     print("builder/ changed, restarting", flush=True)
                     os.execv(sys.executable, [sys.executable] + sys.argv)
         watch(dest, interval, build_into)
     else:
-        build_into(dest)
+        try:
+            build_into(dest)
+        except report.BuildError as e:
+            report.report(e)
+            return 1
     return 0
 
 

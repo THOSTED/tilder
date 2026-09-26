@@ -5,6 +5,7 @@ import os
 import sys
 import time
 
+import report
 from config import ASSETS, BUILDER, CONTENT, EXTRA, THEME
 
 def snapshot():
@@ -31,7 +32,8 @@ def watch(dest, interval, build_into):
                 try:
                     build_into(dest)
                 except Exception as e:
-                    print(f"build failed, previous output kept: {e!r}", flush=True)
+                    report.report(e)
+                    print("build failed, previous output kept", flush=True)
             continue
         moved = {k for k in now.keys() | before.keys() if now.get(k) != before.get(k)}
         before = now
@@ -42,4 +44,5 @@ def watch(dest, interval, build_into):
         try:
             build_into(dest)
         except Exception as e:  # keep serving the last good build
-            print(f"build failed, previous output kept: {e!r}", flush=True)
+            report.report(e)
+            print("build failed, previous output kept", flush=True)
