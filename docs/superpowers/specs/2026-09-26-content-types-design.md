@@ -374,7 +374,7 @@ JSON-LD nodes; the RSS items; the iCalendar.
   the API a type may import, `types/event.py` as the complete example, and
   how to write a theme type in ten lines (a `talk` that is an `event` with
   a speaker).
-- `docs/theme.md`: `layouts/`, `theme.toml`, `types/`, `{{ page.type }}`,
+- `docs/theme.md`: `layouts/`, `theme.toml`, `types/`, `{{ type }}`,
   the sentence on trust.
 - `README.md`: the name, the four types, the theme's new folders, the
   image (§12).
