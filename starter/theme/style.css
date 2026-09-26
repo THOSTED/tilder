@@ -36,6 +36,10 @@ a { color: var(--accent); }
 .nav { font: 0.9rem var(--mono); padding-top: 1rem; }
 .nav a[aria-current="page"] { font-weight: 700; color: var(--fg); }
 .nav .sep { color: var(--fg-muted); padding: 0 0.5ch; }
+/* The language switcher: a small line under the navigation. */
+.languages { font-size: .9em; margin: 0 0 1em; }
+.languages a { margin-right: .75em; }
+.languages a[aria-current] { font-weight: bold; text-decoration: none; }
 .wordmark { font: 700 1.6rem/1.2 var(--mono); text-transform: lowercase; margin: 2rem 0 0.3rem; }
 .wordmark a { color: inherit; text-decoration: none; }
 .wordmark .tilde { color: var(--accent); }

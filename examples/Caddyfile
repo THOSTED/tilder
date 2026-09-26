@@ -12,6 +12,9 @@
 # .html on disk; try_files maps one to the other and any .html URL is
 # redirected (301) to its clean form.
 #
+# Undeclared language prefixes are plain 404s; to redirect `/de/*` to `/`,
+# add `redir /de/* / permanent`.
+#
 # A terminal client (curl, wget, httpie) asking the apex for a page gets
 # the text mirror directly, ANSI-coloured, with a 200: no redirect, no -L.
 # `?plain` returns bare ASCII. man.example.org sniffs nothing and serves
@@ -157,6 +160,9 @@ Page not found.
 
 See: curl example.org
 " 404
+		# One line per language served under a prefix: its own 404 page.
+		@fr path /fr/*
+		rewrite @fr /fr/404.html
 		rewrite * /404.html
 		file_server
 	}

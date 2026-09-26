@@ -9,6 +9,7 @@ locale = "en_GB"
 manual = "My Site Manual"
 updated = 2026-01-01
 title_suffix = " - my site"
+languages = ["en", "fr"]
 
 [footer]
 left = "ME"
@@ -30,6 +31,10 @@ organization = "My Site"
 image_alt = "~/my site"
 card = ["a website that reads", "like a man page"]
 short_name = "mysite"
+
+[languages]
+en = "English"
+fr = "Français"
 
 [collections.blog]
 man = "MYSITE-BLOG(7)"

@@ -1,0 +1,40 @@
+# The starter in French: only what differs from site.toml. Delete this file
+# and the `languages` line of site.toml for a site in one language.
+
+[site]
+lang = "fr"
+locale = "fr_FR"
+manual = "Manuel de mon site"
+title_suffix = " - mon site"
+
+[labels]
+skip = "aller au contenu"
+nav = "Navigation principale"
+languages = "Langues"
+to_top = "↑ haut de page"
+copy = "copier"
+copied = "copié"
+external = "site externe"
+new_tab = "nouvel onglet"
+table = "tableau"
+toc = "sommaire"
+
+[[nav]]
+label = "accueil"
+href = ""
+
+[[nav]]
+label = "blog"
+href = "blog/"
+
+[collections.blog]
+man = "MONSITE-BLOG(7)"
+empty = "Aucun article pour l'instant."
+feed_title = "articles"
+feed_description = "Les articles."
+
+[dates]
+weekdays = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+months = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
+          "août", "septembre", "octobre", "novembre", "décembre"]
+first = "1er"
