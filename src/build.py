@@ -15,6 +15,7 @@ entry point):
 
     build.py         this driver: one build, the CLI, the first-build retry
     config.py        paths, content/site.toml, what a build shares (STATE)
+    languages.py     the declared languages, site.<lang>.toml, the fallback that completes every tree
     report.py        errors and warnings, one shape
     markdown.py      Markdown -> a tree of nodes (sections, entries, blocks)
     inline.py        inline markup, for both outputs

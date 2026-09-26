@@ -182,8 +182,9 @@ chosen and its content language. Everything below reads it.
   sibling. `<link rel="alternate" type="application/rss+xml">` points at
   the language's feeds.
 
-**Structured data.** `inLanguage` is the content language on the page node
-and on `WebSite`. `Organization` and `WebSite` keep one `@id` per site, at
+**Structured data.** `inLanguage` is the content language on the page node;
+`WebSite` keeps the language of the interface (it is one node per site).
+`Organization` and `WebSite` keep one `@id` per site, at
 the root. The `BreadcrumbList` follows the visible wordmark: the
 language's landing page, the section, the page.
 

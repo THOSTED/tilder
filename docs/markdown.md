@@ -111,6 +111,9 @@ an `upcoming` tag. A source file holds only the front matter and the sections.
 
 - File names are English, lowercase, ASCII, with hyphens: `code-of-conduct.md`,
   not `code-de-conduite.md`. The text inside is in the site's language.
+- On a site with several declared languages, a file may carry a language
+  suffix before `.md` (`about.fr.md`, `2026-01-01-hello.fr.md`): see
+  `docs/languages.md`.
 - A file or folder whose name starts with `_` is **never rendered** (the
   templates, `content/*/_template.md`).
 - Any other file in `content/` that is not Markdown (an image, a PDF) is
@@ -486,6 +489,13 @@ on, so the same source works on `/events` and on `/blog/some-post`.
 | `#id` | an anchor on the current page |
 | `events.xml`, `calendar.ics` | files, served with their extension |
 | `https://...` | external, left untouched |
+
+On a site with several declared languages, a target resolves **inside the
+current language**: `events` from a French page is `/fr/events`. A target
+that starts with `/` is taken from the site root instead, without the
+language: `/events` from a French page is the English page, `[en
+français](/fr/events)` from an English page is the French one
+(`docs/languages.md`).
 
 Whether an external link opens in a new tab is set once, in `site.toml`:
 `[links] new_tab = true` sends every `https://` link to a new tab, except

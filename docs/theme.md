@@ -22,9 +22,12 @@ A file of the same name in the site's `assets/` wins over the theme's.
 | `layouts/<name>.html` | optional | a layout for the pages of a type (`docs/types.md`), or asked for by `layout:` in a page's front matter; same placeholders as `layout.html` |
 | `types/<name>.py` | optional | a content type the theme adds, or a built-in one it replaces (`docs/types.md`) |
 | `theme.toml` | optional | the theme's own configuration values, merged under the site's `site.toml`: for now the `[share]` colours |
+| `theme.<lang>.toml` | optional | `theme.toml`'s per-language twin, between it and the site's `site.toml` (`docs/languages.md`) |
 
 Everything in `theme/` but `layout.html`, `layouts/`, `share.svg`,
-`icons/`, `types/` and `theme.toml` is copied to the site as it is.
+`icons/`, `types/` and `theme.toml` (and its `theme.<lang>.toml` twins) is
+copied to the site as it is. Like `site.toml`, `theme.toml` and its twins
+are read at build time and never served.
 
 ---
 
@@ -44,16 +47,21 @@ Everything in `theme/` but `layout.html`, `layouts/`, `share.svg`,
 | `{{ head }}` | robots, author, Open Graph, Twitter Card, JSON-LD |
 | `{{ brand }}` | the `<h1>`: the wordmark as a path, `~/<site>/<section>/<title>` |
 | `{{ nav }}` | the navigation links, the current one marked `aria-current="page"` |
+| `{{ languages }}` | the language switcher: one link per declared language, the current one marked `aria-current="page"`; empty in a monolingual site (`docs/languages.md`) |
+| `{{ content_lang }}` | the content language of the page: equal to `site.lang` unless the page is served as a fallback |
 | `{{ body }}` | the sections of the page |
 | `{{ script }}` | the `<script>` tags the page needs, if the theme has the files |
 
 Values are HTML-escaped, except the ones the builder computes (`type`,
-`root`, `canonical`, `brand`, `nav`, `feeds`, `head`, `body`, `script`).
+`root`, `canonical`, `brand`, `nav`, `languages`, `feeds`, `head`, `body`,
+`script`).
 The starter's `layout.html` is a complete example.
 
 The layout must keep: `lang="{{ site.lang }}"`, one `{{ brand }}` (it is
 the page's only `<h1>`), a `<main id="contenu">` or equivalent target for
-the skip link, and `<link rel="canonical">`.
+the skip link, and `<link rel="canonical">`. On a multilingual site,
+`<main lang="{{ content_lang }}">` is recommended, so a fallback page keeps
+its own language.
 
 ## Layouts
 
@@ -77,6 +85,7 @@ A theme styles these. The starter's `style.css` covers them all.
 | `.sr-only` | **required**: text for screen readers only (visually hidden) |
 | `.wordmark`, `.tilde`, `.slash`, `.here`, `.cursor` | the `<h1>`: `~/`, separators, the page's own segment, a cursor |
 | `.nav`, `.sep` | navigation and its separators |
+| `.languages` | the language switcher (`<nav class="languages">`, `docs/languages.md`) |
 | `.s`, `.b` | a section (`<section class="s">`, its `<h2>`, its body `<div class="b">`) |
 | `.b.grid`, `.members`, `.posts`, `.upcoming`, `.past`, `.next-event` | markers on a section body |
 | `.entry`, `.entry--next`, `.entry--full`, `.entry--link` | an entry (`<h3>`); `--link` is a card whose title link covers it |

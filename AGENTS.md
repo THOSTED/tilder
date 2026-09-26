@@ -31,7 +31,10 @@ content format; `docs/seo.md` is what the build does for search engines.
    neutral default and a comment. A key that belongs to one content type
    goes in that type's `DEFAULTS` (`types/<type>.py`), English and neutral
    too. `grep -rni` for a real site's name, domain or organisation in this
-   repository must find nothing.
+   repository must find nothing. The generator knows no language name:
+   every word of a language comes from the site's `site.<lang>.toml`; the
+   starter's French files are the feature's example, the one place in this
+   repository in another language.
 2. **Python's standard library only.** No `pip install`, no npm, no
    framework, no preprocessor. The only outside tools are optional and used
    for images: `rsvg-convert` and `woff2_decompress` (the `Dockerfile` has
@@ -63,6 +66,7 @@ defaults.toml   every key of site.toml, with neutral defaults
 src/
   build.py        the driver and CLI: once, --watch, --out DIR, --root DIR
   config.py       paths, site.toml over defaults.toml, what a build shares
+  languages.py    the declared languages, site.<lang>.toml, the fallback that completes every tree
   markdown.py     Markdown -> a tree of nodes
   inline.py       inline markup, for both outputs (and the link rules)
   page.py         the tree -> HTML, inside the site's theme/layout.html
@@ -191,9 +195,15 @@ python3 builder/build.py --out /tmp/before   # before the change
 python3 builder/build.py --out /tmp/after    # after
 diff -r /tmp/before /tmp/after
 
-# 2. The starter builds from nothing, with the defaults only.
+# 2. The starter builds from nothing, with the defaults only. It declares
+#    two languages: the build must summarise them, write a fr/ tree, and
+#    warn about no seo: issue (a fallback page's duplicate title or
+#    description with its own-language original is not one).
 cp -r builder/starter /tmp/starter
-python3 builder/build.py --root /tmp/starter --out /tmp/starter-out
+python3 builder/build.py --root /tmp/starter --out /tmp/starter-out 2>/tmp/starter-seo.log \
+  | grep '^languages:'
+ls /tmp/starter-out/fr
+grep '^seo:' /tmp/starter-seo.log; echo "(expected: nothing)"
 
 # 3. The text mirror: 75 columns, no escape in txt/, ansi == txt once stripped.
 cd /tmp/after

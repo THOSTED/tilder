@@ -32,6 +32,9 @@ coloured, code framed, tables aligned.*
   (`docs/seo.md`).
 - Accessibility in the markup: one `<h1>`, landmarks, alt text, labels,
   named regions, links announced when they open a tab.
+- Several languages: the default at the root, the others under `/fr/`;
+  untranslated pages fall back; `hreflang`, one sitemap, feeds per
+  language - `docs/languages.md`.
 - Icons (`favicon.ico`, PNGs) and a 1200x630 share image, drawn at every
   build from your `assets/logo.svg`. Nothing generated is committed.
 - A watch mode that rebuilds on every change, and at midnight.
@@ -42,7 +45,9 @@ coloured, code framed, tables aligned.*
 my-site/
   content/
     site.toml         your settings and words (see defaults.toml)
+    site.fr.toml      optional: what differs in another declared language
     index.md          the landing page
+    index.fr.md       optional: the page's translation (docs/languages.md)
     404.md
     blog/             optional: YYYY-MM-DD-slug.md, or YYYY-MM-DD-slug/index.md with images
     events/           optional, the same way
