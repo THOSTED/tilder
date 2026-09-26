@@ -204,6 +204,11 @@ python3 builder/build.py --root /tmp/starter --out /tmp/starter-out 2>/tmp/start
   | grep '^languages:'
 ls /tmp/starter-out/fr
 grep '^seo:' /tmp/starter-seo.log; echo "(expected: nothing)"
+#    Every relative link of a prefixed tree resolves to a written file
+#    (style.css from fr/blog/... is ../../style.css): the suite's
+#    test_every_relative_link_of_the_french_tree_resolves checks it on the
+#    bilingual fixture.
+grep -o 'href="[^"]*style.css"' /tmp/starter-out/fr/blog/2026-01-01-hello.html
 
 # 3. The text mirror: 75 columns, no escape in txt/, ansi == txt once stripped.
 cd /tmp/after

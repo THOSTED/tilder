@@ -65,6 +65,18 @@ resolve **inside the language**: in `/fr/about`, `events` is `/fr/events`.
 A link that starts with `/` is taken from the site root, so a page can
 point at another language: `[in English](/events)`, `[en français](/fr/events)`.
 
+A target that names a **file** rather than a page resolves from the site
+root, because the build writes those files once, at the root: its last
+segment has an extension (`style.css`, `logo.svg`, `events.ics`,
+`blog/2026-03-01-x/p.svg`). Only pages stay inside the language: a
+target without an extension (`events`, `blog/hello`), ending in `/`
+(`blog/`), or empty.
+
+Feeds are the one file written under each prefix (`fr/blog/feed.xml`). The
+generator's own `<link rel="alternate">` for a page's feed points at the
+feed of the language; a feed linked from content is the default
+language's (`blog/feed.xml`) unless the link says `/fr/blog/feed.xml`.
+
 ## What the build writes
 
 | | Default language | Other language `fr` |

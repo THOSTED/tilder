@@ -495,7 +495,10 @@ current language**: `events` from a French page is `/fr/events`. A target
 that starts with `/` is taken from the site root instead, without the
 language: `/events` from a French page is the English page, `[en
 français](/fr/events)` from an English page is the French one
-(`docs/languages.md`).
+(`docs/languages.md`). A target with a file extension (`events.ics`,
+`logo.svg`) is a file, written once at the site root, and resolves from
+there in every language; a feed linked from content is the default
+language's unless the link names the prefix (`/fr/blog/feed.xml`).
 
 Whether an external link opens in a new tab is set once, in `site.toml`:
 `[links] new_tab = true` sends every `https://` link to a new tab, except

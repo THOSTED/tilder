@@ -167,5 +167,5 @@ class Lists(unittest.TestCase):
         items = {n: contenttypes.load_items(n, c) for n, c in colls.items()}
         self.assertEqual(contenttypes.summary(colls, items),
                          "types: event, member, page, post; from theme: talk\n"
-                         "collections: blog (post, 2 items), events (event, 2 items), "
+                         "collections: blog (post, 3 items), events (event, 2 items), "
                          "members (member, 2 items), news (post, no folder), talks (talk, 1 item)")

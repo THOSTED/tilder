@@ -1,0 +1,3 @@
+/* The fixture theme's stylesheet: present so that every link of the
+   fixture resolves to a written file. */
+body { margin: 0; }

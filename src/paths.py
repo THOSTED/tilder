@@ -1,6 +1,7 @@
 """From content/ paths to output paths, URLs and relative links. Paths are
 logical, without a language prefix; the prefix is added here where a URL
-or a link leaves the language (clean_url, absolute, a /-leading target)."""
+or a link leaves the language (clean_url, absolute, a /-leading target or
+a file target, which resolve from the site root)."""
 
 import os
 
@@ -42,18 +43,29 @@ def absolute(rel, lang=None):
     return f"{apex()}/{prefix(lang)}{rel}"
 
 
-def relative(from_dir, target):
-    """Resolve a target from the directory of the page being rendered. A
-    root-relative target ("", "events", "blog/", "./#id") is inside the
-    language; a target starting with "/" is from the site root, so a page
-    may link to another language ("/events", "/fr/events"). A bare "#id"
-    stays on the page."""
+def is_file(target):
+    """Does a root-relative target name a file rather than a page? Its last
+    segment has an extension: style.css, events.ics, blog/x/p.svg. A page
+    has none (events, blog/hello), or ends in "/" (blog/), or is empty."""
+    last = target.rstrip("/").rsplit("/", 1)[-1]
+    return "." in last and not target.endswith("/")
+
+
+def relative(from_dir, target, page=None):
+    """Resolve a target from the directory of the page being rendered.
+    A page target ("", "events", "blog/", "./#id") stays inside the
+    language; a file target (style.css, logo.svg, events.ics: anything
+    with an extension) and a target starting with "/" resolve from the
+    site root, where the build writes files once, so a page may also link
+    to another language ("/events", "/fr/events"). page=True keeps a file
+    target inside the language: a feed, the one file written per language.
+    A bare "#id" stays on the page."""
     if target.startswith("http") or target.startswith("#"):
         return target
     target, hash_, frag = target.partition("#")
-    if target.startswith("/"):
+    if target.startswith("/") or (is_file(target) and page is not True):
         base = (STATE["prefix"] + from_dir).rstrip("/")
-        return _relative(base, target[1:]) + hash_ + frag
+        return _relative(base, target.lstrip("/").removeprefix("./")) + hash_ + frag
     if target in ("", "."):
         target = ""
     return _relative(from_dir, target.removeprefix("./")) + hash_ + frag

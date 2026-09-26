@@ -122,7 +122,7 @@ def html_image(b, res):
     src = b["src"]
     size = "" if src.startswith("http") else "".join(
         f' width="{w}" height="{h}"' for w, h in [image_size(CONTENT / src) or (0, 0)] if w)
-    url = src if src.startswith("http") else res(src)
+    url = src if src.startswith("http") else res("/" + src)
     caption = (f"<figcaption>{inline.to_html(b['caption'], res)}</figcaption>"
                if b["caption"] else "")
     return (f'<figure class="figure"><img src="{H.escape(url)}" alt="{H.escape(b["alt"])}"'
@@ -254,11 +254,13 @@ def render_html(item, sections, preamble=(), colls=None):
 
     feeds = ""
     # `feed:` names a collection, or `all`: its RSS in <link rel="alternate">.
+    # A feed is the one file written under the language's prefix: its link
+    # stays in the language (page=True).
     for name, c in (colls or {}).items():
         if c.get("feed") and meta.get("feed", "") in (name, "all"):
             title = H.escape(c["feed_title"])
             feeds += (f'\n<link rel="alternate" type="application/rss+xml" '
-                      f'title="{title}" href="{res(c["feed"])}">')
+                      f'title="{title}" href="{relative(d, c["feed"], page=True)}">')
 
     # Scripts, each loaded where it serves and only if the theme ships the
     # file: the ones the listed types name, then code.js on pages with
@@ -268,10 +270,10 @@ def render_html(item, sections, preamble=(), colls=None):
         sc = s.get("script")
         if sc and sc not in named and theme_file(sc).is_file():
             named.append(sc)
-    script = "".join(f'<script src="{res(sc)}" defer></script>\n' for sc in named)
+    script = "".join(f'<script src="{res("/" + sc)}" defer></script>\n' for sc in named)
     if has_code(list(preamble) + sections) and theme_file("code.js").is_file():
         labels = CFG["labels"]
-        script += (f'<script src="{res("code.js")}" defer'
+        script += (f'<script src="{res("/code.js")}" defer'
                    f' data-copy="{H.escape(labels["copy"])}"'
                    f' data-copied="{H.escape(labels["copied"])}"></script>\n')
 
@@ -332,7 +334,8 @@ def render_html(item, sections, preamble=(), colls=None):
     return fill(template, {
         "title": H.escape(page_title(meta)),
         "type": module.NAME,
-        "root": res(""),
+        "root": res("/"),   # the site root: style.css, icons, the manifest
+        "home": res(""),    # the language's landing page
         "canonical": apex() + clean_url(path),
         "feeds": feeds,
         "head": head_tags(item),

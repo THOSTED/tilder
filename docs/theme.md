@@ -41,7 +41,8 @@ are read at build time and never served.
 | `{{ type }}` | the page's type: `page`, `post`, `event`, `member`, or a theme's |
 | `{{ page.<key> }}` | a front-matter value: `page.description`, `page.man`, `page.tagline`... |
 | `{{ <section>.<key> }}` | a `site.toml` value: `site.lang`, `site.manual`, `footer.left`, `labels.skip`... |
-| `{{ root }}` | the relative path to the site root (`./`, `../`), for assets and links |
+| `{{ root }}` | the relative path to the site root (`./`, `../`), for `style.css`, the icons, the manifest, fonts: the site root even on a page under `/fr/` |
+| `{{ home }}` | the relative path to the language's landing page, for links to pages (`{{ home }}{{ footer.left_link }}`); equal to `root` in a monolingual site |
 | `{{ canonical }}` | the page's absolute URL |
 | `{{ feeds }}` | `<link rel="alternate">` for the page's RSS feeds |
 | `{{ head }}` | robots, author, Open Graph, Twitter Card, JSON-LD |
@@ -53,7 +54,7 @@ are read at build time and never served.
 | `{{ script }}` | the `<script>` tags the page needs, if the theme has the files |
 
 Values are HTML-escaped, except the ones the builder computes (`type`,
-`root`, `canonical`, `brand`, `nav`, `languages`, `content_lang`, `feeds`,
+`root`, `home`, `canonical`, `brand`, `nav`, `languages`, `content_lang`, `feeds`,
 `head`, `body`, `script`).
 The starter's `layout.html` is a complete example.
 

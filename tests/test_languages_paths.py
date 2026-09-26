@@ -62,6 +62,25 @@ class Urls(unittest.TestCase):
         self.assertEqual(paths.relative("", "/events"), "events")            # default pass: root is the root
         self.assertEqual(paths.relative("blog", "/fr/"), "../fr/")
 
+    def test_file_targets_resolve_from_the_site_root(self):
+        languages.use("fr")
+        try:
+            self.assertEqual(paths.relative("", "style.css"), "../style.css")
+            self.assertEqual(paths.relative("blog", "logo.svg"), "../../logo.svg")
+            self.assertEqual(paths.relative("blog", "2026-01-01-x/p.svg"), "../../2026-01-01-x/p.svg")
+            self.assertEqual(paths.relative("blog", "blog/2026-01-01-x/p.svg"), "../../blog/2026-01-01-x/p.svg")
+            self.assertEqual(paths.relative("", "events"), "events")          # pages stay in the language
+            self.assertEqual(paths.relative("", "blog/"), "blog/")
+            self.assertEqual(paths.relative("", "blog/feed.xml", page=True), "blog/feed.xml")  # a feed
+        finally:
+            languages.use("en")
+        self.assertEqual(paths.relative("", "events.ics"), "events.ics")
+        self.assertEqual(paths.relative("blog", "style.css"), "../style.css")
+        self.assertTrue(paths.is_file("docs/x.pdf"))
+        self.assertFalse(paths.is_file("blog/"))
+        self.assertFalse(paths.is_file("blog/hello"))
+        self.assertFalse(paths.is_file(""))
+
 
 class DefaultPassFallback(unittest.TestCase):
     def test_pages_only_in_french_exist_at_the_root(self):
