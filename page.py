@@ -8,7 +8,7 @@ import sys
 
 import highlight
 import inline
-from config import CFG, CONTENT, apex, theme_file
+from config import CFG, CONTENT, apex, layout, theme_file
 from paths import clean_url, relative
 from images import image_size
 from markdown import front_matter
@@ -243,9 +243,10 @@ def render_html(meta, sections, path, preamble=()):
     # members page, a copy button on code blocks. The page is complete
     # without them (AGENTS.md §4.4).
     script = ""
-    if any("members" in s["cls"] for s in sections):
+    # Only when the theme ships the script.
+    if any("members" in s["cls"] for s in sections) and theme_file("members.js").is_file():
         script += f'<script src="{res("members.js")}" defer></script>\n'
-    if has_code(list(preamble) + sections):
+    if has_code(list(preamble) + sections) and theme_file("code.js").is_file():
         labels = CFG["labels"]
         script += (f'<script src="{res("code.js")}" defer'
                    f' data-copy="{H.escape(labels["copy"])}"'
@@ -302,7 +303,7 @@ def render_html(meta, sections, path, preamble=()):
         brand = (f'<h1 class="wordmark"><a href="{res("")}">{tilde}{name}</a>{parents}'
                  f'{slash}<span class="here">{H.escape(page_heading(meta))}</span>{cursor}</h1>')
 
-    return fill(theme_file("layout.html").read_text(), {
+    return fill(layout(), {
         "title": H.escape(page_title(meta)),
         "root": res(""),
         "canonical": apex() + clean_url(path),

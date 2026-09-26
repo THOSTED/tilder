@@ -23,8 +23,8 @@ your project, or keep it as a git submodule.
 - SEO: one `<h1>` per page, canonical URLs, Open Graph and Twitter Card,
   JSON-LD structured data, `sitemap.xml`, `robots.txt`, build-time checks
   (`docs/seo.md`).
-- Accessibility: WCAG 2.2 AA contrast in both themes, screen-reader
-  details, keyboard, reduced motion, forced colours.
+- Accessibility in the markup: one `<h1>`, landmarks, alt text, labels,
+  named regions, links announced when they open a tab.
 - Icons (`favicon.ico`, PNGs) and a 1200x630 share image, drawn at every
   build from your `assets/logo.svg`. Nothing generated is committed.
 - A watch mode that rebuilds on every change, and at midnight.
@@ -40,11 +40,11 @@ my-site/
     blog/             optional: YYYY-MM-DD-slug.md, or YYYY-MM-DD-slug/index.md with images
     events/           optional, the same way
     members/          optional: one <slug>.md per member
+  theme/              how it looks: layout.html (required), style.css,
+                      scripts, fonts, icons, share.svg (docs/theme.md)
   assets/
     logo.svg          the source of every icon and of the share image
-    ...               anything else is served as-is; a file named like a
-                      theme file (style.css, layout.html, share.svg...)
-                      replaces it
+    ...               anything else is served as-is
   builder/            this folder
 ```
 
@@ -69,8 +69,7 @@ python3 builder/build.py --out DIR          # write somewhere else
 else to the folder that holds `builder/`.
 
 With Docker, `builder/Dockerfile` is Python plus `rsvg-convert` and
-`woff2_decompress`: the icons and the share image then use the theme's own
-font. Without them, the build falls back to ImageMagick, or skips the
+`woff2_decompress`: the share image then uses the theme's own fonts. Without them, the build falls back to ImageMagick, or skips the
 images with a warning.
 
 To serve the result, any static server works. `Caddyfile.example` gives
@@ -87,13 +86,16 @@ footer, the navigation, every label a reader sees (in your language), feed
 and calendar texts, how dates are written, SEO limits, colours of the share
 image, member categories. The builder holds no user-facing text.
 
-## The theme
+## Themes
 
-`builder/theme/` is the man-page theme: `layout.html` (the page
-skeleton), `style.css` (Solarized, one accent), two small scripts
-(`code.js`, the copy button; `members.js`, the member search), JetBrains
-Mono, and `share.svg` (the link preview template). Replace any of them by
-putting a file of the same name in your `assets/`.
+The builder ships no theme: it writes semantic HTML with stable class
+names, and the site's `theme/` folder decides how it looks.
+`docs/theme.md` is the contract - the files a theme may provide, the
+placeholders of `layout.html`, every class the builder writes.
+`starter/theme/` is a minimal theme covering all of it, on system fonts:
+copy it and make it yours. Scripts (the member search, the copy button),
+web fonts, profile logos and the share-image template are optional theme
+files; without them the build goes on and simply leaves them out.
 
 ## The code
 
@@ -101,14 +103,6 @@ One concern per module; the map is at the top of `build.py`. Everything is
 the standard library. `docs/markdown.md` is the format; keep it in step
 with `markdown.py`, `page.py` and `text.py`, since every construct is
 rendered twice.
-
-## Fonts
-
-`theme/fonts/JetBrainsMono-{Regular,Bold}.woff2` are Latin subsets of
-[JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) v2.304, made
-with `pyftsubset` (`fonttools`), 60 KB together. For the share image, the
-build decompresses them to TTF on the fly (`woff2_decompress`): the
-renderer's text shaping does not read WOFF2.
 
 ## Why 75 columns
 
@@ -124,5 +118,4 @@ folds them.
 
 ## Licence
 
-AGPL-3.0-or-later, like the site it comes from. JetBrains Mono: OFL 1.1
-(`theme/fonts/OFL.txt`).
+AGPL-3.0-or-later (`LICENSE`).

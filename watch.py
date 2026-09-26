@@ -5,12 +5,12 @@ import os
 import sys
 import time
 
-from config import ASSETS, BUILDER, CONTENT, EXTRA
+from config import ASSETS, BUILDER, CONTENT, EXTRA, THEME
 
 def snapshot():
     """mtime and size of every source file, the builder included."""
     state = {}
-    for base in (CONTENT, ASSETS, BUILDER, *EXTRA):
+    for base in (CONTENT, THEME, ASSETS, BUILDER, *EXTRA):
         for f in [base] if base.is_file() else base.rglob("*"):
             if f.is_file() and "__pycache__" not in f.parts:
                 st = f.stat()

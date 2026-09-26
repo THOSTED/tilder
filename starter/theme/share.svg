@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+	<!-- The link preview, 1200x630, drawn to share.png at every build. The
+	     double-brace fields come from content/site.toml; "logo" is the
+	     site's assets/logo.svg. Remove this file for no preview image. -->
+	<rect width="1200" height="630" fill="{{ share.background_color }}"/>
+	<image x="80" y="205" width="220" height="220" href="{{ logo }}"/>
+	<text x="350" y="310" font-family="sans-serif" font-weight="700" font-size="80" fill="{{ share.text_color }}">{{ site.name }}</text>
+	<text x="352" y="370" font-family="sans-serif" font-size="32" fill="{{ share.muted_color }}">{{ card_1 }}</text>
+	<text x="352" y="416" font-family="sans-serif" font-size="32" fill="{{ share.muted_color }}">{{ domain }}</text>
+</svg>

@@ -41,8 +41,8 @@ It is TOML, read with Python's standard library; each key is commented in
 the file.
 
 The HTML skeleton around every page (`<head>`, header rule, navigation,
-wordmark, footer) is not content: it is `builder/theme/layout.html`, part of the
-builder, and fills itself from `site.toml`. The text mirror's header and
+wordmark, footer) is not content: it is the site theme's `layout.html`
+(`docs/theme.md`), filled from `site.toml`. The text mirror's header and
 footer rules come from `site.manual`, `footer.left`, `site.updated` and
 `footer.right`.
 
@@ -343,8 +343,8 @@ Fenced with three backticks. A language name right after the fence turns on
 syntax highlighting, computed at build time (`builder/highlight.py`, no
 JavaScript), and shows the language in the block's corner.
 
-Every code block gets a **copy** button (`builder/theme/code.js`, loaded only on
-pages with code): it copies the code as plain text, without the
+If the theme ships `code.js`, every code block gets a **copy** button
+(loaded only on pages with code): it copies the code as plain text, without the
 highlighting. The button and the language float over the code, top right,
 faded until the block is hovered or focused. Without JavaScript there is no button, and the code is
 selected by hand as usual. The wording is `labels.copy` / `labels.copied`.
@@ -642,7 +642,7 @@ blocks written below the heading. With no member file, it shows an empty
 state.
 
 **Search and filter.** A page with a `{members}` section loads
-`builder/theme/members.js`, the only script on the site. It adds a search box
+the theme's `members.js`, if it ships one. It adds a search box
 (first, last and display name, accent- and case-insensitive, every word
 must match) and one button per category. It is progressive enhancement:
 without JavaScript, the full list is simply shown. Each card carries its

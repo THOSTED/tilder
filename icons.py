@@ -51,8 +51,11 @@ def generated():
     if all(png for _, png in small):
         out["favicon.ico"] = ico(small)
 
+    template = theme_file("share.svg")
+    if not template.is_file():  # the theme has no preview: og:image uses the icon
+        return out
     card = list(CFG["share"]["card"]) + ["", ""]
-    svg = _fill(theme_file("share.svg").read_text(), {
+    svg = _fill(template.read_text(), {
         "logo": "data:image/svg+xml;base64," + base64.b64encode(logo).decode(),
         "manual_upper": H.escape(CFG["site"]["manual"].upper()),
         # Lowercase, like the wordmark on the page (text-transform in style.css).

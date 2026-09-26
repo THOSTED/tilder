@@ -40,9 +40,11 @@ content format; `docs/seo.md` is what the build does for search engines.
    it renders in HTML **and** in text, is documented in `docs/markdown.md`,
    and is shown in the starter or the site's showcase. The text rendering
    is not an afterthought: it is half the product.
-5. **The theme is overridable, not forkable.** A site replaces a theme
-   file by putting one with the same name in its `assets/`. Keep theme
-   files self-contained so that works.
+5. **The builder has no theme.** A site brings its own, in `theme/`
+   (`docs/theme.md`); `starter/theme/` is a minimal one to copy. The
+   builder writes semantic HTML with stable class names - the contract -
+   and never depends on how a theme draws them. Every theme file but
+   `layout.html` is optional, and the build degrades cleanly without it.
 6. **No third-party request** from a built page: no CDN, no font service,
    no analytics, no iframe, no remote image. Links to other sites are fine;
    loading from them is not.
@@ -58,7 +60,7 @@ build.py        the driver and CLI: once, --watch, --out DIR, --root DIR
 config.py       paths, site.toml over defaults.toml, what a build shares
 markdown.py     Markdown -> a tree of nodes
 inline.py       inline markup, for both outputs (and the link rules)
-page.py         the tree -> HTML, inside theme/layout.html
+page.py         the tree -> HTML, inside the site's theme/layout.html
 text.py         the tree -> the marked text mirror (75 columns)
 ansify.py       the marked text -> its coloured twin
 highlight.py    syntax highlighting of code blocks
@@ -70,9 +72,8 @@ icons.py        icons and share.png from the site's assets/logo.svg
 images.py       image sizes, rasterising, .ico packing
 paths.py, fold.py, watch.py
 defaults.toml   every key of site.toml, with neutral defaults
-theme/          layout.html, style.css, code.js, members.js, fonts/, icons/, share.svg
-docs/           markdown.md, seo.md
-starter/        a minimal site: content/ and assets/, to copy
+docs/           markdown.md (the format), theme.md (the theme contract), seo.md
+starter/        a minimal site to copy: content/, assets/, theme/ (a minimal theme)
 Caddyfile.example  the server contract, for Caddy
 Dockerfile      Python + rsvg-convert + woff2_decompress
 ```
@@ -104,85 +105,57 @@ module name must not shadow the standard library (`html`, `site`,
 
 ---
 
-## 5. The theme
+## 5. Themes
 
-### Grammar
-A man page: section names in small caps in the left gutter, content
-indented to the right, a header rule (`<man>  <manual>  <man>`) and a
-footer rule. Not cards, not hero banners, not full-bleed sections.
+The contract between the builder and a theme is `docs/theme.md`: the
+files a theme may provide, the placeholders of `layout.html`, and every
+class the builder writes. Keep it true:
 
-### Colours - Solarized
-CSS variables on `:root`, redefined for `prefers-color-scheme: dark`, for
-`prefers-contrast: more` and for print. Never hard-code a colour in a rule.
-
-| Role | Variable | Light | Dark |
-|---|---|---|---|
-| Background | `--bg` | `#FDF6E3` | `#002B36` |
-| Inset background | `--bg-inset` | `#EEE8D5` | `#073642` |
-| Text | `--fg` | `#073642` | `#B6C2C2` |
-| Muted text | `--fg-muted` | `#506C75` | `#8C9B9B` |
-| Faint (decoration only) | `--fg-faint` | `#93A1A1` | `#586E75` |
-| Rules | `--rule` | `#DED7C3` | `#0E4653` |
-| Accent | `--accent` | `#0F6E68` | `#3EA89E` |
-| Accent background | `--accent-bg` | `#D9EBE8` | `#05313B` |
-| Warning | `--warn` | `#A5501A` | `#CB8B4B` |
-| Error | `--error` | `#B3261E` | `#EF7A74` |
-
-**One accent.** `--warn` and `--error` are status colours (callouts, a
-full mentor, removed diff lines), never decoration. Syntax highlighting
-stays inside this palette: weight for keywords, the accent for strings, the
-muted tone for comments.
-
-### Shapes and motion
-- Sharp corners (2px radius at most), 1px rules, no shadow, no gradient.
-  The site's own logo may be the only curve.
-- Single column, `--measure: 68ch`, gutter `--gutter: 13ch`, left-aligned.
-- One motion: the wordmark's cursor blinks four times, then stays (and
-  again on hover); never under `prefers-reduced-motion`.
-- `{grid}` lays entries out as cards: 1px rule, square corners, no shadow.
-  A card whose title is a link is clickable as a whole (a stretched link).
-- The only icons are the brand logos of profile links (`theme/icons/`,
-  Simple Icons, CC0), single-colour, inline, named for screen readers.
-
-### The wordmark and the `<h1>`
-The wordmark is `~/<site name>`, lowercase by CSS. It is the page's single
-`<h1>`, as a path: `~/<site>` on the landing page, `~/<site>/<section>/<title>`
-elsewhere, each segment linking to its page and named like it (`name:`).
-
----
+- A new class, a renamed class, a new placeholder: update
+  `docs/theme.md` **and** `starter/theme/`, which must style every class the
+  builder writes.
+- The builder never writes an inline `style`, a colour, or a font: those
+  are the theme's.
+- The `<h1>` is the wordmark as a path, `~/<site>/<section>/<title>`, each
+  segment linking to its page and named like it (`name:`); the builder
+  writes it, the theme draws it.
+- The starter theme stays minimal: system fonts, no script, no web font,
+  readable in light and dark, WCAG AA contrast.
 
 ## 6. Scripts
 
-Two, and a new one follows the same rules:
-
-- `members.js` (search and filter on a `{members}` page), `code.js` (copy
-  button on code blocks); the build adds each `<script>` tag only where it
-  serves.
+Scripts belong to themes. The builder knows two, and adds each
+`<script>` tag only where it serves **and** only if the theme ships the
+file: `members.js` (search and filter on a `{members}` page), `code.js`
+(copy button on code blocks). A theme's scripts follow these rules:
 - ES5, no dependency, a same-origin file - never inline, never a CDN.
 - Progressive enhancement: the page is complete without it; the script
   creates its own controls.
 - No network, no storage, no cookie. No text of its own: wording arrives
   from `site.toml` through `data-*` attributes.
 - The CSP (`Caddyfile.example`) grants `script-src 'self'` and nothing
-  more. JSON-LD (`<script type="application/ld+json">`) is inert data, the
+  more.
+- The builder writes the markup they rely on (`data-*` attributes, class
+  names) as documented in `docs/theme.md`. JSON-LD (`<script type="application/ld+json">`) is inert data, the
   only inline `<script>` allowed.
 
 ---
 
 ## 7. Accessibility - WCAG 2.2 AA
 
-- **Contrast**: every text colour reaches 4.5:1 on `--bg`, `--bg-inset` and
-  `--accent-bg`, in both themes. `--fg-faint` is never used for text. After
-  any palette change, measure every text colour on every background again.
-- **Never colour alone**: every coloured meaning has a word or a shape.
+The builder's part - the markup - is below; contrast, focus outlines and
+motion are the theme's (`docs/theme.md`), and the starter theme meets them.
+
+- **Never colour alone**: every meaning the builder marks with a class also
+  has a word or a shape (a full mentor says "full", callouts carry a
+  label, diff lines keep `+`/`-`, task boxes are named).
 - One `<h1>`; `<h2>` for sections, `<h3>` for entries.
 - Hidden from screen readers: the header rule, the `~/` of the wordmark,
   the `↗` of external links (replaced by `labels.external`, plus
   `labels.new_tab` when the link opens a tab).
 - Alt text required on images (the build warns); scrollable code and
-  tables focusable; targets at least 24px high; sizes in `rem`.
-- `prefers-contrast: more` and `forced-colors` handled: wherever a
-  background carries meaning, keep a border or a system colour.
+  tables focusable (`tabindex`, a named region); links opening a new tab
+  announced.
 
 ---
 
@@ -243,8 +216,8 @@ what it is about.
 - Add JavaScript beyond `members.js` and `code.js`, inline a script, or
   give one network or storage access.
 - Load anything from another host; embed an iframe.
-- Change the palette, the typefaces or the man-page grammar; round corners;
-  add shadows or decorative motion.
-- Use `--fg-faint` for text, or carry a meaning by colour alone.
+- Ship a theme, write a style, a colour or a font from the code, or change
+  a class name without `docs/theme.md` and `starter/theme/`.
+- Carry a meaning by a class alone, without a word or a shape.
 - Commit generated files.
 - Write anything in this repository in a language other than English.

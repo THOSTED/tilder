@@ -3,8 +3,9 @@
 The builder serves any project laid out like this one:
 
     <root>/content/     the pages and content/site.toml
-    <root>/assets/      the project's files: logo.svg, and anything that
-                        overrides the theme (style.css, layout.html...)
+    <root>/theme/       the site's theme: layout.html (required), style.css,
+                        scripts, fonts, icons, share.svg (docs/theme.md)
+    <root>/assets/      the project's files, served as-is: logo.svg...
 
 <root> is --root (set as SITE_ROOT by build.py), else the current directory
 when it has a content/ folder, else the folder that holds builder/.
@@ -17,7 +18,6 @@ import re
 import tomllib
 
 BUILDER = pathlib.Path(__file__).resolve().parent
-THEME = BUILDER / "theme"          # the man-page theme, shipped with the builder
 DEFAULTS = BUILDER / "defaults.toml"
 
 
@@ -30,6 +30,7 @@ def _root():
 
 ROOT = _root()
 CONTENT = ROOT / "content"
+THEME = ROOT / "theme"             # the site's own theme (builder/starter/theme to begin)
 ASSETS = ROOT / "assets"
 EXTRA = [p for p in [ROOT / "LICENSE"] if p.is_file()]  # served as-is at the root
 CONFIG = CONTENT / "site.toml"
@@ -55,9 +56,19 @@ STATE = {"today": ""}
 
 
 def theme_file(name):
-    """A theme file, or the project's replacement for it in assets/."""
+    """A theme file: the one in assets/ if there is one, else theme/. The
+    path may not exist: every theme file but layout.html is optional."""
     own = ASSETS / name
     return own if own.is_file() else THEME / name
+
+
+def layout():
+    """theme/layout.html, the one file a theme must have."""
+    path = theme_file("layout.html")
+    if not path.is_file():
+        raise SystemExit(f"no {THEME}/layout.html: a site needs a theme - "
+                         "copy builder/starter/theme/ to begin")
+    return path.read_text()
 
 
 def _merge(base, over):
