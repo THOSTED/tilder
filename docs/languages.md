@@ -50,12 +50,13 @@ The chosen file's language is the page's **content language**; the layout
 gets it as `{{ content_lang }}` for `<main lang="...">`, and screen readers
 read a fallback page in its real language.
 
-A suffix that names no declared language stops the build, anywhere under
-`content/` - a page (`about.xx.md`), or a `site.xx.toml`/`theme.xx.toml`:
-a typo must not silently become a page, or a configuration file, that the
-build ignores. A stem like `v1.2` or `notes.final` is a plain name, but a
-stem ending in a two- or three-letter word - `readme.txt.md` - is read as
-a language suffix.
+A suffix that names no declared language stops the build, wherever it
+appears under `content/`: a page (`about.xx.md`) or a `site.xx.toml`. The
+same rule applies to `theme.xx.toml` under `theme/`. A typo must not
+silently become a page, or a configuration file, that the build ignores.
+A stem like `v1.2` or `notes.final` is a plain name, but a stem ending in
+a two- or three-letter word - `readme.txt.md` - is read as a language
+suffix.
 
 ## Links
 
