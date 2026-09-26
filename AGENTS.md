@@ -28,8 +28,10 @@ content format; `docs/seo.md` is what the build does for search engines.
    site-wide value: no name, no URL, no date, no label, no language. Every
    such value comes from the site's `content/site.toml`, merged over
    `defaults.toml`. A new key goes in `defaults.toml` with an English,
-   neutral default and a comment. `grep -rni` for a real site's name,
-   domain or organisation in this repository must find nothing.
+   neutral default and a comment. A key that belongs to one content type
+   goes in that type's `DEFAULTS` (`types/<type>.py`), English and neutral
+   too. `grep -rni` for a real site's name, domain or organisation in this
+   repository must find nothing.
 2. **Python's standard library only.** No `pip install`, no npm, no
    framework, no preprocessor. The only outside tools are optional and used
    for images: `rsvg-convert` and `woff2_decompress` (the `Dockerfile` has
@@ -67,17 +69,21 @@ src/
   text.py         the tree -> the marked text mirror (75 columns)
   ansify.py       the marked text -> its coloured twin
   highlight.py    syntax highlighting of code blocks
-  members.py      members: the {members} grid, a card on each page, profiles
-  dated.py        blog posts and events: lists, cards, dates
+  contenttypes.py the types (types/, theme/types/), collections, items, lists
+  report.py       errors and warnings, one shape
+  dates.py        dates in words, from [dates]
   seo.py          titles, meta, JSON-LD, sitemaps, robots.txt, SEO checks
   feeds.py        RSS and iCalendar
   icons.py        icons and share.png from the site's assets/logo.svg
   images.py       image sizes, rasterising, .ico packing
   paths.py, fold.py, watch.py
+types/          the built-in content types, one module each - no
+                `__init__.py`, ever: the folder must not become a package
 docs/           markdown.md (the format), theme.md (the theme contract),
-                seo.md, screenshots/
+                types.md (the content-type contract), seo.md, screenshots/
 starter/        a minimal site to copy: content/, assets/, theme/ (a minimal theme)
 examples/       Caddyfile, compose.yaml: serving a site
+tests/          the suite: `python3 -m unittest discover -s tests -v`
 Dockerfile      Python + rsvg-convert + woff2_decompress
 ```
 
@@ -128,10 +134,10 @@ class the builder writes. Keep it true:
 
 ## 6. Scripts
 
-Scripts belong to themes. The builder knows two, and adds each
-`<script>` tag only where it serves **and** only if the theme ships the
-file: `members.js` (search and filter on a `{members}` page), `code.js`
-(copy button on code blocks). A theme's scripts follow these rules:
+Scripts belong to themes. The builder knows `code.js`, and whatever script
+a loaded type names (`SCRIPT`, `docs/types.md`): `members.js` for the
+member type. Each tag is added only where it serves and only if the theme
+ships the file. A theme's scripts follow these rules:
 - ES5, no dependency, a same-origin file - never inline, never a CDN.
 - Progressive enhancement: the page is complete without it; the script
   creates its own controls.
@@ -176,6 +182,9 @@ canonical link, description or structured data.
 ## 9. Before handing back
 
 ```bash
+# 0. The test suite must be green.
+python3 -m unittest discover -s tests
+
 # 1. The output does not change unless the change meant it to. Build the
 #    site you work with before and after, and compare.
 python3 builder/build.py --out /tmp/before   # before the change
@@ -225,3 +234,14 @@ what it is about.
 - Carry a meaning by a class alone, without a word or a shape.
 - Commit generated files.
 - Write anything in this repository in a language other than English.
+- Add a content type without its entry in `docs/types.md`, its `DEFAULTS`,
+  and a test of its card in HTML and text.
+- Put an `__init__.py` in `types/`.
+
+---
+
+## 11. Errors
+
+When the build stops, one line per problem: `error: <file>[:<line>]: <what
+is wrong>. <what to do>` (`src/report.py`). Gather the problems of a phase
+and report them together. Tracebacks only under `--debug`.

@@ -19,7 +19,7 @@ terminal mirror (`curl example.org`, or a plain-text host such as
 - [Blocks](#blocks)
 - [Inline markup](#inline-markup)
 - [Links](#links)
-- [Collections: posts and events](#collections-posts-and-events)
+- [Collections](#collections)
 - [Images](#images)
 - [Members](#members)
 - [What is not supported](#what-is-not-supported)
@@ -139,7 +139,7 @@ line. Values are plain text, not quoted.
 \* Items of a collection (posts, events) may leave `man`, `nav` and
 `tagline` out: `man` and `nav` come from their collection in `site.toml`,
 the tagline is the date. They have fields of their own too (see
-[Collections](#collections-posts-and-events)).
+[Collections](#collections)).
 
 `title`, `description` and `image` also feed the page's sharing tags - Open
 Graph (`og:*`) and Twitter Card (`twitter:*`) - so a link pasted into
@@ -499,41 +499,46 @@ In the text mirror, an internal link keeps only its label (it is visited with
 
 ---
 
-## Collections: posts and events
+## Collections
 
-A **collection** is a folder of dated items: one item per
-`YYYY-MM-DD-slug`, written either as a file, `YYYY-MM-DD-slug.md`, or as a
-folder, `YYYY-MM-DD-slug/index.md`, when it has images to keep next to it.
-The date in the name is a post's publication date, or an event's date.
+A **collection** is a folder whose files are items of one **type**; the
+types are `post`, `event`, `member`, and whatever the theme adds
+(`docs/types.md`). An item is `<slug>.md` or `<slug>/index.md` (a folder,
+to keep images next to it); for posts and events the slug starts with the
+date, `YYYY-MM-DD-slug`.
 
-Collections are declared in `site.toml`. There are two types:
+Collections are declared in `site.toml`:
 
 | Type | Items | Lists | Feeds | Structured data |
 |---|---|---|---|---|
-| `posts` | articles, notes, news | newest first | RSS | `BlogPosting` |
-| `events` | meetups, talks, releases | upcoming and past, by the date of the build | RSS and iCalendar | `Event` |
+| `post` | articles, notes, news | newest first | RSS | `BlogPosting` |
+| `event` | meetups, talks, releases | upcoming and past, by the date of the build | RSS and iCalendar | `Event` |
+| `member` | people | category order, then last name | - | `ProfilePage` |
 
 ```toml
 [collections.blog]          # the name, used by markers and `feed:`
-type = "posts"
+type = "post"
 dir = "blog"                # content/blog/, served at /blog/...
 feed = "blog/feed.xml"
 
 [collections.talks]
-type = "events"
+type = "event"
 dir = "talks"
 nav = "talks"               # the nav entry of its items, and its feed's link
 feed = "talks.xml"
 calendar = "talks.ics"
 upcoming_tag = "soon"
+
+[collections.members]
+type = "member"
+categories = ["admin", "member"]
 ```
 
-Every key a type needs has a default in `[collection_defaults.posts]` and
-`[collection_defaults.events]` (`defaults.toml`): man-page name, nav,
-empty-list texts, tags, link labels, feed titles. A collection sets only
-what differs. `builder/defaults.toml` declares `blog` and `events`; each
-stays inactive - no page, no feed - until its folder exists. A site may
-declare as many collections as it likes, of either type.
+Every key a type needs has a default in its module, `types/<type>.py`
+(`DEFAULTS`, listed in `docs/types.md`): man-page name, nav, empty-list
+texts, tags, link labels, feed titles, member words. A collection sets only
+what differs. `defaults.toml` declares `blog`, `events` and `members`; each
+stays inactive - no page, no feed - until its folder exists.
 
 | Field | Posts | Events |
 |---|---|---|
@@ -545,6 +550,8 @@ declare as many collections as it likes, of either type.
 | `link` | - | the event's own site |
 | `end` | - | `YYYY-MM-DD`, for an event over several days |
 | `lat`, `lon` | - | coordinates, for an exact OpenStreetMap marker and the iCalendar `GEO` |
+
+Member fields are documented in [Members](#members).
 
 On an event's page, its card links to the event's own site (`link`) and to
 the place on **OpenStreetMap**: a marker at `lat`/`lon` when given, else a
@@ -558,8 +565,8 @@ the card.
 
 Nothing else is written by hand. From these files the build makes:
 
-- each item's page, with its card (date, author or place, tag) at the end
-  of its first section;
+- each item's page, with its card (date, author or place, tag; a member's
+  profile links) at the end of its first section;
 - the lists, in the sections that carry these markers:
 
 | Marker | Fills the section with |
@@ -568,6 +575,7 @@ Nothing else is written by hand. From these files the build makes:
 | `{upcoming}` | events dated today or later, nearest first, the first highlighted |
 | `{past}` | events before today, latest first |
 | `{next-event}` | the next event only |
+| `{members}` | every member, a grid, category order then last name |
 
   Each marker may name its collection: `{posts:news}`, `{upcoming:talks}`,
   `{next-event:talks}`. A bare marker lists the page's own collection -

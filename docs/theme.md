@@ -19,9 +19,12 @@ A file of the same name in the site's `assets/` wins over the theme's.
 | `fonts/` | optional | web fonts; `*.woff2` are also used to draw `share.png` |
 | `icons/<network>.svg` | optional | logos of member profiles (`linkedin`, `github`...); else the network's name is shown |
 | `share.svg` | optional | the link preview, drawn to `share.png` (1200x630); without it, `og:image` is the icon |
+| `layouts/<name>.html` | optional | a layout for the pages of a type (`docs/types.md`), or asked for by `layout:` in a page's front matter; same placeholders as `layout.html` |
+| `types/<name>.py` | optional | a content type the theme adds, or a built-in one it replaces (`docs/types.md`) |
+| `theme.toml` | optional | the theme's own configuration values, merged under the site's `site.toml`: for now the `[share]` colours |
 
-Everything in `theme/` but `layout.html`, `share.svg` and `icons/` is
-copied to the site as it is.
+Everything in `theme/` but `layout.html`, `layouts/`, `share.svg`,
+`icons/`, `types/` and `theme.toml` is copied to the site as it is.
 
 ---
 
@@ -32,6 +35,7 @@ copied to the site as it is.
 | Placeholder | Value |
 |---|---|
 | `{{ title }}` | the `<title>`: the page's title and `site.title_suffix` |
+| `{{ type }}` | the page's type: `page`, `post`, `event`, `member`, or a theme's |
 | `{{ page.<key> }}` | a front-matter value: `page.description`, `page.man`, `page.tagline`... |
 | `{{ <section>.<key> }}` | a `site.toml` value: `site.lang`, `site.manual`, `footer.left`, `labels.skip`... |
 | `{{ root }}` | the relative path to the site root (`./`, `../`), for assets and links |
@@ -50,6 +54,17 @@ complete example.
 The layout must keep: `lang="{{ site.lang }}"`, one `{{ brand }}` (it is
 the page's only `<h1>`), a `<main id="contenu">` or equivalent target for
 the skip link, and `<link rel="canonical">`.
+
+## Layouts
+
+The layout of a page is, in order: `layout:` in its front matter (the file
+must exist), the type's `LAYOUT` (`theme/layouts/event.html` for events, if
+the theme has it), else `layout.html`.
+
+## Trust
+
+A theme's `types/` are Python, run at build time. The theme, like the
+generator, is the site owner's: review one before you use it.
 
 ---
 

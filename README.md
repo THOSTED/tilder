@@ -1,9 +1,9 @@
-# man-page site builder
+# tilder - a man-page site builder
 
-A static site generator for websites that read like a man page. Markdown
-in, two outputs out: HTML for browsers, and plain ASCII for terminals
-(`curl example.org`). Python standard library only; one optional tool,
-`rsvg-convert`, to draw the icons and the link preview.
+**tilder** is a static site generator for websites that read like a man
+page. Markdown in, two outputs out: HTML for browsers, and plain ASCII for
+terminals (`curl example.org`). Python standard library only; one optional
+tool, `rsvg-convert`, to draw the icons and the link preview.
 
 It knows nothing of any particular site: every name, word and value comes
 from the project's `content/site.toml`. Copy this `builder/` folder into
@@ -24,9 +24,9 @@ coloured, code framed, tables aligned.*
   (`docs/markdown.md`).
 - A text mirror of every page, 75 columns, plain and ANSI-coloured, for
   terminals and braille displays.
-- Collections of dated posts or events, declared in `site.toml` - a blog,
-  news, meetups, talks, as many as you like - with their lists, RSS feeds
-  and iCalendar feeds; members with a searchable grid.
+- Collections of content, declared in `site.toml`, each of a **type** -
+  posts, events, members, or a type your theme adds in ten lines of Python
+  (`docs/types.md`) - with their lists, RSS feeds and iCalendar feeds.
 - SEO: one `<h1>` per page, canonical URLs, Open Graph and Twitter Card,
   JSON-LD structured data, `sitemap.xml`, `robots.txt`, build-time checks
   (`docs/seo.md`).
@@ -48,7 +48,8 @@ my-site/
     events/           optional, the same way
     members/          optional: one <slug>.md per member
   theme/              how it looks: layout.html (required), style.css,
-                      scripts, fonts, icons, share.svg (docs/theme.md)
+                      scripts, fonts, icons, share.svg,
+                      layouts/, types/, theme.toml (docs/theme.md)
   assets/
     logo.svg          the source of every icon and of the share image
     ...               anything else is served as-is
@@ -76,8 +77,11 @@ python3 builder/build.py --out DIR          # write somewhere else
 else to the folder that holds `builder/`.
 
 With Docker, `builder/Dockerfile` is Python plus `rsvg-convert` and
-`woff2_decompress`: the share image then uses the theme's own fonts. Without them, the build falls back to ImageMagick, or skips the
-images with a warning.
+`woff2_decompress`: the share image then uses the theme's own fonts.
+Without them, the build falls back to ImageMagick, or skips the images
+with a warning. The image is also published by CI at
+`ghcr.io/thosted/tilder` (`latest`, and one tag per release): with it a
+site needs no submodule - see `examples/compose.yaml`.
 
 To serve the result, any static server works. `examples/Caddyfile` gives
 the whole contract, for Caddy: clean URLs, the text mirror served to `curl`
@@ -92,6 +96,10 @@ every key with a comment: the site's name and URL, the man-page header and
 footer, the navigation, every label a reader sees (in your language), feed
 and calendar texts, how dates are written, SEO limits, colours of the share
 image, member categories. The builder holds no user-facing text.
+
+Three layers: `builder/defaults.toml`, then the theme's `theme.toml` if it
+has one, then `content/site.toml`. A type's own words default from its
+module.
 
 ## Themes
 
@@ -114,6 +122,9 @@ The code is in `src/`, one concern per module; the map is at the top of
 the standard library. `docs/markdown.md` is the format; keep it in step
 with `markdown.py`, `page.py` and `text.py`, since every construct is
 rendered twice.
+
+`tests/`: `python3 -m unittest discover -s tests` builds a fixture site and
+checks it.
 
 ## Why 75 columns
 

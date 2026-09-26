@@ -29,7 +29,8 @@ entry point):
     paths.py      content paths -> output paths, URLs, relative links
     fold.py       ASCII folding
     watch.py      polling, rebuild on change and at midnight
-    icons.sh      assets/logo.svg -> the raster icons (run by hand)
+    icons.py      the favicon, app icons and share.png, made at every build
+    images.py     an image's width and height, read from the file itself
 
 types/ holds the built-in content types, one module each (docs/types.md).
 
