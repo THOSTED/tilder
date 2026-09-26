@@ -9,6 +9,7 @@ import sys
 import highlight
 import inline
 import languages
+import sequence
 from config import CFG, CONTENT, STATE, apex, layout, theme_file
 from paths import clean_url, relative
 from images import image_size
@@ -239,7 +240,7 @@ def switcher(item, res):
     return f'<nav class="languages" aria-label="{label}">\n' + "\n".join(links) + "\n</nav>"
 
 
-def render_html(item, sections, preamble=(), colls=None):
+def render_html(item, sections, preamble=(), colls=None, items=None):
     meta, path, module = item["meta"], item["path"], item["type"]
     d = os.path.dirname(path)
     res = lambda u: relative(d, u)
@@ -333,6 +334,11 @@ def render_html(item, sections, preamble=(), colls=None):
         brand = (f'<h1 class="wordmark"><a href="{res("/")}">{tilde}{name}</a>{parents}'
                  f'{slash}<span class="here">{H.escape(page_heading(meta))}</span>{cursor}</h1>')
 
+    # A collection's order: the sidebar, and the page's neighbours.
+    coll, its = sequence.shown(path, colls or {}, items or {})
+    prev, nxt = sequence.neighbours(its, path)
+    conf = (colls or {}).get(coll, {})
+
     if meta.get("layout"):
         lay_path, template = layout(meta["layout"], asked_by=item["src"])
     else:
@@ -348,6 +354,9 @@ def render_html(item, sections, preamble=(), colls=None):
         "brand": brand,
         "nav": navhtml,
         "languages": switcher(item, res),
+        "collection_nav": sequence.nav_html(its, path, conf, res),
+        "prev": sequence.link_html("prev", prev, res),
+        "next": sequence.link_html("next", nxt, res),
         "content_lang": STATE["content_lang"],
         # Posts and events are articles: Reader mode and read-aloud tools
         # look for one.

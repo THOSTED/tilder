@@ -4,6 +4,7 @@ title: Guides
 description: The guides of the fixture site, a sequence to test collection navigation.
 tagline: in order
 nav: -
+layout: guide
 ---
 
 ## Name
