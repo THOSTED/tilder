@@ -12,6 +12,7 @@ from config import CFG, CONTENT, apex, layout, theme_file
 from paths import clean_url, relative
 from images import image_size
 from markdown import front_matter
+from report import error
 from seo import head_tags, is_landing, page_heading, page_title
 
 def html_meta(items, entry_cls):
@@ -197,7 +198,7 @@ def html_blocks(blocks, res, entry_cls=(), ind="\t\t"):
 PLACEHOLDER = re.compile(r"\{\{\s*([\w.]+)\s*\}\}")
 
 
-def fill(template, computed, meta):
+def fill(template, computed, meta, path):
     """Replace {{ name }} in the layout. `computed` values are HTML built
     here and go in as-is; `page.*` (front matter) and `section.key` (from
     site.toml) are escaped. An unknown name stops the build."""
@@ -210,7 +211,8 @@ def fill(template, computed, meta):
         node = CFG
         for part in name.split("."):
             if not isinstance(node, dict) or part not in node:
-                raise ValueError(f"layout.html: unknown placeholder {{{{ {name} }}}}")
+                raise error(path, f"unknown placeholder {{{{ {name} }}}}",
+                            "The placeholders are listed in docs/theme.md")
             node = node[part]
         return H.escape(str(node))
     return PLACEHOLDER.sub(value, template)
@@ -304,8 +306,13 @@ def render_html(item, sections, preamble=(), colls=None):
         brand = (f'<h1 class="wordmark"><a href="{res("")}">{tilde}{name}</a>{parents}'
                  f'{slash}<span class="here">{H.escape(page_heading(meta))}</span>{cursor}</h1>')
 
-    return fill(layout(), {
+    if meta.get("layout"):
+        lay_path, template = layout(meta["layout"], asked_by=item["src"])
+    else:
+        lay_path, template = layout(module.LAYOUT)
+    return fill(template, {
         "title": H.escape(page_title(meta)),
+        "type": module.NAME,
         "root": res(""),
         "canonical": apex() + clean_url(path),
         "feeds": feeds,
@@ -317,4 +324,4 @@ def render_html(item, sections, preamble=(), colls=None):
         "body": ("<article>\n" + "\n".join(body) + "</article>\n"
                  if module.ARTICLE else "\n".join(body)),
         "script": script,
-    }, meta)
+    }, meta, lay_path)

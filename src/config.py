@@ -40,9 +40,10 @@ INDENT = 5
 # (a folder, to keep its images next to it).
 DATED = re.compile(r"^(\d{4}-\d{2}-\d{2})-[a-z0-9-]+$")
 
-# Files read by the build, never served. The theme's are replaced by the
-# project's own copy in assets/, if it has one.
-TEMPLATES = ("layout.html", "share.svg")
+# Files of the theme (and of assets/, which may override them) read by the
+# build and never served.
+UNSERVED = ("layout.html", "share.svg", "theme.toml")
+UNSERVED_DIRS = ("icons/", "layouts/", "types/")
 
 # content/site.toml over builder/defaults.toml, re-read at every build (see
 # load_config). Every user-facing string and site-wide value comes from
@@ -61,13 +62,28 @@ def theme_file(name):
     return own if own.is_file() else THEME / name
 
 
-def layout():
-    """theme/layout.html, the one file a theme must have."""
+def served(rel):
+    """Is this theme- or assets-relative path a file to serve as-is?"""
+    return rel not in UNSERVED and not rel.startswith(UNSERVED_DIRS)
+
+
+def layout(name=None, asked_by=None):
+    """(path, text) of the layout to fill: theme/layouts/<name>.html when
+    the theme has it, else layout.html. A name the front matter asked for
+    (asked_by: the page's file) must exist; a type's LAYOUT may not."""
+    from report import error  # config is imported by report
+    if name:
+        path = theme_file(f"layouts/{name}.html")
+        if path.is_file():
+            return path, path.read_text()
+        if asked_by is not None:
+            raise error(asked_by, f'layout "{name}" names no theme/layouts/{name}.html',
+                        "Add that file to the theme, or drop `layout:`")
     path = theme_file("layout.html")
     if not path.is_file():
-        raise SystemExit(f"no {THEME}/layout.html: a site needs a theme - "
-                         "copy builder/starter/theme/ to begin")
-    return path.read_text()
+        raise error(THEME, "no layout.html: a site needs a theme",
+                    "Copy starter/theme/ to begin")
+    return path, path.read_text()
 
 
 def _merge(base, over):

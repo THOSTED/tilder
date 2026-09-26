@@ -50,8 +50,8 @@ import contenttypes
 import inline
 import report
 from ansify import ansify
-from config import (ASSETS, BUILDER, CFG, CONFIG, CONTENT, EXTRA, ROOT, STATE, TEMPLATES,
-                    THEME, apex, load_config)
+from config import (ASSETS, BUILDER, CFG, CONFIG, CONTENT, EXTRA, ROOT, STATE,
+                    THEME, apex, load_config, served)
 from icons import generated
 from fold import to_ascii
 from feeds import feed
@@ -121,12 +121,11 @@ def build():
                 and not any(part.startswith("_") for part in rel.parts):
             out[str(rel)] = f.read_bytes()
     # The theme, then the project's assets/, which win over it by name.
-    # Templates (layout.html, share.svg) are read by the build, not served.
+    # config.UNSERVED(_DIRS) are read by the build, not served.
     for base in (THEME, ASSETS):
         for f in sorted(base.rglob("*")) if base.is_dir() else []:
             rel = str(f.relative_to(base))
-            # Icons are drawn inline in the pages, not served as files.
-            if f.is_file() and rel not in TEMPLATES and not rel.startswith("icons/"):
+            if f.is_file() and served(rel):
                 out[rel] = f.read_bytes()
     out.update(generated())  # icons and share.png, from assets/logo.svg
     for f in EXTRA:
