@@ -186,16 +186,8 @@ def main():
     dest.mkdir(parents=True, exist_ok=True)
     if "--watch" in args:
         interval = float(os.environ.get("BUILD_INTERVAL", "1"))
-        def own_code():
-            result = {}
-            for k, v in snapshot().items():
-                # Use the same logic as watch.restarts()
-                if k.startswith(str(THEME / "types")):
-                    result[k] = v
-                elif k.startswith(str(BUILDER)):
-                    if not (k.startswith(str(THEME)) or k.startswith(str(CONTENT))):
-                        result[k] = v
-            return result
+        own_code = lambda: {k: v for k, v in snapshot().items()
+                            if k.startswith(watch_module.CODE)}
         code = own_code()
         while True:
             try:

@@ -11,18 +11,11 @@ from config import ASSETS, BUILDER, CONTENT, EXTRA, THEME
 CODE = (str(BUILDER), str(THEME / "types"))
 
 
-def restarts(moved):
+def restarts(moved, code=CODE):
     """Did the code itself change - the generator, or a theme type? The
-    process still runs the old code: it must restart to load the new."""
-    for k in moved:
-        # Check THEME/types first (highest priority)
-        if k.startswith(str(THEME / "types")):
-            return True
-        # Check BUILDER, but exclude paths under THEME or CONTENT if they're under BUILDER
-        if k.startswith(str(BUILDER)):
-            if not (k.startswith(str(THEME)) or k.startswith(str(CONTENT))):
-                return True
-    return False
+    process still runs the old code: it must restart to load the new.
+    `code`: the path prefixes that are code (a test passes its own)."""
+    return any(k.startswith(code) for k in moved)
 
 
 def snapshot():

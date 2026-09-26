@@ -5,14 +5,16 @@ import unittest
 
 from tests.helpers import build_site  # noqa: F401
 import watch
-from config import BUILDER, CONTENT, THEME
+from config import BUILDER, THEME
 
 
 class Watch(unittest.TestCase):
     def test_restart_predicate(self):
-        self.assertTrue(watch.restarts({str(BUILDER / "src" / "page.py")}))
-        self.assertTrue(watch.restarts({str(THEME / "types" / "talk.py")}))
-        self.assertFalse(watch.restarts({str(THEME / "style.css"), str(CONTENT / "index.md")}))
+        code = ("/site/builder", "/site/theme/types")
+        self.assertTrue(watch.restarts({"/site/builder/src/page.py"}, code))
+        self.assertTrue(watch.restarts({"/site/theme/types/talk.py"}, code))
+        self.assertFalse(watch.restarts({"/site/theme/style.css", "/site/content/index.md"}, code))
+        self.assertEqual(watch.CODE, (str(BUILDER), str(THEME / "types")))
 
     def test_version_flag(self):
         entry = str(BUILDER / "build.py")
