@@ -109,7 +109,7 @@ def build():
                 meta["_dir"] = site_path(src)
                 pages.append(it)
                 contenttypes.fill_lists(sections, src, it["path"], colls, items)
-                out[prefix + it["path"]] = render_html(it, sections, preamble, colls)
+                out[prefix + it["path"]] = render_html(it, sections, preamble, colls, items)
                 if meta.get("text", "yes") != "no":
                     marked = render_txt(meta, sections)
                     out[f"txt/{prefix}{txt_name(it['path'])}.txt"] = plain(marked)

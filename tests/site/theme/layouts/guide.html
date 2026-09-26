@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang }}">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<meta name="description" content="{{ page.description }}">
+<link rel="stylesheet" href="{{ root }}style.css">
+<link rel="canonical" href="{{ canonical }}">{{ feeds }}
+{{ head }}
+</head>
+<body class="layout-guide {{ type }}">
+<a class="skip" href="#contenu">{{ labels.skip }}</a>
+<nav class="nav" aria-label="{{ labels.nav }}">
+{{ nav }}
+</nav>
+{{ languages }}
+{{ brand }}
+{{ collection_nav }}
+<main id="contenu" lang="{{ content_lang }}">
+{{ body }}
+{{ prev }}
+{{ next }}
+</main>
+{{ script }}</body>
+</html>
