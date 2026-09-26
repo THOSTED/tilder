@@ -7,7 +7,7 @@ import re
 from config import CFG, apex, rfc822
 from contenttypes import call
 from fold import to_ascii
-from paths import clean_url
+from paths import absolute, clean_url
 
 def rss(title, link, self_href, description, items):
     title, description = H.escape(title), H.escape(description)
@@ -42,8 +42,7 @@ def feed(items, conf):
 		<description>{H.escape(f['description'])}</description>
 	</item>
 """
-    a = apex()
-    return rss(conf["feed_title"], f"{a}/{conf['nav']}", f"{a}/{conf['feed']}",
+    return rss(conf["feed_title"], absolute(conf["nav"]), absolute(conf["feed"]),
                conf["feed_description"], rows)
 
 

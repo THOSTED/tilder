@@ -54,7 +54,7 @@ import languages
 import report
 from ansify import ansify
 from config import (ASSETS, BUILDER, CFG, CONFIG, CONTENT, EXTRA, ROOT, STATE,
-                    THEME, apex, load_config, served)
+                    THEME, apex, served)
 from icons import generated
 from fold import to_ascii
 from feeds import feed
@@ -67,64 +67,76 @@ from watch import snapshot, watch
 import watch as watch_module
 
 def build():
-    """Every output file, as {relative path: bytes}."""
-    languages.setup()
-    inline.EXTERNAL = CFG["labels"]["external"]
-    inline.NEW_TAB_LABEL = CFG["labels"]["new_tab"]
-    inline.NEW_TAB = CFG["links"]["new_tab"]
-    inline.SAME_TAB = tuple(CFG["links"]["same_tab"])
-    ansify_module.COMMANDS = CFG["text"]["commands"]
-    ansify_module.BOXES = {
-        to_ascii(CFG["labels"][kind]): colour for kind, colour in
-        (("info", ansify_module.CYAN), ("warning", ansify_module.YELLOW),
-         ("error", ansify_module.RED))}
+    """Every output file, as {relative path: bytes}: one pass per declared
+    language, each under its prefix; the sitemap, robots.txt, the manifest,
+    the types' own files (the calendar) and the copies once."""
+    langs = languages.setup()
     STATE["today"] = os.environ.get("BUILD_TODAY") or datetime.date.today().isoformat()
-    contenttypes.load()
-    colls = contenttypes.collections()
-    items = {name: contenttypes.load_items(name, conf) for name, conf in colls.items()}
-    by_src = {it["src"]: it for its in items.values() for it in its}
-    STATE["summary"] = contenttypes.summary(colls, items)
-    out, pages = {}, []  # pages: every item that is an HTML page, for sitemap and SEO checks
-    table = languages.pages()
-    for key in sorted(table):
-        src, content_lang = languages.pick(table[key], STATE["lang"])
-        STATE["content_lang"] = content_lang
-        try:
-            meta, sections, preamble = parse(src)
-            it = by_src[src] if src in by_src else contenttypes.page_item(src, meta)
-            meta = it["meta"]
-            meta["_dir"] = site_path(src)
-            pages.append(it)
-            contenttypes.fill_lists(sections, src, it["path"], colls, items)
-            out[it["path"]] = render_html(it, sections, preamble, colls)
-            if meta.get("text", "yes") != "no":
-                marked = render_txt(meta, sections)
-                out[f"txt/{txt_name(it['path'])}.txt"] = plain(marked)
-                out[f"ansi/{txt_name(it['path'])}.txt"] = ansify(marked)
-        except report.BuildError:
-            raise
-        except Exception as e:  # a missing `title:`...: name the page, not a traceback
-            raise report.error(src, f"cannot be built: {e.__class__.__name__}: {e}",
-                               "Run with --debug for the traceback", exc=e)
-    # Feeds and the types' own files (an iCalendar), for the collections
-    # whose folder exists.
-    for name, conf in colls.items():
-        if not (CONTENT / conf["dir"]).is_dir():
-            continue
-        module = contenttypes.TYPES[conf["type"]]
-        if conf.get("feed") and module.HAS_FEED:
-            out[conf["feed"]] = feed(items[name], conf)
-        out.update(contenttypes.call(CONTENT / conf["dir"], module, "outputs", items[name], conf))
-    a = apex()
-    indexed = [it for it in pages if "noindex" not in it["meta"].get("robots", "")]
+    out, every, table = {}, [], {}  # every: the pages of every language, for the sitemap
+    for lang in langs:
+        languages.use(lang)
+        inline.EXTERNAL = CFG["labels"]["external"]
+        inline.NEW_TAB_LABEL = CFG["labels"]["new_tab"]
+        inline.NEW_TAB = CFG["links"]["new_tab"]
+        inline.SAME_TAB = tuple(CFG["links"]["same_tab"])
+        ansify_module.COMMANDS = CFG["text"]["commands"]
+        ansify_module.BOXES = {
+            to_ascii(CFG["labels"][kind]): colour for kind, colour in
+            (("info", ansify_module.CYAN), ("warning", ansify_module.YELLOW),
+             ("error", ansify_module.RED))}
+        contenttypes.load()
+        colls = contenttypes.collections()
+        items = {name: contenttypes.load_items(name, conf) for name, conf in colls.items()}
+        by_src = {it["src"]: it for its in items.values() for it in its}
+        if lang == langs[0]:
+            # The table needs paths.ITEM_FOLDERS, which load_items fills; the
+            # folders are the same in every language.
+            table = languages.pages()
+            head = (f"languages: {langs[0]} (default), {', '.join(langs[1:])}\n"
+                    if languages.multilingual() else "")
+            STATE["summary"] = head + contenttypes.summary(colls, items)
+        prefix, pages = STATE["prefix"], []
+        for key in sorted(table):
+            src, content_lang = languages.pick(table[key], lang)
+            STATE["content_lang"] = content_lang
+            try:
+                meta, sections, preamble = parse(src)
+                it = by_src[src] if src in by_src else contenttypes.page_item(src, meta)
+                meta = it["meta"]
+                meta["_dir"] = site_path(src)
+                pages.append(it)
+                contenttypes.fill_lists(sections, src, it["path"], colls, items)
+                out[prefix + it["path"]] = render_html(it, sections, preamble, colls)
+                if meta.get("text", "yes") != "no":
+                    marked = render_txt(meta, sections)
+                    out[f"txt/{prefix}{txt_name(it['path'])}.txt"] = plain(marked)
+                    out[f"ansi/{prefix}{txt_name(it['path'])}.txt"] = ansify(marked)
+            except report.BuildError:
+                raise
+            except Exception as e:  # a missing `title:`...: name the page, not a traceback
+                raise report.error(src, f"cannot be built: {e.__class__.__name__}: {e}",
+                                   "Run with --debug for the traceback", exc=e)
+        # Feeds per language; the types' own files (an iCalendar) once, in
+        # the default language: a calendar has no interface language.
+        for name, conf in colls.items():
+            if not (CONTENT / conf["dir"]).is_dir():
+                continue
+            module = contenttypes.TYPES[conf["type"]]
+            if conf.get("feed") and module.HAS_FEED:
+                out[prefix + conf["feed"]] = feed(items[name], conf)
+            if lang == langs[0]:
+                out.update(contenttypes.call(CONTENT / conf["dir"], module, "outputs", items[name], conf))
+        check(pages)
+        every.extend(pages)
+        if lang == langs[0]:
+            out["robots.txt"] = robots(CFG["robots"], f"{apex()}/sitemap.xml")
+            out["txt/robots.txt"] = robots(CFG["robots_man"])  # txt/ is the root of the plain-text host
+            out["site.webmanifest"] = manifest()
+    languages.use(langs[0])
+    indexed = [it for it in every if "noindex" not in it["meta"].get("robots", "")]
     out["sitemap.xml"] = sitemap_xml(indexed)
-    out["sitemap.txt"] = "".join(f"{a}{clean_url(it['path'])}\n" for it in
-                                 sorted(indexed, key=lambda it: clean_url(it["path"])))
-    out["robots.txt"] = robots(CFG["robots"], f"{a}/sitemap.xml")
-    check(pages)
-    # txt/ is the root of the plain-text host: this is its /robots.txt.
-    out["txt/robots.txt"] = robots(CFG["robots_man"])
-    out["site.webmanifest"] = manifest()
+    out["sitemap.txt"] = "".join(f"{apex()}{clean_url(it['path'], it['lang'])}\n" for it in
+                                 sorted(indexed, key=lambda it: clean_url(it["path"], it["lang"])))
     out = {k: v.encode("utf-8") for k, v in out.items()}
     # Files next to the pages (images of a post or an event...) are copied
     # as they are, at the same path. Markdown and site.toml are not.

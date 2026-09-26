@@ -74,7 +74,7 @@ class ThemeType(unittest.TestCase):
             for cached in (THEME / "types" / "__pycache__").glob("member.*"):
                 cached.unlink()
         self.assertIn("(theme card)", out["members.html"])
-        self.assertEqual(STATE["summary"].splitlines()[0],
+        self.assertEqual(STATE["summary"].splitlines()[1],  # [0]: the languages
                          "types: event, page, post; from theme: member, talk")
         self.assertNotIn("member", "".join(l for l in err.getvalue().splitlines(True)
                                            if l.startswith("warning:")))

@@ -15,8 +15,9 @@ import copy
 import datetime
 import importlib.util
 
+import languages
 import paths
-from config import BUILDER, CFG, CONFIG, CONTENT, DATED, THEME
+from config import BUILDER, CFG, CONFIG, CONTENT, DATED, STATE, THEME
 from markdown import front_matter
 from report import BuildError, error, fail, rel
 
@@ -206,15 +207,26 @@ def call(path, module, hook, *args, fn=None):
 
 
 def load_items(name, conf):
-    """Every item of a collection, in the type's order. An item is <slug>.md
-    or <slug>/index.md in content/<dir>/; for a DATED type the slug starts
-    with YYYY-MM-DD. Names starting with _ are templates."""
+    """Every item of a collection, in the type's order, as served in the
+    current language: <slug>.md, <slug>.<lang>.md, or <slug>/index(.<lang>).md
+    in content/<dir>/, the file chosen by the language fallback
+    (languages.pick). For a DATED type the slug starts with YYYY-MM-DD.
+    Names starting with _ are templates."""
     module, base, items = TYPES[conf["type"]], CONTENT / conf["dir"], []
+    groups = {}  # slug -> {lang or None: source file}
     for f in sorted(base.iterdir()) if base.is_dir() else []:
-        slug = f.stem if f.suffix == ".md" else f.name
-        src = f if f.suffix == ".md" else f / "index.md"
-        if f.name.startswith("_") or not src.is_file() or slug == "index":
+        if f.name.startswith("_"):
             continue
+        if f.suffix == ".md":
+            slug, lang = languages.split(f.stem)
+            if slug != "index":
+                groups.setdefault(slug, {})[lang] = f
+        elif f.is_dir():
+            for g in sorted(f.glob("index*.md")):
+                if languages.split(g.stem)[0] == "index":
+                    groups.setdefault(f.name, {})[languages.split(g.stem)[1]] = g
+    for slug, candidates in groups.items():
+        src, content_lang = languages.pick(candidates, STATE["lang"])
         date = None
         if module.DATED:
             m = DATED.match(slug)
@@ -226,12 +238,13 @@ def load_items(name, conf):
                 raise error(src, f'"{m.group(1)}" is not a date',
                             f"Name the file YYYY-MM-DD-slug.md with the {module.NAME}'s date")
             date = m.group(1)
-        elif f.is_dir():
-            paths.ITEM_FOLDERS.add(str(f.relative_to(CONTENT)))
+        elif src.parent != base:
+            paths.ITEM_FOLDERS.add(str(src.parent.relative_to(CONTENT)))
         meta, _ = front_matter(src.read_text())
         items.append({"slug": slug, "date": date, "meta": meta, "src": src,
                       "path": f"{conf['dir']}/{slug}.html", "collection": name,
-                      "conf": conf, "type": module})
+                      "conf": conf, "type": module, "lang": STATE["lang"],
+                      "content_lang": content_lang})
     for it in items:
         call(it["src"], module, "defaults", it, conf)
     return sorted(items, key=lambda it: call(it["src"], module, "sort_key", it, conf))
@@ -240,7 +253,8 @@ def load_items(name, conf):
 def page_item(src, meta):
     """A .md outside every collection, as an item of type page."""
     return {"slug": src.stem, "date": None, "meta": meta, "src": src,
-            "path": paths.page_path(src), "collection": None, "conf": {}, "type": TYPES["page"]}
+            "path": paths.page_path(src), "collection": None, "conf": {}, "type": TYPES["page"],
+            "lang": STATE["lang"], "content_lang": STATE["content_lang"]}
 
 
 def _target(marker, src, path, colls):
