@@ -1,0 +1,57 @@
+# The fixture site of the tests. English, neutral, no real person or site.
+
+[site]
+name = "test site"
+url = "https://test.example"
+lang = "en"
+locale = "en_GB"
+manual = "Test Site Manual"
+updated = 2026-06-01
+title_suffix = " - test site"
+
+[footer]
+left = "TESTS"
+left_link = ""
+right = "TEST(1)"
+
+[[nav]]
+label = "home"
+href = ""
+
+[[nav]]
+label = "events"
+href = "events"
+
+[[nav]]
+label = "blog"
+href = "blog/"
+
+[[nav]]
+label = "members"
+href = "members"
+
+[seo]
+organization = "Test Site"
+
+[share]
+image_alt = "~/test site"
+card = ["a fixture"]
+short_name = "test"
+background_color = "#ABCDEF"
+
+[collections.blog]
+type = "posts"
+feed = "blog/feed.xml"
+
+[collections.events]
+type = "events"
+feed = "events.xml"
+calendar = "events.ics"
+
+# Declared, no folder: must produce nothing and fail nothing.
+[collections.news]
+type = "posts"
+dir = "news"
+
+[members]
+categories = ["admin", "mentor", "member"]
