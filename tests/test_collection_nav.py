@@ -2,13 +2,15 @@ import json
 import pathlib
 import re
 import shutil
+import subprocess
+import sys
 import tempfile
 import textwrap
 import unittest
 
 from tests.helpers import build_site, rebuild
 import contenttypes
-from config import CONTENT, load_config
+from config import BUILDER, CONTENT, load_config
 
 
 class Flags(unittest.TestCase):
@@ -149,3 +151,37 @@ class TextLine(unittest.TestCase):
         out = build_site()
         for page in ("guides/setup", "fr/guides/tuning"):
             self.assertEqual(ESC.sub("", out[f"ansi/{page}.txt"]), out[f"txt/{page}.txt"], page)
+
+
+class Starter(unittest.TestCase):
+    def test_styles_the_new_classes(self):
+        css = (BUILDER / "starter" / "theme" / "style.css").read_text()
+        for cls in (".collection-nav", ".collection-group-label", ".prev", ".next",
+                    ".prev-label", ".next-label"):
+            self.assertIn(cls, css, cls)
+
+    def test_layout_places_prev_and_next(self):
+        layout = (BUILDER / "starter" / "theme" / "layout.html").read_text()
+        self.assertIn("{{ prev }}", layout)
+        self.assertIn("{{ next }}", layout)
+
+    def test_builds(self):
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        try:
+            r = subprocess.run([sys.executable, str(BUILDER / "build.py"), "--root", str(BUILDER / "starter"),
+                                "--out", str(tmp / "out")], capture_output=True, text=True,
+                               env={"BUILD_TODAY": "2026-06-15", "PATH": "/usr/bin:/bin"})
+        finally:
+            shutil.rmtree(tmp)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+
+class Docs(unittest.TestCase):
+    def test_contract_names_everything(self):
+        theme = (BUILDER / "docs" / "theme.md").read_text()
+        for name in ("{{ collection_nav }}", "{{ prev }}", "{{ next }}", "`.collection-nav`",
+                     "`.collection-group`", "`.collection-group-label`", "`.prev`", "`.next`"):
+            self.assertIn(name, theme, name)
+        types = (BUILDER / "docs" / "types.md").read_text()
+        for name in ("`SEQUENTIAL`", "`LOCALIZED_OUTPUTS`", "`nav_label`", "`group`"):
+            self.assertIn(name, types, name)

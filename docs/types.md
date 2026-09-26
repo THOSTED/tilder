@@ -121,6 +121,17 @@ def entry(item, link, conf):
 | `SCRIPT` | `""` | a theme script loaded on pages that list the type, if the theme ships it |
 | `DEFAULTS` | `{}` | the type's words and settings, English and neutral; a collection overrides them |
 | `MARKERS` | `{}` | `{"word": function}`: section markers that list the type's items |
+| `SEQUENTIAL` | `False` | the text mirror of an item gets a `previous: ... next: ...` line before the footer (`labels.prev`, `labels.next`) |
+| `LOCALIZED_OUTPUTS` | `False` | `outputs()` is called in every language, with that language's items and `conf`; its paths are put under the language's prefix (`fr/`) by the builder. Else once, in the default language |
+
+### Order, groups and navigation
+
+A collection's order is the type's `sort_key`. A theme shows it with
+`{{ collection_nav }}`, `{{ prev }}` and `{{ next }}` (`docs/theme.md`).
+An item may set `group` in its front matter: the sidebar gathers the items
+by group, the groups in the order of their first item, the items without a
+group first. A collection may set `nav_label`, the sidebar's accessible
+name; else `labels.collection_nav`.
 
 ### Functions
 

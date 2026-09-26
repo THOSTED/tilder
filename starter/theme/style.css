@@ -109,3 +109,12 @@ th.right, td.right { text-align: right; }
 .toc { border-left: 2px solid var(--rule); padding-left: 1rem; margin: 0 0 1.1rem; font-family: var(--mono); }
 .toc-label { cursor: pointer; font-weight: 700; }
 hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+
+/* A collection's order: {{ collection_nav }}, {{ prev }}, {{ next }}. */
+.collection-nav ul { list-style: none; padding-left: 0; margin: 0; }
+.collection-nav ul ul { padding-left: 1.5ch; }
+.collection-nav a[aria-current="page"] { color: var(--accent); font-weight: 700; }
+.collection-group-label { display: block; margin-top: 0.6rem; font: 700 0.75rem var(--mono); color: var(--fg-muted); text-transform: uppercase; }
+.prev, .next { display: block; margin: 0.4rem 0; font-family: var(--mono); }
+.next { text-align: right; }
+.prev-label, .next-label { margin-right: 1ch; font-size: 0.8rem; color: var(--fg-muted); }

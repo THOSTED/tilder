@@ -27,6 +27,8 @@ coloured, code framed, tables aligned.*
 - Collections of content, declared in `site.toml`, each of a **type** -
   posts, events, members, or a type your theme adds in ten lines of Python
   (`docs/types.md`) - with their lists, RSS feeds and iCalendar feeds.
+- A collection's order for themes: a sidebar, previous/next links, and
+  per-language files a type writes (a search index) - `docs/theme.md`.
 - SEO: one `<h1>` per page, canonical URLs, Open Graph and Twitter Card,
   JSON-LD structured data, `sitemap.xml`, `robots.txt`, build-time checks
   (`docs/seo.md`).
