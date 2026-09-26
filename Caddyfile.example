@@ -1,0 +1,219 @@
+# A man-page site - three vhosts. A starting point: copy it next to your
+# compose file and set the hosts through the environment.
+#
+# /srv is public/, produced by builder/build.py (the `build` service in
+# compose.yaml): nothing but the site lives there.
+#
+#   {$SITE_HOST}  example.org       the static site. Canonical.
+#   {$WWW_HOST}   www.example.org   301 to the apex, never served.
+#   {$MAN_HOST}   man.example.org   the same content as text/plain.
+#
+# URLs carry no extension: /events, not /events.html. Files keep their
+# .html on disk; try_files maps one to the other and any .html URL is
+# redirected (301) to its clean form.
+#
+# A terminal client (curl, wget, httpie) asking the apex for a page gets
+# the text mirror directly, ANSI-coloured, with a 200: no redirect, no -L.
+# `?plain` returns bare ASCII. man.example.org sniffs nothing and serves
+# bare ASCII only: it is the scriptable interface.
+#
+# For testing, two catch-alls answer any Host, hence an IP: :80 serves the
+# site, :81 the text mirror. That is what makes http://192.168.x.y:8080/
+# and http://192.168.x.y:8081/ usable as-is. In production the named
+# blocks take precedence over them.
+#
+# Access logs are discarded: the site says so publicly (§4.7), so it must
+# stay true. Do not add a `log { output file ... }`.
+
+{
+	auto_https {$AUTO_HTTPS:off}
+	admin off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+(base) {
+	log {
+		output discard
+	}
+	# Compressed responses: faster pages, better Core Web Vitals.
+	encode zstd gzip
+	header {
+		-Server
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+	}
+}
+
+(site) {
+	root * /srv
+
+	# The content depends on the User-Agent: the header must be on EVERY
+	# response of the vhost, or a shared cache would hand the text to a
+	# browser, or the other way round.
+	header Vary User-Agent
+
+	# Terminal client -> the mirror, served directly, 200, no redirect:
+	# `curl example.org/events` is enough, no -L needed. Matches pages
+	# only: a URL with a dot (style.css, events.xml, a .ics, a .woff2)
+	# is served as-is, so `curl -O` keeps working. `?plain` forces bare
+	# ASCII.
+	@terminal {
+		header_regexp User-Agent (?i)^(curl|wget|httpie)/
+		path_regexp ^/[^.]*$
+		not path /LICENSE
+		not query plain= plain=1 plain=true
+	}
+
+	handle @terminal {
+		root * /srv/ansi
+		header Content-Type "text/plain; charset=utf-8"
+		header Cache-Control "public, max-age=300"
+		@slash path_regexp slash ^(/.+)/$
+		redir @slash {re.slash.1} permanent
+		rewrite / /index.txt
+		try_files {path}.txt {path} {path}/index.txt
+		file_server
+	}
+
+	# Same thing in bare ASCII, for `curl example.org/events?plain > file`.
+	@terminalplain {
+		header_regexp User-Agent (?i)^(curl|wget|httpie)/
+		path_regexp ^/[^.]*$
+		not path /LICENSE
+		query plain= plain=1 plain=true
+	}
+
+	handle @terminalplain {
+		root * /srv/txt
+		header Content-Type "text/plain; charset=utf-8"
+		@slashplain path_regexp slashplain ^(/.+)/$
+		redir @slashplain {re.slashplain.1} permanent
+		rewrite / /index.txt
+		try_files {path}.txt {path} {path}/index.txt
+		file_server
+	}
+
+	handle {
+		# Two policies, mutually exclusive: no dependency on evaluation
+		# order. Pages may run the site's own script files - members.js,
+		# code.js - and nothing else: script-src 'self', never
+		# 'unsafe-inline' (§4.4). connect-src stays absent, so no script
+		# can reach the network.
+		@page not path *.svg
+		header @page Content-Security-Policy "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; manifest-src 'self'; script-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'"
+		# SVG images (logo, figures in posts) often style themselves with a
+		# <style> element: allowed inside the SVG, scripts still are not.
+		@svg path *.svg
+		header @svg Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self'"
+
+		# Caching. Fonts never change under the same name. Style, scripts,
+		# icons and images may: a day, then revalidated. Pages: five
+		# minutes, so a rebuild shows quickly.
+		header /fonts/* Cache-Control "public, max-age=31536000, immutable"
+		@static_files path *.css *.js *.png *.svg *.ico *.jpg *.jpeg *.webp *.gif
+		header @static_files Cache-Control "public, max-age=86400"
+		@pages not path *.*
+		header @pages Cache-Control "public, max-age=300"
+
+		# The text mirrors are for terminals: kept out of search results.
+		header /txt/* X-Robots-Tag "noindex"
+		header /ansi/* X-Robots-Tag "noindex"
+		@ics path *.ics
+		header @ics Content-Type "text/calendar; charset=utf-8"
+		header /site.webmanifest Content-Type "application/manifest+json"
+
+		# `/*.xml` does not cross a segment: it would miss /blog/feed.xml.
+		@rss path *.xml
+		header @rss Content-Type "application/rss+xml; charset=utf-8"
+
+		# One URL per page. /events.html and /index redirect to /events and
+		# / - the site's own links are already in their clean form.
+		@index path /index /index.html /blog/index /blog/index.html
+		redir @index {http.request.uri.path.dir} permanent
+		# A directory has one URL, with its slash: /blog -> /blog/. Without
+		# this, /blog and /blog/ would be the same page twice.
+		@noslash {
+			file {path}/index.html
+			not path */
+		}
+		redir @noslash {path}/ permanent
+		@html path_regexp html ^/(.*)\.html$
+		redir @html /{re.html.1} permanent
+
+		try_files {path} {path}.html {path}/index.html
+		file_server
+	}
+
+	handle_errors {
+		# An error page a terminal can read.
+		@terminalerror header_regexp User-Agent (?i)^(curl|wget|httpie)/
+		respond @terminalerror "SITE(1)
+
+Page not found.
+
+See: curl example.org
+" 404
+		rewrite * /404.html
+		file_server
+	}
+}
+
+(man) {
+	root * /srv/txt
+	header Content-Type "text/plain; charset=utf-8"
+	header Cache-Control "public, max-age=300"
+	# The same content as the apex: the apex is what search engines index.
+	header X-Robots-Tag "noindex"
+
+	# /blog/ and /blog are the same page.
+	@slash path_regexp slash ^(/.+)/$
+	redir @slash {re.slash.1} permanent
+
+	rewrite / /index.txt
+	try_files {path}.txt {path} {path}/index.txt
+	file_server
+
+	handle_errors {
+		respond "SITE(1)
+
+Page not found.
+
+See: curl man.example.org
+" 404
+	}
+}
+
+# --- example.org: the site -------------------------------------------------
+{$SITE_HOST:http://site.localhost} {
+	import base
+	import site
+}
+
+# Catch-all: localhost, 127.0.0.1, the LAN IP, any unknown Host.
+:80 {
+	import base
+	import site
+}
+
+# --- www.example.org: 301, never served ------------------------------------
+{$WWW_HOST:http://www.site.localhost} {
+	import base
+	redir {$SITE_ORIGIN:http://site.localhost:8080}{uri} permanent
+}
+
+# --- man.example.org: the text mirror --------------------------------------
+# A dedicated host: no User-Agent sniffing (§11).
+{$MAN_HOST:http://man.site.localhost} {
+	import base
+	import man
+}
+
+# The text mirror by IP, for testing: http://<ip>:8081/
+:81 {
+	import base
+	import man
+}

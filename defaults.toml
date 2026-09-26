@@ -1,0 +1,130 @@
+# Defaults for every key the builder reads. A project's content/site.toml
+# is merged over this file: it only needs what differs. The values here are
+# English and neutral; a site in another language overrides the words.
+
+[site]
+name = "my site"                    # wordmark, feed and calendar names
+url = "https://example.org"         # canonical origin, no trailing slash
+lang = "en"
+locale = "en_GB"                    # Open Graph
+manual = "My Site Manual"           # centre of the man-page header rule
+updated = 2026-01-01                # date in the footer rule and the feeds
+title_suffix = " - my site"         # appended to every <title> that lacks the name
+
+[footer]
+left = "SITE"                       # links to footer.left_link
+left_link = ""
+right = "SITE(1)"
+
+[labels]
+skip = "skip to content"
+nav = "Main navigation"
+info = "INFO"
+warning = "WARNING"
+error = "ERROR"
+image = "image"                     # text mirror: [ image ] alt text
+task_done = "done"                  # task lists, read by screen readers
+task_todo = "to do"
+to_top = "↑ back to top"
+copy = "copy"                       # the button on code blocks
+copied = "copied"
+external = "external site"          # read after an external link, instead of the arrow
+new_tab = "opens in a new tab"      # said by screen readers
+table = "table"                     # names a scrollable table region
+toc = "contents"                    # the [TOC] block
+website = "website"                 # a member's own site, in the profile links
+
+# External links: open in a new tab or not. `same_tab` lists hosts (and
+# their subdomains) that stay in the same tab when new_tab is on.
+[links]
+new_tab = false
+same_tab = []
+
+# The navigation, in order. `href` is written from the site root ("" is the
+# landing page); `https://` links are external.
+[[nav]]
+label = "home"
+href = ""
+
+[seo]
+organization = "My Site"            # the publisher, in structured data
+robots = "index, follow, max-image-preview:large"
+title_max = 60                      # build warnings past these limits
+description_min = 50
+description_max = 160
+
+# Link previews and icons. The PNG and ICO files are made from assets/logo.svg
+# at every build; share.png from builder/theme/share.svg, filled from here.
+[share]
+logo_svg = "logo.svg"               # the source of every icon, in assets/
+image = "share.png"                 # the default preview, 1200x630, generated
+logo = "icon-512.png"               # the logo in structured data, generated
+image_alt = "my site"
+card = ["a man-page website"]       # the preview's lines under the name, one or two
+theme_color = "#0F6E68"             # browser UI, the web manifest, the preview
+background_color = "#FDF6E3"
+text_color = "#073642"
+muted_color = "#506C75"
+rule_color = "#DED7C3"
+short_name = "site"                 # web manifest
+
+[feeds.events]
+title = "events"
+description = "Upcoming and past events."
+
+[feeds.blog]
+title = "blog"
+description = "Posts."
+
+[blog]
+man = "SITE-BLOG(7)"
+nav = "blog/"
+empty = "No post yet."
+
+[events]
+man = "SITE-EVENTS(7)"
+nav = "events"
+upcoming_tag = "upcoming"
+past_tag = "past"
+none_upcoming = "No upcoming event."
+none_past = "No past event."
+link_label = "event website ↗"
+map_label = "see on OpenStreetMap ↗"
+
+[dates]
+weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+months = ["January", "February", "March", "April", "May", "June", "July",
+          "August", "September", "October", "November", "December"]
+first = "1"                         # the first day of a month
+format = "{weekday} {day} {month} {year}"
+
+[calendar]
+file = "calendar.ics"               # the iCalendar feed, at the site root
+name = "events"
+description = "Events."
+prodid = "-//site//events//EN"
+timezone = "UTC"
+uid_domain = "example.org"
+
+[members]
+categories = ["admin", "member"]    # display and sort order
+default_category = "member"
+empty = "No member listed yet."
+search_label = "search"
+search_placeholder = "first or last name"
+all = "all"
+one = "entry"
+many = "entries"
+none = "No entry matches."
+full = "full"                       # a mentor at capacity, said in words
+
+# The text mirror, coloured for terminals: words that start a command line
+# worth highlighting.
+[text]
+commands = ["curl"]
+
+[robots]
+disallow = ["/txt/", "/ansi/"]      # the text mirrors
+
+[robots_man]
+disallow = ["/"]

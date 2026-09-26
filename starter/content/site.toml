@@ -1,0 +1,35 @@
+# Your site. Every key the builder knows, with its default, is in
+# builder/defaults.toml: copy here only what you change.
+
+[site]
+name = "my site"
+url = "https://example.org"
+lang = "en"
+locale = "en_GB"
+manual = "My Site Manual"
+updated = 2026-01-01
+title_suffix = " - my site"
+
+[footer]
+left = "ME"
+left_link = ""
+right = "MYSITE(1)"
+
+[[nav]]
+label = "home"
+href = ""
+
+[[nav]]
+label = "blog"
+href = "blog/"
+
+[seo]
+organization = "My Site"
+
+[share]
+image_alt = "~/my site"
+card = ["a website that reads", "like a man page"]
+short_name = "mysite"
+
+[blog]
+man = "MYSITE-BLOG(7)"

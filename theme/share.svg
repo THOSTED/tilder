@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+	<!-- The link preview, 1200x630, rendered to share.png at every build.
+	     A man page, like the site: header and footer rules, the logo, the
+	     name, what it is. The double-brace fields are filled from content/site.toml;
+	     "logo" is the project's assets/logo.svg. A project may replace
+	     this file with its own assets/share.svg. -->
+	<rect width="1200" height="630" fill="{{ share.background_color }}"/>
+	<g font-family="JetBrains Mono" fill="{{ share.muted_color }}" font-size="22" letter-spacing="2">
+		<text x="80" y="88">{{ footer.right }}</text>
+		<text x="600" y="88" text-anchor="middle">{{ manual_upper }}</text>
+		<text x="1120" y="88" text-anchor="end">{{ footer.right }}</text>
+		<text x="80" y="566">{{ footer.left }}</text>
+		<text x="1120" y="566" text-anchor="end">{{ domain }}</text>
+	</g>
+	<path d="M80 110.5 H1120 M80 530.5 H1120" stroke="{{ share.rule_color }}" stroke-width="2"/>
+	<image x="80" y="200" width="220" height="220" href="{{ logo }}"/>
+	<text x="350" y="300" font-family="JetBrains Mono" font-weight="700" font-size="84" fill="{{ share.text_color }}"><tspan fill="{{ share.theme_color }}">~/</tspan>{{ wordmark }}</text>
+	<g font-family="JetBrains Mono" font-size="32" fill="{{ share.text_color }}">
+		<text x="352" y="362">{{ card_1 }}</text>
+		<text x="352" y="408">{{ card_2 }}</text>
+	</g>
+</svg>
