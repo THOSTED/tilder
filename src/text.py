@@ -11,6 +11,7 @@ Widths are measured without them.
 import re
 
 import inline
+import languages
 from config import CFG, INDENT, WIDTH
 from fold import to_ascii
 from inline import CODE_OFF, CODE_ON
@@ -206,6 +207,8 @@ def txt_blocks(blocks, ind):
 def render_txt(meta, sections):
     man = meta["man"]
     out = [rule(man, to_ascii(CFG["site"]["manual"]), man)]
+    if languages.multilingual():
+        out += ["", "LANGUAGES: " + " ".join(languages.declared())]
     for s in sections:
         if "html" in s["cls"]:
             continue

@@ -175,14 +175,25 @@ def breadcrumbs(meta, path):
 # --- sitemaps, robots, manifest ----------------------------------------------
 
 def sitemap_xml(items):
-    """lastmod: `updated:`, else an item's date, else [site] updated."""
+    """One sitemap for every language. lastmod: `updated:`, else an item's
+    date, else [site] updated. In a multilingual site each URL lists its
+    siblings as xhtml:link alternates, x-default included."""
+    multi = languages.multilingual()
     rows = []
     for it in sorted(items, key=lambda it: clean_url(it["path"], it["lang"])):
         lastmod = it["meta"].get("updated") or it["date"] or CFG["site"]["updated"]
-        rows.append(f"\t<url>\n\t\t<loc>{H.escape(apex() + clean_url(it['path'], it['lang']))}</loc>\n"
-                    f"\t\t<lastmod>{lastmod}</lastmod>\n\t</url>\n")
+        row = (f"\t<url>\n\t\t<loc>{H.escape(apex() + clean_url(it['path'], it['lang']))}</loc>\n"
+               f"\t\t<lastmod>{lastmod}</lastmod>\n")
+        if multi:
+            for L in languages.declared():
+                row += (f'\t\t<xhtml:link rel="alternate" hreflang="{L}" '
+                        f'href="{H.escape(apex() + clean_url(it["path"], L))}"/>\n')
+            row += (f'\t\t<xhtml:link rel="alternate" hreflang="x-default" '
+                    f'href="{H.escape(apex() + clean_url(it["path"], languages.default()))}"/>\n')
+        rows.append(row + "\t</url>\n")
+    ns = ' xmlns:xhtml="http://www.w3.org/1999/xhtml"' if multi else ""
     return ('<?xml version="1.0" encoding="utf-8"?>\n'
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"{ns}>\n'
             + "".join(rows) + "</urlset>\n")
 
 
