@@ -14,20 +14,23 @@ entry point):
 
     build.py      this driver: one build, the CLI, the first-build retry
     config.py     paths, content/site.toml, what a build shares (STATE)
+    report.py     errors and warnings, one shape
     markdown.py   Markdown -> a tree of nodes (sections, entries, blocks)
     inline.py     inline markup, for both outputs
     page.py       the tree -> HTML, inside assets/layout.html
     text.py       the tree -> the text mirror, 75 columns
     ansify.py     the text mirror -> its coloured twin
     highlight.py  syntax highlighting of code blocks
-    members.py    members: the {members} grid, a card on each page
-    dated.py      blog posts and events: lists, cards, dates
+    contenttypes.py the types (types/, theme/types/), collections, items, lists
+    dates.py      dates in words, from [dates]
     seo.py        meta tags, structured data, sitemaps, robots.txt, manifest
     feeds.py      RSS and iCalendar
     paths.py      content paths -> output paths, URLs, relative links
     fold.py       ASCII folding
     watch.py      polling, rebuild on change and at midnight
     icons.sh      assets/logo.svg -> the raster icons (run by hand)
+
+types/ holds the built-in content types, one module each (docs/types.md).
 
 It holds no user-facing text: that lives in content/site.toml.
 """
@@ -43,20 +46,19 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 if "--root" in sys.argv:
     os.environ["SITE_ROOT"] = sys.argv[sys.argv.index("--root") + 1]
 import ansify as ansify_module
+import contenttypes
 import inline
 import report
 from ansify import ansify
 from config import (ASSETS, BUILDER, CFG, CONFIG, CONTENT, EXTRA, ROOT, STATE, TEMPLATES,
                     THEME, apex, load_config)
 from icons import generated
-from dated import EVENTS, POSTS, collections, fill_collections, item_defaults, load_items
 from fold import to_ascii
 from feeds import calendar, events_feed, posts_feed
 from markdown import parse, site_path
-from members import fill_members, load_members
 from page import render_html
-from paths import clean_url, page_path, rendered, txt_name
-from seo import EVENT, MEMBER, PAGE, POST, check, manifest, robots, sitemap_xml
+from paths import clean_url, rendered, txt_name
+from seo import check, manifest, robots, sitemap_xml
 from text import plain, render_txt
 from watch import snapshot, watch
 
@@ -73,52 +75,44 @@ def build():
         (("info", ansify_module.CYAN), ("warning", ansify_module.YELLOW),
          ("error", ansify_module.RED))}
     STATE["today"] = os.environ.get("BUILD_TODAY") or datetime.date.today().isoformat()
-    out = {}
-    members = load_members()
-    colls = collections()
-    items = {name: load_items(name, conf) for name, conf in colls.items()}
-    every = [it for its in items.values() for it in its]
-    for it in every:
-        item_defaults(it)
-    by_src = {it["src"]: it for it in every}
-    pages = []  # (path, meta) of every HTML page: sitemap and SEO checks
+    contenttypes.load()
+    colls = contenttypes.collections()
+    items = {name: contenttypes.load_items(name, conf) for name, conf in colls.items()}
+    by_src = {it["src"]: it for its in items.values() for it in its}
+    STATE["summary"] = contenttypes.summary(colls, items)
+    out, pages = {}, []  # pages: every item that is an HTML page, for sitemap and SEO checks
     for src in sorted(p for p in CONTENT.rglob("*.md") if rendered(p)):
-        path = page_path(src)
         meta, sections, preamble = parse(src)
-        meta["_kind"] = MEMBER if path.startswith("members/") else PAGE
-        if src in by_src:
-            it = by_src[src]
-            meta = it["meta"]
-            meta.update(_slug=it["slug"], _date=it["iso"],
-                        _kind=POST if it["type"] == POSTS else EVENT)
+        it = by_src[src] if src in by_src else contenttypes.page_item(src, meta)
+        meta = it["meta"]
         meta["_dir"] = site_path(src)
-        pages.append((path, meta))
-        fill_members(sections, members, path)
-        fill_collections(sections, path, colls, items)
-        out[path] = render_html(meta, sections, path, preamble, colls)
+        _compat(it)  # Tasks 7-9 remove this
+        pages.append(it)
+        contenttypes.fill_lists(sections, src, it["path"], colls, items)
+        out[it["path"]] = render_html(meta, sections, it["path"], preamble, colls)
         if meta.get("text", "yes") != "no":
             marked = render_txt(meta, sections)
-            out[f"txt/{txt_name(path)}.txt"] = plain(marked)
-            out[f"ansi/{txt_name(path)}.txt"] = ansify(marked)
-    # Feeds only for the collections the site has: a folder in content/, a
-    # `feed` (and for events a `calendar`) not left empty.
+            out[f"txt/{txt_name(it['path'])}.txt"] = plain(marked)
+            out[f"ansi/{txt_name(it['path'])}.txt"] = ansify(marked)
+    # Feeds and the type's own files, for the collections whose folder exists.
     for name, conf in colls.items():
         if not (CONTENT / conf["dir"]).is_dir():
             continue
-        if conf["type"] == POSTS and conf.get("feed"):
+        if conf["type"] == "post" and conf.get("feed"):
             out[conf["feed"]] = posts_feed(items[name], conf)
-        if conf["type"] == EVENTS:
+        if conf["type"] == "event":
             if conf.get("feed"):
                 out[conf["feed"]] = events_feed(items[name], conf)
             if conf.get("calendar"):
                 out[conf["calendar"]] = calendar(items[name])
     a = apex()
-    indexed = [(p, m) for p, m in pages if "noindex" not in m.get("robots", "")]
+    meta_pages = [(it["path"], it["meta"]) for it in pages]
+    indexed = [(p, m) for p, m in meta_pages if "noindex" not in m.get("robots", "")]
     out["sitemap.xml"] = sitemap_xml(indexed)
     out["sitemap.txt"] = "".join(f"{a}{clean_url(p)}\n" for p, _ in
                                  sorted(indexed, key=lambda p: clean_url(p[0])))
     out["robots.txt"] = robots(CFG["robots"], f"{a}/sitemap.xml")
-    check(pages)
+    check(meta_pages)
     # txt/ is the root of the plain-text host: this is its /robots.txt.
     out["txt/robots.txt"] = robots(CFG["robots_man"])
     out["site.webmanifest"] = manifest()
@@ -144,6 +138,15 @@ def build():
     return out
 
 
+def _compat(it):
+    """Until seo.py, feeds.py and page.py ask the type (Tasks 7-9): the
+    old keys they read."""
+    it["meta"]["_kind"] = it["type"].NAME
+    if it["date"]:
+        it["meta"]["_date"] = it["date"]
+        it["iso"] = it["date"]
+
+
 def write(outputs, dest):
     """Sync dest with outputs: write what changed, delete what is gone.
     Each file is replaced atomically, so the server never reads half of it."""
@@ -167,8 +170,15 @@ def write(outputs, dest):
     return changed
 
 
+_SAID = False
+
+
 def build_into(dest):
+    global _SAID
     changed = write(build(), dest)
+    if not _SAID:
+        print(STATE["summary"], flush=True)
+        _SAID = True
     stamp = time.strftime("%H:%M:%S")
     print(f"[{stamp}] built {dest}: " + (", ".join(changed) or "no change"), flush=True)
 

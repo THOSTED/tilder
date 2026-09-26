@@ -262,12 +262,7 @@ def render_html(meta, sections, path, preamble=(), colls=None):
         # its name.
         extra = [c.partition(":")[0] for c in s["cls"] if c not in ("html", "text")]
         bcls = " ".join(["b"] + extra)
-        data = ""
-        if "members" in s["cls"]:
-            # The search's wording, for members.js: it holds no text itself.
-            m = CFG["members"]
-            data = "".join(f' data-{k}="{H.escape(m[k])}"' for k in
-                           ("search_label", "search_placeholder", "all", "one", "many", "none"))
+        data = "".join(f' data-{k}="{H.escape(str(v))}"' for k, v in s.get("data", {}).items())
         body.append(f'<section class="s"{ident}>')
         body.append(f"\t<h2>{H.escape(s['title'])}</h2>")
         body.append(f'\t<div class="{bcls}"{data}>')

@@ -1,6 +1,7 @@
-# Defaults for every key the builder reads. A project's content/site.toml
-# is merged over this file: it only needs what differs. The values here are
-# English and neutral; a site in another language overrides the words.
+# Defaults for every key the builder reads, except a type's own
+# (types/<type>.py). A project's content/site.toml is merged over this
+# file: it only needs what differs. The values here are English and
+# neutral; a site in another language overrides the words.
 
 [site]
 name = "my site"                    # wordmark, feed and calendar names
@@ -68,48 +69,34 @@ muted_color = "#506C75"
 rule_color = "#DED7C3"
 short_name = "site"                 # web manifest
 
-# Dated collections: folders of YYYY-MM-DD-slug items, as files or
-# folders. A site declares its own as [collections.<name>]: a type, a dir
-# under content/, and whatever differs from the type's defaults below. A
-# collection whose folder does not exist is simply empty. Lists are shown
-# by section markers: {posts}, {upcoming}, {past}, {next-event}, each with
-# an optional collection name - {upcoming:talks}.
+# Collections: a folder under content/ whose files are items of one type.
+# A site declares its own as [collections.<name>]: a `type` (page, post,
+# event, member, or one the theme adds in theme/types/), a `dir` under
+# content/ (default: the name), and whatever differs from the type's
+# defaults - every type's words and settings are listed in its module,
+# types/<type>.py (DEFAULTS), and documented in docs/types.md. A collection
+# whose folder does not exist is simply empty: no page, no feed. Lists are
+# shown by section markers: {posts}, {upcoming}, {past}, {next-event},
+# {members}, each with an optional collection name - {upcoming:talks}.
+#
+# The three collections most sites have. Inactive until content/blog/,
+# content/events/ or content/members/ exists.
 
-[collection_defaults.posts]
-man = "SITE-BLOG(7)"                # items' man-page name, unless they set one
-nav = "blog/"                       # items' nav entry, and the feed's link
-empty = "No post yet."              # a {posts} list with nothing in it
-feed = ""                           # RSS path, e.g. "blog/feed.xml"; empty for none
-feed_title = "posts"
-feed_description = "Posts."
-
-[collection_defaults.events]
-man = "SITE-EVENTS(7)"
-nav = "events"
-upcoming_tag = "upcoming"
-past_tag = "past"
-none_upcoming = "No upcoming event."
-none_past = "No past event."
-link_label = "event website ↗"
-map_label = "see on OpenStreetMap ↗"
-feed = ""                           # RSS path, e.g. "events.xml"; empty for none
-feed_title = "events"
-feed_description = "Upcoming and past events."
-calendar = ""                       # iCalendar path, e.g. "events.ics"; empty for none
-
-# The two collections most sites have. Inactive until content/blog/ or
-# content/events/ exists.
 [collections.blog]
-type = "posts"
+type = "post"
 dir = "blog"
 feed = "blog/feed.xml"
 
 [collections.events]
-type = "events"
+type = "event"
 dir = "events"
 nav = "events"
 feed = "events.xml"
 calendar = "calendar.ics"
+
+[collections.members]
+type = "member"
+dir = "members"
 
 [dates]
 weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -125,18 +112,6 @@ description = "Events."
 prodid = "-//site//events//EN"
 timezone = "UTC"
 uid_domain = "example.org"
-
-[members]
-categories = ["admin", "member"]    # display and sort order
-default_category = "member"
-empty = "No member listed yet."
-search_label = "search"
-search_placeholder = "first or last name"
-all = "all"
-one = "entry"
-many = "entries"
-none = "No entry matches."
-full = "full"                       # a mentor at capacity, said in words
 
 # The text mirror, coloured for terminals: words that start a command line
 # worth highlighting.

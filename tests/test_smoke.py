@@ -10,8 +10,7 @@ class Smoke(unittest.TestCase):
                      "blog/2026-01-01-hello", "events/2099-01-01-future-meetup",
                      "members/ada-lovelace"):
             self.assertIn(f"{page}.html", out, page)
-        # Task 6 makes this members/alan-turing.html
-        self.assertIn("members/alan-turing/index.html", out)
+        self.assertIn("members/alan-turing.html", out)
         self.assertIn("txt/index.txt", out)
         self.assertIn("ansi/index.txt", out)
         self.assertNotIn("txt/404.txt", out)  # text: no

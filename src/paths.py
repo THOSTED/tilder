@@ -4,6 +4,17 @@ import os
 
 from config import CONTENT, DATED
 
+# content/-relative folders that are one item each (a member kept as a
+# folder with a file beside its page): only their index.md is a page, and
+# it is served next to the folder. Filled by contenttypes.load_items.
+ITEM_FOLDERS = set()
+
+
+def item_folder(rel_parent):
+    """Is this content/-relative folder one item?"""
+    return bool(DATED.match(rel_parent.name)) or str(rel_parent) in ITEM_FOLDERS
+
+
 def txt_name(html_path):
     n = html_path[:-5]
     if n.endswith("/index"):
@@ -48,17 +59,17 @@ def _relative(from_dir, target):
 
 def rendered(path):
     """A Markdown file is a page unless a part of its path starts with `_`
-    (templates), or it sits in a dated folder without being its index.md."""
+    (templates), or it sits in an item's folder without being its index.md."""
     rel = path.relative_to(CONTENT)
     if any(part.startswith("_") for part in rel.parts):
         return False
-    return rel.name == "index.md" or not DATED.match(rel.parent.name)
+    return rel.name == "index.md" or not item_folder(rel.parent)
 
 
 def page_path(src):
-    """content/blog/X/index.md -> blog/X.html: a dated folder's page sits
+    """content/blog/X/index.md -> blog/X.html: an item folder's page sits
     next to the folder, so the URL does not change with the layout."""
     rel = src.relative_to(CONTENT)
-    if rel.name == "index.md" and DATED.match(rel.parent.name):
+    if rel.name == "index.md" and item_folder(rel.parent):
         return str(rel.parent) + ".html"
     return str(rel.with_suffix(".html"))

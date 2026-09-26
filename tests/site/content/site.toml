@@ -40,18 +40,19 @@ short_name = "test"
 background_color = "#ABCDEF"
 
 [collections.blog]
-type = "posts"
+type = "post"
 feed = "blog/feed.xml"
 
 [collections.events]
-type = "events"
+type = "event"
 feed = "events.xml"
 calendar = "events.ics"
 
 # Declared, no folder: must produce nothing and fail nothing.
 [collections.news]
-type = "posts"
+type = "post"
 dir = "news"
 
-[members]
+[collections.members]
+type = "member"
 categories = ["admin", "mentor", "member"]

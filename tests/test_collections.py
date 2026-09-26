@@ -1,0 +1,136 @@
+import unittest
+
+from tests.helpers import build_site, rebuild  # triggers tests.__init__ setup
+import contenttypes
+import paths
+import report
+from config import CFG, CONTENT, load_config
+
+
+class Collections(unittest.TestCase):
+    def setUp(self):
+        load_config()
+        contenttypes.load()
+
+    def test_declared_collections_merge_type_defaults(self):
+        colls = contenttypes.collections()
+        self.assertEqual(list(colls), ["blog", "events", "members", "news"])
+        self.assertEqual(colls["blog"]["type"], "post")
+        self.assertEqual(colls["blog"]["dir"], "blog")
+        self.assertEqual(colls["blog"]["feed"], "blog/feed.xml")
+        self.assertEqual(colls["blog"]["empty"], "No post yet.")          # from post.DEFAULTS
+        self.assertEqual(colls["members"]["categories"], ["admin", "mentor", "member"])
+        self.assertEqual(colls["members"]["search_label"], "search")     # from member.DEFAULTS
+
+    def test_missing_folder_is_an_empty_collection(self):
+        colls = contenttypes.collections()
+        self.assertEqual(contenttypes.load_items("news", colls["news"]), [])
+        out = build_site()
+        self.assertFalse(any(k.startswith("news") for k in out), [k for k in out if k.startswith("news")])
+
+    def test_items_are_sorted_by_the_type(self):
+        colls = contenttypes.collections()
+        events = contenttypes.load_items("events", colls["events"])
+        self.assertEqual([e["slug"] for e in events], ["2000-01-01-past-meetup", "2099-01-01-future-meetup"])
+        self.assertEqual(events[0]["date"], "2000-01-01")
+        self.assertEqual(events[0]["path"], "events/2000-01-01-past-meetup.html")
+        self.assertIs(events[0]["type"], contenttypes.TYPES["event"])
+        self.assertEqual(events[0]["meta"]["man"], "SITE-EVENTS(7)")   # defaults() applied
+        members = contenttypes.load_items("members", colls["members"])
+        self.assertEqual([m["slug"] for m in members], ["ada-lovelace", "alan-turing"])  # admin first
+        self.assertIsNone(members[0]["date"])
+
+    def test_member_folder_registers_and_renders_flat(self):
+        colls = contenttypes.collections()
+        contenttypes.load_items("members", colls["members"])
+        self.assertIn("members/alan-turing", paths.ITEM_FOLDERS)
+        self.assertTrue(paths.rendered(CONTENT / "members/alan-turing/index.md"))
+        self.assertFalse(paths.rendered(CONTENT / "members/alan-turing/notes.txt"))
+        self.assertEqual(paths.page_path(CONTENT / "members/alan-turing/index.md"), "members/alan-turing.html")
+        out = build_site()
+        self.assertIn("members/alan-turing.html", out)
+        self.assertNotIn("members/alan-turing/index.html", out)
+        self.assertIn("members/alan-turing/notes.txt", out)
+
+    def fails_with(self, *fragments):
+        with self.assertRaises(report.BuildError) as cm:
+            contenttypes.collections()
+        text = "\n".join(m for m, _ in cm.exception.items)
+        for f in fragments:
+            self.assertIn(f, text)
+        return text
+
+    def test_plural_type_is_refused_with_the_fix(self):
+        CFG["collections"]["blog"]["type"] = "posts"
+        self.fails_with('collection "blog" has type "posts"; types are singular', 'Write type = "post"')
+
+    def test_unknown_type_lists_the_loaded_ones(self):
+        CFG["collections"]["talks"] = {"type": "talk"}
+        text = self.fails_with('collection "talks" has type "talk", which no type defines', "Types loaded:")
+        self.assertIn("event, member, page, post (types/)", text)   # load order: file names
+
+    def test_old_members_table_is_refused(self):
+        CFG["members"] = {"categories": ["a"]}
+        self.fails_with("[members] is no longer read", "[collections.members]")
+
+    def test_overlapping_dirs(self):
+        CFG["collections"]["also"] = {"type": "post", "dir": "blog"}
+        self.fails_with('collections "blog" and "also" share the folder content/blog')
+
+    def test_errors_are_gathered(self):
+        CFG["collections"]["blog"]["type"] = "posts"
+        CFG["collections"]["talks"] = {"type": "talk"}
+        with self.assertRaises(report.BuildError) as cm:
+            contenttypes.collections()
+        self.assertEqual(len(cm.exception.items), 2)
+
+
+class Lists(unittest.TestCase):
+    def test_upcoming_past_next_and_own_card(self):
+        out = build_site()
+        events = out["events.html"]
+        self.assertIn('class="entry entry--next entry--link"', events)
+        self.assertIn('class="b upcoming"', events)
+        self.assertIn('class="b past"', events)
+        self.assertIn(">Past meetup</a>", events)
+        self.assertIn("Future meetup", out["index.html"])            # {next-event}
+        self.assertNotIn("Past meetup", out["index.html"])
+        own = out["events/2099-01-01-future-meetup.html"]
+        self.assertIn('class="entry"', own)                          # the heading card, no link
+        self.assertIn("see on OpenStreetMap", own)
+
+    def test_members_grid_and_search_words(self):
+        out = build_site()
+        members = out["members.html"]
+        self.assertIn('class="b members grid" data-search_label="search" data-search_placeholder="first or last name" '
+                      'data-all="all" data-one="entry" data-many="entries" data-none="No entry matches."', members)
+        self.assertIn('data-category="admin" data-search="ada lovelace"', members)
+        self.assertNotIn("members.js", members)                      # the fixture theme ships none
+        self.assertIn('class="entry" data-category="member"', out["members/alan-turing.html"])
+
+    def test_posts_list_and_text_mirror(self):
+        out = build_site()
+        self.assertIn(">Hello</a>", out["blog/index.html"])
+        self.assertIn("[ note ]", out["txt/blog/2026-01-01-hello.txt"])
+        self.assertIn("[ upcoming ]", out["txt/events.txt"])
+        self.assertIn("GitHub: https://github.com/ada", out["txt/members/ada-lovelace.txt"])
+
+    def test_named_marker_must_exist(self):
+        load_config()
+        contenttypes.load()
+        colls = contenttypes.collections()
+        sections = [{"k": "section", "title": "x", "cls": ["upcoming:nope"], "id": None, "blocks": []}]
+        with self.assertRaises(report.BuildError) as cm:
+            contenttypes.fill_lists(sections, CONTENT / "index.md", "index.html", colls, {})
+        self.assertIn("content/index.md: {upcoming:nope} names no event collection", str(cm.exception))
+        self.assertIn("Collections of that type: events", str(cm.exception))
+
+    def test_summary(self):
+        load_config()
+        contenttypes.load()
+        colls = contenttypes.collections()
+        items = {n: contenttypes.load_items(n, c) for n, c in colls.items()}
+        self.assertEqual(contenttypes.summary(colls, items),
+                         "types: event, member, page, post\n"
+                         "collections: blog (post, 1 item), events (event, 2 items), "
+                         "members (member, 2 items), news (post, no folder)")

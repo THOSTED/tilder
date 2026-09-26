@@ -12,9 +12,12 @@ that section markers ask for (fill_lists).
 """
 
 import copy
+import datetime
 import importlib.util
 
-from config import BUILDER, THEME
+import paths
+from config import BUILDER, CFG, CONFIG, CONTENT, DATED, THEME
+from markdown import front_matter
 from report import error, fail, rel
 
 BUILTIN = BUILDER / "types"
@@ -95,6 +98,7 @@ def load(dirs=None):
     dirs = [BUILTIN, THEME / "types"] if dirs is None else list(dirs)
     TYPES.clear()
     MARKERS.clear()
+    paths.ITEM_FOLDERS.clear()
     errs = []
     for n, folder in enumerate(dirs):
         seen = {}  # NAME -> path, within this folder
@@ -131,3 +135,148 @@ def load(dirs=None):
         fail(errs)
     MARKERS.update(claimed)
     return dict(TYPES)
+
+
+def _loaded():
+    """"page, post, event, member (types/), doc (theme/types/doc.py)"."""
+    builtin = [n for n, m in TYPES.items() if m.PATH.parent == BUILTIN]
+    theme = [f"{n} ({rel(m.PATH)})" for n, m in TYPES.items() if m.PATH.parent != BUILTIN]
+    parts = [", ".join(builtin) + " (types/)"] if builtin else []
+    return ", ".join(parts + theme)
+
+
+def collections():
+    """{name: settings} of every [collections.<name>] in site.toml, each
+    over its type's DEFAULTS, in declaration order. Every problem is
+    reported before the build stops."""
+    out, errs = {}, []
+    if "members" in CFG:
+        errs.append(error(CONFIG, "[members] is no longer read",
+                          'Move its keys under [collections.members], with type = "member"'))
+    for name, conf in CFG.get("collections", {}).items():
+        kind = conf.get("type", "post")
+        if kind in ("posts", "events"):
+            errs.append(error(CONFIG, f'collection "{name}" has type "{kind}"; types are singular',
+                              f'Write type = "{kind[:-1]}"'))
+            continue
+        if kind not in TYPES:
+            errs.append(error(CONFIG, f'collection "{name}" has type "{kind}", which no type defines',
+                              f"Types loaded: {_loaded()}"))
+            continue
+        merged = copy.deepcopy(TYPES[kind].DEFAULTS)
+        merged.update(conf)
+        merged.setdefault("dir", name)
+        merged["type"] = kind
+        out[name] = merged
+    seen = {}
+    for name, conf in out.items():
+        d = conf["dir"]
+        for other, od in seen.items():
+            if d == od or d.startswith(od + "/") or od.startswith(d + "/"):
+                errs.append(error(CONFIG, f'collections "{other}" and "{name}" share the folder content/{d}',
+                                  "Give each collection its own dir"))
+        seen[name] = d
+    if errs:
+        fail(errs)
+    return out
+
+
+def load_items(name, conf):
+    """Every item of a collection, in the type's order. An item is <slug>.md
+    or <slug>/index.md in content/<dir>/; for a DATED type the slug starts
+    with YYYY-MM-DD. Names starting with _ are templates."""
+    module, base, items = TYPES[conf["type"]], CONTENT / conf["dir"], []
+    for f in sorted(base.iterdir()) if base.is_dir() else []:
+        slug = f.stem if f.suffix == ".md" else f.name
+        src = f if f.suffix == ".md" else f / "index.md"
+        if f.name.startswith("_") or not src.is_file() or slug == "index":
+            continue
+        date = None
+        if module.DATED:
+            m = DATED.match(slug)
+            if not m:
+                continue  # not an item: a plain page in the folder
+            try:
+                datetime.date.fromisoformat(m.group(1))
+            except ValueError:
+                raise error(src, f'"{m.group(1)}" is not a date',
+                            f"Name the file YYYY-MM-DD-slug.md with the {module.NAME}'s date")
+            date = m.group(1)
+        elif f.is_dir():
+            paths.ITEM_FOLDERS.add(str(f.relative_to(CONTENT)))
+        meta, _ = front_matter(src.read_text())
+        items.append({"slug": slug, "date": date, "meta": meta, "src": src,
+                      "path": f"{conf['dir']}/{slug}.html", "collection": name,
+                      "conf": conf, "type": module})
+    for it in items:
+        module.defaults(it, conf)
+    return sorted(items, key=lambda it: module.sort_key(it, conf))
+
+
+def page_item(src, meta):
+    """A .md outside every collection, as an item of type page."""
+    return {"slug": src.stem, "date": None, "meta": meta, "src": src,
+            "path": paths.page_path(src), "collection": None, "conf": {}, "type": TYPES["page"]}
+
+
+def _target(marker, src, path, colls):
+    """The collection a marker lists: {upcoming:talks} names it; a bare
+    {upcoming} is the page's own collection of that type (its folder, or
+    the page named like the folder: events.md for events/), else the first
+    collection of the type. None when the site has none."""
+    word, _, name = marker.partition(":")
+    kind = MARKERS[word]
+    same = [n for n, c in colls.items() if c["type"] == kind]
+    if name:
+        if name not in same:
+            raise error(src, f"{{{marker}}} names no {kind} collection",
+                        f"Collections of that type: {', '.join(same) or 'none'}")
+        return name
+    folder = path[:-5].removesuffix("/index")
+    own = [n for n in same if folder == colls[n]["dir"] or folder.startswith(colls[n]["dir"] + "/")]
+    return (own or same or [None])[0]
+
+
+def fill_lists(sections, src, path, colls, items):
+    """Fill every section carrying a list marker ({posts}, {upcoming:talks},
+    {members}...) with cards, and put an item's own card at the top of
+    its page. items: {collection name: [item]}."""
+    for s in sections:
+        for marker in list(s["cls"]):
+            word = marker.partition(":")[0]
+            if word not in MARKERS:
+                continue
+            module = TYPES[MARKERS[word]]
+            name = _target(marker, src, path, colls)
+            conf, its = colls.get(name, {}), items.get(name, [])
+            chosen = module.MARKERS[word](its, conf)
+            cards = []
+            for it, extra in chosen["items"]:
+                node = module.entry(it, True, conf)
+                node["cls"] = list(extra) + node["cls"]
+                cards.append(node)
+            s["cls"].extend(chosen.get("cls", []))
+            s["blocks"] = (cards or [{"k": "empty", "text": chosen.get("empty", "")}]) + s["blocks"]
+            s["data"] = module.list_data(conf) if name else {}
+            s["script"] = module.SCRIPT
+    for its in items.values():
+        for it in its:
+            if it["path"] == path and sections:
+                card = it["type"].entry(it, False, it["conf"])
+                if card is not None:
+                    sections[0]["blocks"].append(card)
+
+
+def summary(colls, items):
+    """What the build understood, in two lines."""
+    builtin = [n for n, m in TYPES.items() if m.PATH.parent == BUILTIN]
+    theme = [n for n, m in TYPES.items() if m.PATH.parent != BUILTIN]
+    first = "types: " + ", ".join(builtin) + (f"; from theme: {', '.join(theme)}" if theme else "")
+    parts = []
+    for name, conf in colls.items():
+        if not (CONTENT / conf["dir"]).is_dir():
+            parts.append(f"{name} ({conf['type']}, no folder)")
+        else:
+            n = len(items.get(name, []))
+            parts.append(f"{name} ({conf['type']}, {n} item{'s' if n != 1 else ''})")
+    return first + "\ncollections: " + ", ".join(parts)
