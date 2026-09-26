@@ -14,7 +14,7 @@ class Collections(unittest.TestCase):
 
     def test_declared_collections_merge_type_defaults(self):
         colls = contenttypes.collections()
-        self.assertEqual(list(colls), ["blog", "events", "members", "news"])
+        self.assertEqual(list(colls), ["blog", "events", "members", "news", "talks"])
         self.assertEqual(colls["blog"]["type"], "post")
         self.assertEqual(colls["blog"]["dir"], "blog")
         self.assertEqual(colls["blog"]["feed"], "blog/feed.xml")
@@ -65,8 +65,8 @@ class Collections(unittest.TestCase):
         self.fails_with('collection "blog" has type "posts"; types are singular', 'Write type = "post"')
 
     def test_unknown_type_lists_the_loaded_ones(self):
-        CFG["collections"]["talks"] = {"type": "talk"}
-        text = self.fails_with('collection "talks" has type "talk", which no type defines', "Types loaded:")
+        CFG["collections"]["keynotes"] = {"type": "keynote"}   # no such type, unlike theme's "talk"
+        text = self.fails_with('collection "keynotes" has type "keynote", which no type defines', "Types loaded:")
         self.assertIn("event, member, page, post (types/)", text)   # load order: file names
 
     def test_old_members_table_is_refused(self):
@@ -79,7 +79,7 @@ class Collections(unittest.TestCase):
 
     def test_errors_are_gathered(self):
         CFG["collections"]["blog"]["type"] = "posts"
-        CFG["collections"]["talks"] = {"type": "talk"}
+        CFG["collections"]["keynotes"] = {"type": "keynote"}   # no such type, unlike theme's "talk"
         with self.assertRaises(report.BuildError) as cm:
             contenttypes.collections()
         self.assertEqual(len(cm.exception.items), 2)
@@ -131,6 +131,6 @@ class Lists(unittest.TestCase):
         colls = contenttypes.collections()
         items = {n: contenttypes.load_items(n, c) for n, c in colls.items()}
         self.assertEqual(contenttypes.summary(colls, items),
-                         "types: event, member, page, post\n"
+                         "types: event, member, page, post; from theme: talk\n"
                          "collections: blog (post, 1 item), events (event, 2 items), "
-                         "members (member, 2 items), news (post, no folder)")
+                         "members (member, 2 items), news (post, no folder), talks (talk, 1 item)")

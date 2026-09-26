@@ -1,0 +1,39 @@
+import json
+import re
+import unittest
+
+from tests.helpers import build_site
+import contenttypes
+from config import load_config
+
+
+class ThemeType(unittest.TestCase):
+    def test_loaded_from_the_theme(self):
+        load_config()
+        types = contenttypes.load()
+        self.assertEqual(list(types), ["event", "member", "page", "post", "talk"])
+        self.assertEqual(types["talk"].PATH.parent.name, "types")
+        self.assertEqual(contenttypes.MARKERS["talks"], "talk")
+
+    def test_lists_renders_twice_feeds_and_validates(self):
+        out = build_site()
+        page = out["talks.html"]
+        self.assertIn('class="entry entry--next entry--link"', page)
+        self.assertIn("<span>speaker: Grace Hopper</span>", page)
+        self.assertIn("speaker: Grace Hopper", out["txt/talks.txt"])
+        own = out["talks/2099-03-01-first-talk.html"]
+        self.assertIn("<article>", own)
+        self.assertIn("speaker: Grace Hopper", own)
+        self.assertIn("<title>First talk</title>", out["talks.xml"])
+        data = re.search(r'<script type="application/ld\+json">(.*?)</script>', own, re.S).group(1)
+        self.assertIn("Event", {n["@type"] for n in json.loads(data)["@graph"]})
+        self.assertIn("SITE-TALKS(7)", out["txt/talks/2099-03-01-first-talk.txt"])
+        self.assertNotIn("types/talk.py", out)                     # never served
+
+    def test_summary_names_the_theme_type(self):
+        load_config()
+        contenttypes.load()
+        colls = contenttypes.collections()
+        items = {n: contenttypes.load_items(n, c) for n, c in colls.items()}
+        self.assertTrue(contenttypes.summary(colls, items).startswith(
+            "types: event, member, page, post; from theme: talk\n"))

@@ -56,3 +56,7 @@ dir = "news"
 [collections.members]
 type = "member"
 categories = ["admin", "mentor", "member"]
+
+[collections.talks]
+type = "talk"
+feed = "talks.xml"
