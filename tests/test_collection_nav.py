@@ -159,6 +159,7 @@ class Starter(unittest.TestCase):
         for cls in (".collection-nav", ".collection-group-label", ".prev", ".next",
                     ".prev-label", ".next-label"):
             self.assertIn(cls, css, cls)
+        self.assertRegex(css, r"\.collection-group\b(?!-)")
 
     def test_layout_places_prev_and_next(self):
         layout = (BUILDER / "starter" / "theme" / "layout.html").read_text()
