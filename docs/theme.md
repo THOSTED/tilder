@@ -49,13 +49,15 @@ are read at build time and never served. A theme kept in its own repository may 
 | `{{ brand }}` | the `<h1>`: the wordmark as a path, `~/<site>/<section>/<title>` |
 | `{{ nav }}` | the navigation links, the current one marked `aria-current="page"` |
 | `{{ languages }}` | the language switcher: one link per declared language, the current one marked `aria-current="page"`; empty in a monolingual site (`docs/languages.md`) |
+| `{{ collection_nav }}` | the items of the page's collection, in the type's order, grouped by their `group:`, the current one marked `aria-current="page"`; on the collection's own page (`<dir>/index.md` or `<dir>.md`) the same list, nothing marked; empty elsewhere (`docs/types.md`) |
+| `{{ prev }}`, `{{ next }}` | links to the page's neighbours in that order, groups ignored, labelled `labels.prev` and `labels.next`; empty at an end, on the collection's own page and elsewhere |
 | `{{ content_lang }}` | the content language of the page: equal to `site.lang` unless the page is served as a fallback |
 | `{{ body }}` | the sections of the page |
 | `{{ script }}` | the `<script>` tags the page needs, if the theme has the files |
 
 Values are HTML-escaped, except the ones the builder computes (`type`,
-`root`, `home`, `canonical`, `brand`, `nav`, `languages`, `content_lang`, `feeds`,
-`head`, `body`, `script`).
+`root`, `home`, `canonical`, `brand`, `nav`, `languages`, `collection_nav`,
+`prev`, `next`, `content_lang`, `feeds`, `head`, `body`, `script`).
 The starter's `layout.html` is a complete example.
 
 The layout must keep: `lang="{{ site.lang }}"`, one `{{ brand }}` (it is
@@ -87,6 +89,8 @@ A theme styles these. The starter's `style.css` covers them all.
 | `.wordmark`, `.tilde`, `.slash`, `.here`, `.cursor` | the `<h1>`: `~/`, separators, the page's own segment, a cursor |
 | `.nav`, `.sep` | navigation and its separators |
 | `.languages` | the language switcher (`<nav class="languages">`, `docs/languages.md`) |
+| `.collection-nav`, `.collection-group`, `.collection-group-label` | the collection sidebar (`<nav class="collection-nav">`), a group (`<li>`) and its label (`<span>`, not a heading) |
+| `.prev`, `.prev-label`, `.next`, `.next-label` | the neighbour links (`rel="prev"`, `rel="next"`) and their label |
 | `.s`, `.b` | a section (`<section class="s">`, its `<h2>`, its body `<div class="b">`) |
 | `.b.grid`, `.members`, `.posts`, `.upcoming`, `.past`, `.next-event` | markers on a section body |
 | `.entry`, `.entry--next`, `.entry--full`, `.entry--link` | an entry (`<h3>`); `--link` is a card whose title link covers it |

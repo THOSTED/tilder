@@ -19,6 +19,9 @@ external = "site externe"
 new_tab = "nouvel onglet"
 table = "tableau"
 toc = "sommaire"
+collection_nav = "Dans cette section"
+prev = "précédent"
+next = "suivant"
 
 [[nav]]
 label = "accueil"

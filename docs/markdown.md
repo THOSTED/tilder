@@ -138,6 +138,7 @@ line. Values are plain text, not quoted.
 | `feed` | no | Adds `<link rel="alternate">` for `events`, `blog` or `all`. |
 | `text` | no | `text: no` skips the text mirror for this page (the 404 does). |
 | `image` | no | Preview image for link sharing, relative to the page's folder. Default: `share.image`. |
+| `group` | no | In a collection: the item's group in the theme's collection sidebar (`docs/types.md`). |
 
 \* Items of a collection (posts, events) may leave `man`, `nav` and
 `tagline` out: `man` and `nav` come from their collection in `site.toml`,
