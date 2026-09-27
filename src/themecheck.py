@@ -43,9 +43,10 @@ def settings():
 
 
 def _strip(css):
-    """`css` with its comments removed, then its string literals emptied
-    (kept the same length, so positions still line up): a brace or a class
-    name inside a string is not code."""
+    """`css` with its comments removed, then each string literal emptied
+    to its two quotes ("..." -> ""): a brace or a class name inside a
+    string is not code. Lengths and positions change; no caller maps them
+    back to the source."""
     return STRING.sub(lambda m: m.group(0)[0] * 2, COMMENT.sub("", css))
 
 
