@@ -133,3 +133,10 @@ disallow = ["/txt/", "/ansi/"]      # the text mirrors
 
 [robots_man]
 disallow = ["/"]
+
+# build.py --check (docs/theme.md, "Checking a theme"): a theme sets these
+# in its theme.toml.
+[check]
+unstyled = []                       # classes of the contract the theme leaves unstyled on purpose
+contrast = []                       # pairs of style.css colours, [["--text", "--bg"], ...]; empty: not checked
+contrast_min = 4.5                  # the least contrast ratio of every pair (WCAG AA for text)
