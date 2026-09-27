@@ -1,6 +1,7 @@
 .git
 .github
-docs
+docs/screenshots
+docs/superpowers
 tests
 starter
 examples
