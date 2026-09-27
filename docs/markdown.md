@@ -386,13 +386,16 @@ def plier(texte, largeur=75):
 | `rust` | `rs` |
 | `sql` | `postgres`, `postgresql` |
 | `json` | |
+| `jsonc` | `json-with-comments` - JSON with `//` and `/* */` comments |
 | `yaml` | `yml` |
+| `kyaml` | `kyml` - Kubernetes' KYAML: flow style, quoted values, `#` comments |
 | `ini` | `toml`, `cfg`, `systemd` |
 | `conf` | `caddy`, `caddyfile`, `nginx` |
 | `dockerfile` | `docker`, `containerfile` |
 | `html` | `xml`, `svg` |
 | `css` | |
 | `make` | `makefile` |
+| `markdown` | `md`, `mdown` - this dialect; a fenced block's code is left plain |
 | `diff` | `patch` - `+` lines in the accent, `-` lines in `--error` |
 | `text` | `plain`, `txt` - no highlighting, but labelled |
 
@@ -431,12 +434,12 @@ next line.
 
 | Token | Colour |
 |---|---|
-| keyword; in `sh` and `console`, the command word | bold, in the accent |
-| builtin or type; in `sh` and `console`, an option (`-s`, `--out`) | the accent |
-| string, `diff` `+` line | green |
-| comment, `console` prompt (`$ `, `# `) | dim |
-| number, variable | magenta |
-| tag, key, section, `diff` hunk header (`@@`) | bold |
+| keyword; in `sh` and `console`, the command word; in `markdown`, `[!INFO]` and the like, `[TOC]` | bold, in the accent |
+| builtin or type; in `sh` and `console`, an option (`-s`, `--out`); in `markdown`, a list marker, a task box, emphasis | the accent |
+| string, `diff` `+` line; in `markdown`, inline `code`, a link's title | green |
+| comment, `console` prompt (`$ `, `# `); in `markdown`, a fence line, a rule, a table's pipes, the `>` of an inset, the front matter's `---` | dim |
+| number, variable; in `markdown`, a link's target, the `{markers}` ending a line | magenta |
+| tag, key, section, `diff` hunk header (`@@`); in `markdown`, a heading, a front matter key | bold |
 | `diff` `-` line | red |
 
 The accent is `[text] accent` (cyan by default). The command word is the
