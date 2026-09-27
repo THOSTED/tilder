@@ -516,8 +516,9 @@ Everything else is literal text and is HTML-escaped: no image inside a
 sentence, no raw inline HTML.
 
 In the text mirror, accents and typographic characters are folded to ASCII
-(`é` -> `e`, `-` -> `-`, `«` -> `"`, `↗` removed), and lines are wrapped at
-75 columns.
+(`é` -> `e`, `-` -> `-`, `«` -> `"`, `↑` -> `^`, `←` -> `<-`, `↗` removed);
+any other character outside ASCII (an emoji, a symbol, another script) is
+dropped. Lines are wrapped at 75 columns.
 
 ---
 
