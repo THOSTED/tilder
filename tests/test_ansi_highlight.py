@@ -67,6 +67,18 @@ SAMPLES = {
              ("n", "1px"), ("s", '"s"'), ("b", "auto")]),
     "make": ('# c\nall: build\n\tgo build $(OUT) "x"\nifdef X\nendif',
              [("c", "# c"), ("t", "all"), ("v", "$(OUT)"), ("s", '"x"'), ("k", "ifdef")]),
+    "jsonc": ('{"a": "http://x", // c\n  "b": 1, /* d */ "e": null,}',
+              [("t", '"a"'), ("s", '"http://x"'), ("c", "// c"), ("n", "1"), ("c", "/* d */"),
+               ("b", "null")]),
+    "kyaml": ('{a: "x", "b": 1,  # c\n  d: [true]}',
+              [("t", "a"), ("s", '"x"'), ("t", '"b"'), ("n", "1"), ("c", "# c"), ("t", "d"),
+               ("b", "true")]),
+    "markdown": ('---\ntitle: T\n---\n## Title {grid}\n- [x] **b** `c` [l](https://x.org/a_b)\n'
+                 '> [!NOTE]\n| a |\n```sh\nls\n```\n<!-- c -->\n[TOC]',
+                 [("p", "---"), ("t", "title"), ("t", "## Title"), ("v", "{grid}"), ("b", "-"),
+                  ("b", "[x]"), ("b", "**b**"), ("s", "`c`"), ("v", "https://x.org/a_b"),
+                  ("p", ">"), ("k", "[!NOTE]"), ("p", "|"), ("c", "```sh"), ("c", "```"),
+                  ("c", "<!-- c -->"), ("k", "[TOC]")]),
     "diff": ("--- a\n+++ b\n@@ -1 +1 @@\n-old\n+new\n same",
              [("k", "--- a"), ("k", "+++ b"), ("gh", "@@ -1 +1 @@"), ("gd", "-old"),
               ("gi", "+new")]),
@@ -100,7 +112,7 @@ class Highlighted(unittest.TestCase):
 
     def test_every_language_of_highlight_has_a_sample(self):
         langs = {highlight.canonical(l) for l in SAMPLES}
-        self.assertEqual(langs, set(highlight.LANGS) | {"console", "diff"})
+        self.assertEqual(langs, set(highlight.LANGS) | {"console", "diff", "markdown"})
 
     def test_each_token_has_its_kind(self):
         for lang, (code, expected) in SAMPLES.items():
