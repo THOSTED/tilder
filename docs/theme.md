@@ -49,7 +49,7 @@ are read at build time and never served. A theme kept in its own repository may 
 | `{{ brand }}` | the `<h1>`: the wordmark as a path, `~/<site>/<section>/<title>` |
 | `{{ nav }}` | the navigation links, the current one marked `aria-current="page"` |
 | `{{ languages }}` | the language switcher: one link per declared language, the current one marked `aria-current="page"`; empty in a monolingual site (`docs/languages.md`) |
-| `{{ collection_nav }}` | the items of the page's collection, in the type's order, grouped by their `group:`, the current one marked `aria-current="page"`; on the collection's own page (`<dir>/index.md` or `<dir>.md`) the same list, nothing marked; empty elsewhere (`docs/types.md`) |
+| `{{ collection_nav }}` | the items of the page's collection, in the type's order, grouped by their `group:`, the current one marked `aria-current="page"`; on the collection's own page (`<dir>/index.md` or `<dir>.md`) the same list, nothing marked; empty elsewhere (`docs/types.md`). A recursive collection's sections are nested: `<li class="collection-section">`, its label, its own `<ul>`; the one holding the page is also `collection-section--open` |
 | `{{ prev }}`, `{{ next }}` | links to the page's neighbours in that order, groups ignored, labelled `labels.prev` and `labels.next`; empty at an end, on the collection's own page and elsewhere |
 | `{{ content_lang }}` | the content language of the page: equal to `site.lang` unless the page is served as a fallback |
 | `{{ body }}` | the sections of the page |
@@ -90,6 +90,7 @@ A theme styles these. The starter's `style.css` covers them all.
 | `.nav`, `.sep` | navigation and its separators |
 | `.languages` | the language switcher (`<nav class="languages">`, `docs/languages.md`) |
 | `.collection-nav`, `.collection-group`, `.collection-group-label` | the collection sidebar (`<nav class="collection-nav">`), a group (`<li>`) and its label (`<span>`, not a heading) |
+| `.collection-section`, `.collection-section--open`, `.collection-section-label` | a section of a recursive collection in the sidebar (`<li>`), the one holding the current page, and its label (an `<a>` to the section's own page, else a `<span>`: the folder's name) |
 | `.prev`, `.prev-label`, `.next`, `.next-label` | the neighbour links (`rel="prev"`, `rel="next"`) and their label |
 | `.s`, `.b` | a section (`<section class="s">`, its `<h2>`, its body `<div class="b">`) |
 | `.b.grid`, `.members`, `.posts`, `.upcoming`, `.past`, `.next-event` | markers on a section body |

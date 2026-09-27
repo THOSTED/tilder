@@ -194,3 +194,82 @@ class Flat(unittest.TestCase):
         self.assertNotIn("collection-nav", out["guides/extras/more.html"])
         self.assertEqual(out["guides/index.json"], build_site()["guides/index.json"])
         self.assertEqual(nav(out["guides/setup.html"]), nav(build_site()["guides/setup.html"]))
+
+
+BASICS_NAV = "\n".join([
+    '<nav class="collection-nav" aria-label="In this section">',
+    "<ul>",
+    '\t<li><a href="../start">Start</a></li>',
+    '\t<li class="collection-section collection-section--open"><a class="collection-section-label" href="../usage">Usage</a>',
+    "\t<ul>",
+    '\t\t<li><a href="basics" aria-current="page">Basics</a></li>',
+    '\t\t<li><a href="deep">Deep</a></li>',
+    '\t\t<li class="collection-group"><span class="collection-group-label">More</span>',
+    "\t\t<ul>",
+    '\t\t\t<li><a href="advanced">Advanced</a></li>',
+    "\t\t</ul>",
+    "\t\t</li>",
+    "\t</ul>",
+    "\t</li>",
+    '\t<li><a href="../end">End</a></li>',
+    '\t<li class="collection-section"><span class="collection-section-label">extra</span>',
+    "\t<ul>",
+    '\t\t<li><a href="../extra/tips">Tips</a></li>',
+    "\t</ul>",
+    "\t</li>",
+    "</ul>",
+    "</nav>"])
+
+
+class Sidebar(unittest.TestCase):
+    def test_tree_on_a_page_in_a_section(self):
+        self.assertEqual(nav(build_site()["manual/usage/basics.html"]), BASICS_NAV)
+
+    def test_the_section_own_page_is_current_and_open(self):
+        page = nav(build_site()["manual/usage.html"])
+        self.assertIn('\t<li class="collection-section collection-section--open"><a class="collection-section-label" '
+                      'href="usage" aria-current="page">Usage</a>', page)
+        self.assertEqual(page.count("aria-current"), 1)
+
+    def test_other_sections_are_closed(self):
+        self.assertNotIn("collection-section--open", nav(build_site()["manual/start.html"]))
+        tips = nav(build_site()["manual/extra/tips.html"])
+        self.assertIn('<li class="collection-section collection-section--open">'
+                      '<span class="collection-section-label">extra</span>', tips)
+        self.assertIn('<li class="collection-section"><a class="collection-section-label" '
+                      'href="../usage">Usage</a>', tips)
+
+    def test_the_collection_page_marks_nothing(self):
+        page = nav(build_site()["manual/index.html"])
+        self.assertNotIn("aria-current", page)
+        self.assertNotIn("collection-section--open", page)
+
+    def test_french_titles(self):
+        self.assertIn('<a href="basics">Les bases</a>', nav(build_site()["fr/manual/usage/advanced.html"]))
+
+    def test_the_starter_styles_the_section_classes(self):
+        css = (BUILDER / "starter" / "theme" / "style.css").read_text()
+        for cls in (".collection-section-label", ".collection-section--open"):
+            self.assertIn(cls, css, cls)
+        self.assertRegex(css, r"\.collection-section(?![\w-])")
+
+
+class Tree(unittest.TestCase):
+    def it(self, slug):
+        return {"slug": slug, "section": slug.rpartition("/")[0], "meta": {"title": slug},
+                "path": f"d/{slug}.html"}
+
+    def test_sections_with_and_without_their_own_page(self):
+        a, s, sb, bare = self.it("a"), self.it("s"), self.it("s/b"), self.it("t/c")
+        self.assertEqual(sequence.tree([a, s, sb, bare]), [
+            a, {"path": "s", "own": s, "entries": [sb]},
+            {"path": "t", "own": None, "entries": [bare]}])
+
+    def test_flat_items_are_their_own_tree(self):
+        items = [{"path": "d/a.html", "meta": {"title": "A"}}, {"path": "d/b.html", "meta": {"title": "B"}}]
+        self.assertEqual(sequence.tree(items), items)
+
+    def test_a_section_groups_by_its_own_page(self):
+        own = {**self.it("s"), "meta": {"title": "s", "group": "G"}}
+        entries = sequence.tree([self.it("a"), own, self.it("s/b")])
+        self.assertEqual([g for g, _ in sequence.groups(entries)], [None, "G"])

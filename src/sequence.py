@@ -1,8 +1,8 @@
 """Collection navigation: a collection's items in order as a sidebar
 ({{ collection_nav }}), a page's neighbours ({{ prev }}, {{ next }}), and
 their line in the text mirror, for a SEQUENTIAL type. The order is the one
-load_items returns (the type's sort_key); groups come from the items'
-`group:`. docs/theme.md is the contract."""
+load_items returns (the type's sort_key, depth-first in a recursive collection); groups come from the items' group:, sections from their folders.
+docs/theme.md is the contract."""
 
 import html as H
 
@@ -28,15 +28,60 @@ def shown(path, colls, items):
 
 def groups(items):
     """[(label or None, [item])]: the items without a group first, then each
-    group in the order of its first item."""
+    group in the order of its first item. An entry of the sidebar's tree
+    (tree()) may stand for an item: a section groups by its own page."""
     loose, named = [], {}
     for it in items:
-        g = it["meta"].get("group")
+        g = _meta(it).get("group")
         if g is None or g == "":
             loose.append(it)
         else:
             named.setdefault(str(g), []).append(it)
     return ([(None, loose)] if loose else []) + list(named.items())
+
+
+def _meta(entry):
+    """An item's front matter; a section's is its own page's, or none."""
+    if "entries" in entry:
+        return entry["own"]["meta"] if entry["own"] else {}
+    return entry["meta"]
+
+
+def tree(items):
+    """The items as the sidebar shows them: a list of entries, each an item
+    or a section {"path": "guide", "own": its own page's item or None,
+    "entries": [...]}, in the order of `items` (a recursive collection's
+    depth-first order, contenttypes.load_items). A flat collection is its
+    list of items."""
+    below = set()  # every section: each folder of an item's section
+    for it in items:
+        parts = it.get("section", "").split("/") if it.get("section") else []
+        below.update("/".join(parts[:i + 1]) for i in range(len(parts)))
+    top, nodes = [], {}
+
+    def node(path):
+        if path not in nodes:
+            nodes[path] = {"path": path, "own": None, "entries": []}
+            parent = path.rpartition("/")[0]
+            (node(parent)["entries"] if parent else top).append(nodes[path])
+        return nodes[path]
+
+    for it in items:
+        if it.get("slug") in below:
+            node(it["slug"])["own"] = it
+        elif it.get("section"):
+            node(it["section"])["entries"].append(it)
+        else:
+            top.append(it)
+    return top
+
+
+def _holds(entry, path):
+    """Is the page at `path` this entry, or inside this section?"""
+    if "entries" not in entry:
+        return entry["path"] == path
+    return (entry["own"] is not None and entry["own"]["path"] == path) or \
+        any(_holds(e, path) for e in entry["entries"])
 
 
 def neighbours(items, path):
@@ -55,28 +100,44 @@ def title(item):
 
 
 def nav_html(items, path, conf, res):
-    """{{ collection_nav }}: every item, grouped, the page's own marked.
+    """{{ collection_nav }}: every item, grouped, the page's own marked; a
+    recursive collection's sections nested, the one holding the page open.
     `res` resolves a root-relative page target from the page."""
     if not items:
         return ""
     label = H.escape(conf.get("nav_label") or CFG["labels"]["collection_nav"])
 
-    def li(it, ind):
-        current = ' aria-current="page"' if it["path"] == path else ""
-        return f'{ind}<li><a href="{res(it["path"][:-5])}"{current}>{H.escape(title(it))}</a></li>'
+    def current(it):
+        return ' aria-current="page"' if it["path"] == path else ""
 
-    out = [f'<nav class="collection-nav" aria-label="{label}">', "<ul>"]
-    for group, its in groups(items):
-        if group is None:
-            out += [li(it, "\t") for it in its]
-            continue
-        out.append(f'\t<li class="collection-group"><span class="collection-group-label">'
-                   f'{H.escape(group)}</span>')
-        out.append("\t<ul>")
-        out += [li(it, "\t\t") for it in its]
-        out += ["\t</ul>", "\t</li>"]
-    out += ["</ul>", "</nav>"]
-    return "\n".join(out)
+    def entry(e, ind):
+        if "entries" not in e:
+            return [f'{ind}<li><a href="{res(e["path"][:-5])}"{current(e)}>{H.escape(title(e))}</a></li>']
+        cls = "collection-section" + (" collection-section--open" if _holds(e, path) else "")
+        own = e["own"]
+        head = (f'<a class="collection-section-label" href="{res(own["path"][:-5])}"{current(own)}>'
+                f'{H.escape(title(own))}</a>' if own else
+                f'<span class="collection-section-label">{H.escape(e["path"].rpartition("/")[2])}</span>')
+        return ([f'{ind}<li class="{cls}">{head}', f"{ind}<ul>"]
+                + level(e["entries"], ind + "\t") + [f"{ind}</ul>", f"{ind}</li>"])
+
+    def level(entries, ind):
+        out = []
+        for group, its in groups(entries):
+            if group is None:
+                for e in its:
+                    out += entry(e, ind)
+                continue
+            out.append(f'{ind}<li class="collection-group"><span class="collection-group-label">'
+                       f'{H.escape(group)}</span>')
+            out.append(f"{ind}<ul>")
+            for e in its:
+                out += entry(e, ind + "\t")
+            out += [f"{ind}</ul>", f"{ind}</li>"]
+        return out
+
+    return "\n".join([f'<nav class="collection-nav" aria-label="{label}">', "<ul>"]
+                     + level(tree(items), "\t") + ["</ul>", "</nav>"])
 
 
 def link_html(kind, item, res):
