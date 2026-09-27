@@ -4,6 +4,9 @@
     python3 builder/build.py                 build once into public/
     python3 builder/build.py --out DIR       build into DIR
     python3 builder/build.py --watch         build, then rebuild on every change
+    python3 builder/build.py --check         check the theme against this builder, build nothing
+                                             (docs/theme.md, "Checking a theme")
+    python3 builder/build.py --check --markdown   also print the contrast table as Markdown
     python3 builder/build.py --debug         show Python tracebacks after error messages
     python3 builder/build.py --version       print the builder version and exit
 
@@ -24,6 +27,8 @@ entry point):
     ansify.py        the text mirror -> its coloured twin
     highlight.py     syntax highlighting of code blocks
     contenttypes.py  the types (types/, theme/types/), collections, items, lists
+    contract.py      the classes the builder writes: the theme contract as data
+    themecheck.py    --check: a theme's style.css against the contract, colour contrast
     sequence.py      a collection's order: sidebar, previous/next, the text line
     dates.py         dates in words, from [dates]
     seo.py           meta tags, structured data, sitemaps, robots.txt, manifest
@@ -214,6 +219,9 @@ def main():
         print(os.environ.get("TILDER_VERSION", "dev"))
         return 0
     report.DEBUG = "--debug" in args
+    if "--check" in args:
+        import themecheck
+        return themecheck.run(markdown_table="--markdown" in args)
     if "--out" in args:
         dest = pathlib.Path(args[args.index("--out") + 1]).resolve()
     dest.mkdir(parents=True, exist_ok=True)
