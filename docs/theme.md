@@ -134,7 +134,7 @@ per check.
   and in the dark one (those of the `:root` inside `@media
   (prefers-color-scheme: dark)`, over the light ones). Only a rule whose
   selector is exactly `:root` counts: not `:root, .dark`, not one inside
-  `@supports`. A value used by a pair must be a hex colour (`#rgb`,
+  `@supports` or `@layer`. A value used by a pair must be a hex colour (`#rgb`,
   `#rrggbb`), else it is an error naming the property. Without pairs,
   skipped.
 

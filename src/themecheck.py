@@ -39,22 +39,34 @@ def settings():
             _layer(data, path)
         except tomllib.TOMLDecodeError as e:
             raise error(path, f"is not valid TOML: {e}", "Fix it, then check again")
-    return data.get("check", {})
+    check = data.get("check", {})
+    if not isinstance(check, dict):
+        raise error(THEME_TOML, "[check] must be a table",
+                    "Write [check] on its own line, then its keys")
+    return check
+
+
+def _strip(css):
+    """`css` with its comments removed, then its string literals emptied
+    (kept the same length, so positions still line up): a brace or a class
+    name inside a string is not code."""
+    return STRING.sub(lambda m: m.group(0)[0] * 2, COMMENT.sub("", css))
 
 
 def missing(css, classes, unstyled=()):
-    """The classes that no selector of `css` names, comments aside, but
-    the `unstyled` ones: `.name` counts when no name character follows."""
-    css = COMMENT.sub("", css)
+    """The classes that no selector of `css` names, comments and string
+    contents aside, but the `unstyled` ones: `.name` counts when no name
+    character follows."""
+    css = _strip(css)
     return [c for c in classes if c not in unstyled
             and not re.search(r"\." + re.escape(c) + r"(?![\w-])", css)]
 
 
 def rules(css):
     """[(prelude, body)]: the top-level rules of a stylesheet, comments
-    aside, and string literals emptied (content: "}" must not end a rule). A statement before a rule (@import ...;) is not part of its
-    prelude."""
-    css, out, i = STRING.sub(lambda m: m.group(0)[0] * 2, COMMENT.sub("", css)), [], 0
+    aside, and string literals emptied (content: "}" must not end a rule).
+    A statement before a rule (@import ...;) is not part of its prelude."""
+    css, out, i = _strip(css), [], 0
     while (j := css.find("{", i)) >= 0:
         depth = 0
         for k in range(j, len(css)):
@@ -212,8 +224,13 @@ def run(markdown_table=False, out=sys.stdout, err=sys.stderr):
             problem(path, f"{s}: {fg} on {bg} is {r:.2f}:1, below {minimum:g}:1",
                     "Darken or lighten one of them")
         schemes = ", ".join(dict.fromkeys(r[0] for r in rows))
-        lines.append(f"contrast: {len(low)} of {len(rows)} pairs below {minimum:g}:1" if low or bad else
-                     f"contrast: {len(rows)} pairs ({schemes}), all at or above {minimum:g}:1")
+        if bad:
+            lines.append(f"contrast: {len(low)} of {len(rows)} pairs below {minimum:g}:1, "
+                         f"{len(bad)} unreadable")
+        elif low:
+            lines.append(f"contrast: {len(low)} of {len(rows)} pairs below {minimum:g}:1")
+        else:
+            lines.append(f"contrast: {len(rows)} pairs ({schemes}), all at or above {minimum:g}:1")
 
     for p in problems:
         print(p, file=err)
