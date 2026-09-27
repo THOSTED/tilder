@@ -29,6 +29,9 @@
 # stay true. Do not add a `log { output file ... }`.
 
 {
+	# off locally (plain HTTP); ignore_loaded_certs in production, which
+	# keeps automatic HTTPS and changes nothing else. Caddy has no `on`:
+	# see compose.yaml.
 	auto_https {$AUTO_HTTPS:off}
 	admin off
 	servers {

@@ -100,7 +100,9 @@ the whole contract, for Caddy: clean URLs, the text mirror served to `curl`
 directly, a plain-text host, the CSP (same-origin scripts only, which may
 fetch same-origin files: `connect-src 'self'`), caching and compression.
 Copy it next to your compose file and set the hosts through the
-environment.
+environment. `AUTO_HTTPS` fills Caddy's `auto_https`, which has no `on`:
+`off` locally, `ignore_loaded_certs` in production - Caddy then obtains
+and renews the certificates (`examples/compose.yaml` lists every value).
 
 ## Configuration
 
