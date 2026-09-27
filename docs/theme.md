@@ -21,7 +21,7 @@ A file of the same name in the site's `assets/` wins over the theme's.
 | `share.svg` | optional | the link preview, drawn to `share.png` (1200x630); without it, `og:image` is the icon |
 | `layouts/<name>.html` | optional | a layout for the pages of a type (`docs/types.md`), or asked for by `layout:` in a page's front matter; same placeholders as `layout.html` |
 | `types/<name>.py` | optional | a content type the theme adds, or a built-in one it replaces (`docs/types.md`) |
-| `theme.toml` | optional | the theme's own configuration values, merged under the site's `site.toml`: for now the `[share]` colours |
+| `theme.toml` | optional | the theme's own configuration values, merged under the site's `site.toml`: the `[share]` colours, and `[check]` for `build.py --check` ("Checking a theme") |
 | `theme.<lang>.toml` | optional | `theme.toml`'s per-language twin, between it and the site's `site.toml` (`docs/languages.md`); ignored when the site does not declare `<lang>`, so a theme may ship languages a site lacks |
 
 Everything in `theme/` but `layout.html`, `layouts/`, `share.svg`,
@@ -82,6 +82,8 @@ generator, is the site owner's: review one before you use it.
 ## The HTML the builder writes
 
 A theme styles these. The starter's `style.css` covers them all.
+`src/contract.py` holds the same list (`CLASSES`), which `build.py --check`
+reads; a test keeps the two equal.
 
 | Class | What |
 |---|---|
@@ -109,3 +111,42 @@ A theme styles these. The starter's `style.css` covers them all.
 Accessibility the theme is responsible for: contrast (4.5:1 for text), a
 visible focus outline, `.sr-only`, reduced motion. The builder takes care
 of the markup: headings, alt text, labels, `aria-*`.
+
+---
+
+## Checking a theme
+
+```sh
+python3 builder/build.py --check              # 0: fine, 1: a check failed
+python3 builder/build.py --check --markdown   # and the contrast table, as Markdown
+```
+
+`--check` builds nothing: it checks the site's theme against the tilder
+that runs it, prints one `error:` line per problem, and one summary line
+per check.
+
+- **classes**: every class of the table above appears in a selector of
+  `style.css` (the site's `assets/style.css` if it has one), comments
+  aside; `.toc` does not count for `.toc-label`. Without `style.css`,
+  skipped with a note.
+- **contrast**: each pair the theme declares reaches the minimum WCAG 2
+  contrast ratio, in the light scheme (the custom properties of `:root`)
+  and in the dark one (those of the `:root` inside `@media
+  (prefers-color-scheme: dark)`, over the light ones). Only a rule whose
+  selector is exactly `:root` counts: not `:root, .dark`, not one inside
+  `@supports`. A value used by a pair must be a hex colour (`#rgb`,
+  `#rrggbb`), else it is an error naming the property. Without pairs,
+  skipped.
+
+A theme declares both in its `theme.toml`, under `[check]`:
+
+```toml
+[check]
+unstyled = ["icon"]                              # classes left unstyled on purpose
+contrast = [["--text", "--bg"], ["--muted", "--bg"]]
+contrast_min = 4.5                               # WCAG AA for text; the default
+```
+
+With `--markdown`, the contrast table goes to standard output, for the
+theme's README, and the summary lines to standard error. The starter
+passes both checks; `starter/theme/theme.toml` declares its pairs.

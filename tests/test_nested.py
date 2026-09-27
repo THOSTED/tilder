@@ -273,3 +273,18 @@ class Tree(unittest.TestCase):
         own = {**self.it("s"), "meta": {"title": "s", "group": "G"}}
         entries = sequence.tree([self.it("a"), own, self.it("s/b")])
         self.assertEqual([g for g, _ in sequence.groups(entries)], [None, "G"])
+
+
+class Docs(unittest.TestCase):
+    def test_the_docs_name_what_1_2_adds(self):
+        types = (BUILDER / "docs" / "types.md").read_text()
+        for name in ("`recursive`", "depth-first", '"section"', "a `DATED` type cannot be recursive"):
+            self.assertIn(name, types, name)
+        theme = (BUILDER / "docs" / "theme.md").read_text()
+        for name in ("## Checking a theme", "`[check]`", "contrast_min", "--markdown",
+                     "`src/contract.py`", "collection-section--open"):
+            self.assertIn(name, theme, name)
+        self.assertIn("--check", (BUILDER / "README.md").read_text())
+        agents = (BUILDER / "AGENTS.md").read_text()
+        for name in ("connect-src 'self'", "contract.py", "themecheck.py", "--check"):
+            self.assertIn(name, agents, name)

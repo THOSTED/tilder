@@ -79,6 +79,7 @@ python3 builder/build.py                    # build once into public/
 python3 builder/build.py --watch            # rebuild on every change
 python3 builder/build.py --root DIR         # build another project
 python3 builder/build.py --out DIR          # write somewhere else
+python3 builder/build.py --check            # check the theme, build nothing
 ```
 
 `--root` defaults to the current directory when it has a `content/` folder,
@@ -123,7 +124,10 @@ names, and the site's `theme/` folder decides how it looks.
 `docs/theme.md` is the contract - the files a theme may provide, the
 placeholders of `layout.html`, every class the builder writes.
 `starter/theme/` is a minimal theme covering all of it, on system fonts:
-copy it and make it yours. Scripts (the member search, the copy button),
+copy it and make it yours. `build.py --check` checks a theme against the
+contract of the tilder that runs it: every class styled, and the colour
+pairs its `theme.toml` declares at their contrast ("Checking a theme" in
+`docs/theme.md`). Scripts (the member search, the copy button),
 web fonts, profile logos and the share-image template are optional theme
 files; without them the build goes on and simply leaves them out.
 

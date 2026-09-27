@@ -64,7 +64,7 @@ content format; `docs/seo.md` is what the build does for search engines.
 build.py        the entry point: `python3 builder/build.py`, hands over to src/
 defaults.toml   every key of site.toml, with neutral defaults
 src/
-  build.py        the driver and CLI: once, --watch, --out DIR, --root DIR
+  build.py        the driver and CLI: once, --watch, --out DIR, --root DIR, --check
   config.py       paths, site.toml over defaults.toml, what a build shares
   languages.py    the declared languages, site.<lang>.toml, the fallback that completes every tree
   markdown.py     Markdown -> a tree of nodes
@@ -75,6 +75,8 @@ src/
   highlight.py    syntax highlighting of code blocks
   contenttypes.py the types (types/, theme/types/), collections, items, lists
   sequence.py     a collection's order: the sidebar, previous/next, their text line
+  contract.py     the classes the builder writes: the theme contract as data
+  themecheck.py   build.py --check: a theme's style.css against the contract, contrast
   report.py       errors and warnings, one shape
   dates.py        dates in words, from [dates]
   seo.py          titles, meta, JSON-LD, sitemaps, robots.txt, SEO checks
@@ -127,8 +129,9 @@ files a theme may provide, the placeholders of `layout.html`, and every
 class the builder writes. Keep it true:
 
 - A new class, a renamed class, a new placeholder: update
-  `docs/theme.md` **and** `starter/theme/`, which must style every class the
-  builder writes.
+  `docs/theme.md`, `src/contract.py` **and** `starter/theme/`, which must
+  style every class the builder writes:
+  `python3 build.py --root starter --check` passes.
 - The builder never writes an inline `style`, a colour, or a font: those
   are the theme's.
 - The `<h1>` is the wordmark as a path, `~/<site>/<section>/<title>`, each
@@ -146,10 +149,11 @@ ships the file. A theme's scripts follow these rules:
 - ES5, no dependency, a same-origin file - never inline, never a CDN.
 - Progressive enhancement: the page is complete without it; the script
   creates its own controls.
-- No network, no storage, no cookie. No text of its own: wording arrives
-  from `site.toml` through `data-*` attributes.
-- The CSP (`examples/Caddyfile`) grants `script-src 'self'` and nothing
-  more.
+- No storage, no cookie. No request but for the site's own files (a
+  search index): same-origin only, never another host. No text of its
+  own: wording arrives from `site.toml` through `data-*` attributes.
+- The CSP (`examples/Caddyfile`) grants `script-src 'self'` and
+  `connect-src 'self'`, and nothing more.
 - The builder writes the markup they rely on (`data-*` attributes, class
   names) as documented in `docs/theme.md`. JSON-LD (`<script type="application/ld+json">`) is inert data, the
   only inline `<script>` allowed.
@@ -210,6 +214,8 @@ grep '^seo:' /tmp/starter-seo.log; echo "(expected: nothing)"
 #    test_every_relative_link_of_the_french_tree_resolves checks it on the
 #    bilingual fixture.
 grep -o 'href="[^"]*style.css"' /tmp/starter-out/fr/blog/2026-01-01-hello.html
+#    Its theme passes the theme checks: every class styled, contrast met.
+python3 builder/build.py --root /tmp/starter --check
 
 # 3. The text mirror: 75 columns, no escape in txt/, ansi == txt once stripped.
 cd /tmp/after
@@ -243,7 +249,7 @@ what it is about.
 - Add a Markdown construct without its text rendering, its documentation
   and an example.
 - Add JavaScript beyond `members.js` and `code.js`, inline a script, or
-  give one network or storage access.
+  give one storage access, or network access beyond the site's own files.
 - Load anything from another host; embed an iframe.
 - Ship a theme, write a style, a colour or a font from the code, or change
   a class name without `docs/theme.md` and `starter/theme/`.
