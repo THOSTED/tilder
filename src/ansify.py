@@ -3,8 +3,11 @@
 The input is the marked text from text.py: the plain text plus invisible
 marks the build placed where it knew the markup - around inline `code`
 (CODE_ON / CODE_OFF), around a list item's marker (LIST_ON / LIST_OFF), at
-the start of each code-block line (CODE_BLOCK) and of its rules (FRAME). Colour follows those
-marks exactly, across line breaks; it is not guessed from the words.
+the start of each code-block line (CODE_BLOCK, or HL_BLOCK when its
+language is highlighted) and of its rules (FRAME), and around each token of
+a highlighted block (HL[kind] / HL_OFF, the kinds of highlight.py). Colour
+follows those marks exactly, across line breaks; it is not guessed from the
+words.
 
 txt/ is the same text with the marks removed and no escape at all: it is
 what the plain-text host serves, and it must survive `curl > file`.
@@ -18,12 +21,16 @@ background: it reads on light and dark terminals.
 
 import re
 
+from highlight import KINDS
+
 RESET, BOLD, DIM, UNDER = "\033[0m", "\033[1m", "\033[2m", "\033[4m"
-RED, YELLOW = "\033[31m", "\033[33m"
+RED, GREEN, YELLOW, MAGENTA = "\033[31m", "\033[32m", "\033[33m", "\033[35m"
 # The eight colours, in the order of their SGR codes: 30 black ... 37 white.
 COLOURS = ("black", "red", "green", "yellow", "blue", "magenta", "cyan", "white")
 CODE_ON, CODE_OFF, CODE_BLOCK, LIST_ON, LIST_OFF = "\x02", "\x03", "\x04", "\x05", "\x06"
 FRAME = "\x07"
+HL_BLOCK, HL_OFF = "\x01", "\x08"
+HL = {kind: chr(0x0e + n) for n, kind in enumerate(KINDS)}  # as in text.py
 
 
 def sgr(value):
@@ -45,7 +52,7 @@ BOXES = {"INFO": ACCENT, "WARNING": YELLOW, "ERROR": RED}
 COMMANDS = ["curl"]
 
 HEADING = re.compile(r"^[A-Z][A-Z0-9()' -]*$")
-URL = re.compile(r"https?://[^\s\x02-\x07]+")
+URL = re.compile(r"https?://[^\s\x01-\x08\x0e-\x1a]+")
 TAG = re.compile(r"\[ [^\]]+ \]")
 BOX_SIDE = re.compile(r"^(\s*)\|(.*)\|$")
 BOX_BOTTOM = re.compile(r"^\s*\+-+\+$")
@@ -114,6 +121,25 @@ def code_line(line):
     return m.group(1) + _accent(m.group(2)) if m else line
 
 
+def token_colours():
+    """The colour of each kind of token in a highlighted code block, in
+    the accent of the current pass."""
+    return {"k": BOLD + ACCENT, "x": BOLD + ACCENT,   # keyword, shell command
+            "b": ACCENT, "o": ACCENT,                  # builtin or type, option
+            "s": GREEN, "c": DIM, "p": DIM,            # string, comment, prompt
+            "n": MAGENTA, "v": MAGENTA,                # number, variable
+            "t": BOLD, "gh": BOLD,                     # tag or key, diff hunk
+            "gi": GREEN, "gd": RED}                    # diff: inserted, deleted
+
+
+def highlighted(line):
+    """A line of a highlighted code block: each token in its kind's colour."""
+    colours = token_colours()
+    for kind, mark in HL.items():
+        line = line.replace(mark, colours[kind])
+    return line.replace(HL_OFF, RESET)
+
+
 def ansify(text):
     lines = text.split("\n")
     footer = max(i for i, l in enumerate(lines) if l.strip())
@@ -122,6 +148,9 @@ def ansify(text):
     for i, line in enumerate(lines):
         if line.startswith(CODE_BLOCK):
             out.append(code_line(line[1:]))
+            continue
+        if line.startswith(HL_BLOCK):
+            out.append(highlighted(line[1:]))
             continue
         if line.startswith(FRAME):  # a code block's rules: dim
             body = line[1:]

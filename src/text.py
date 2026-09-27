@@ -1,15 +1,17 @@
 """The text mirror: ASCII, 75 columns, the same tree as the page.
 
 render_txt() returns the text with invisible marks: CODE_ON / CODE_OFF
-around inline `code`, CODE_BLOCK at the start of a code block's lines,
-FRAME at the start of its two rules, LIST_ON / LIST_OFF around a list
-item's marker.
+around inline `code`, CODE_BLOCK at the start of a code block's lines
+(HL_BLOCK when its language is highlighted), FRAME at the start of its two
+rules, LIST_ON / LIST_OFF around a list item's marker, and in a highlighted
+code block, HL[kind] ... HL_OFF around each token (highlight.KINDS).
 plain() removes them for txt/; ansify.py turns them into colour for ansi/.
 Widths are measured without them.
 """
 
 import re
 
+import highlight
 import inline
 import languages
 from config import CFG, INDENT, WIDTH
@@ -19,7 +21,12 @@ from inline import CODE_OFF, CODE_ON
 CODE_BLOCK = "\x04"
 LIST_ON, LIST_OFF = "\x05", "\x06"  # around a list marker: -, 1., - [x]
 FRAME = "\x07"                      # a code block's top or bottom rule
-_MARKS = re.compile("[\x02-\x07]")
+# A highlighted code block: its lines start with HL_BLOCK, and each token
+# is between HL[kind] and HL_OFF. The C0 codes Python counts as spaces
+# (\x09-\x0d, \x1c-\x1f) and ESC (\x1b) are never marks.
+HL_BLOCK, HL_OFF = "\x01", "\x08"
+HL = {kind: chr(0x0e + n) for n, kind in enumerate(highlight.KINDS)}  # \x0e-\x1a
+_MARKS = re.compile("[\x01-\x08\x0e-\x1a]")
 
 
 def plain(text):
@@ -72,14 +79,50 @@ def txt_code(b, ind):
     out = [FRAME + ind + top + "-" * (span - len(top) - 1) + "."]
     ind += "  "
     width = WIDTH - len(ind)
-    for line in b["lines"]:
-        line = to_ascii(line.expandtabs(4), squeeze=False)
+    lines = [to_ascii(line.expandtabs(4), squeeze=False) for line in b["lines"]]
+    # Plain text (```text) is not highlighted: its command lines are ansify's.
+    plain_text = highlight.canonical(b.get("lang", "")) in (None, "text")
+    toks = None if plain_text else highlight.kinds("\n".join(lines), b["lang"])
+    start = CODE_BLOCK if toks is None else HL_BLOCK
+    for line, kinds in zip(lines, _kinds_by_line(toks, lines)):
         while len(line) > width:
-            out.append(CODE_BLOCK + ind + line[:width - 1] + "\\")
-            line = "  " + line[width - 1:]
-        out.append(CODE_BLOCK + ind + line)
+            out.append(start + ind + _marked(line[:width - 1], kinds[:width - 1]) + "\\")
+            line, kinds = "  " + line[width - 1:], [None, None] + kinds[width - 1:]
+        out.append(start + ind + _marked(line, kinds))
     out.append(FRAME + ind[:-2] + "'" + "-" * (span - 2) + "'")
     return out
+
+
+def _kinds_by_line(toks, lines):
+    """Each line's kind per character (None: no colour), from the tokens
+    of the whole block."""
+    if toks is None:
+        return [[None] * len(line) for line in lines]
+    chars = [kind for kind, text in toks for _ in text]
+    out, pos = [], 0
+    for line in lines:
+        out.append(chars[pos:pos + len(line)])
+        pos += len(line) + 1
+    return out
+
+
+def _marked(line, kinds):
+    """The line with each run of one kind between HL[kind] and HL_OFF. The
+    spaces around a run take no colour (the text's lines are stripped of
+    their trailing spaces)."""
+    out, n = [], 0
+    while n < len(line):
+        end = n
+        while end < len(line) and kinds[end] == kinds[n]:
+            end += 1
+        run = line[n:end]
+        body = run.strip()
+        if kinds[n] and body:
+            lead = run[:len(run) - len(run.lstrip())]
+            run = lead + HL[kinds[n]] + body + HL_OFF + run[len(lead) + len(body):]
+        out.append(run)
+        n = end
+    return "".join(out)
 
 
 def txt_list(b, ind):

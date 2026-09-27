@@ -72,7 +72,7 @@ src/
   page.py         the tree -> HTML, inside the site's theme/layout.html
   text.py         the tree -> the marked text mirror (75 columns)
   ansify.py       the marked text -> its coloured twin
-  highlight.py    syntax highlighting of code blocks
+  highlight.py    syntax highlighting of code blocks, for both outputs
   contenttypes.py the types (types/, theme/types/), collections, items, lists
   sequence.py     a collection's order: the sidebar, previous/next, their text line
   contract.py     the classes the builder writes: the theme contract as data
@@ -110,16 +110,21 @@ name must not shadow the standard library (`html`, `site`,
   (`fold.py`). The source keeps them; the derivation runs one way.
 - **No escape sequence in `txt/`**: it must survive `curl > file`.
 - **Colour follows the markup, never a guess from the words.** `text.py`
-  puts invisible marks (control characters `\x02`-`\x07`) around inline
-  code, list markers, code-block lines and their frame; `plain()` drops them
-  for `txt/`, `ansify.py` turns them into colour for `ansi/`, across line
-  breaks. Widths are measured without them (`vlen`, `fill`). Stripped of its
-  escapes, `ansi/` must equal `txt/` byte for byte.
+  puts invisible marks (control characters `\x01`-`\x08` and
+  `\x0e`-`\x1a`: never one Python counts as a space, nor ESC) around inline
+  code, list markers, code-block lines and their frame, and around each
+  token of a highlighted code block (the tokens of `highlight.py`, by the
+  same rules as the HTML); `plain()` drops them for `txt/`, `ansify.py`
+  turns them into colour for `ansi/`, across line breaks. Widths are
+  measured without them (`vlen`, `fill`). Stripped of its escapes, `ansi/`
+  must equal `txt/` byte for byte. Code is coloured, never changed: no
+  character added, the spaces around a token left uncoloured.
 - **Code blocks are framed**: `.-- lang ---.` above, `'------'` below; the
   code's lines carry nothing, so they copy clean from a terminal.
 - Eight-colour SGR, or a 256-colour accent chosen by the site (`[text]
   accent`); never a background; one accent (cyan by default); callouts in
-  their kind's colour.
+  their kind's colour; code tokens in their kind's colour
+  (`ansify.token_colours`, listed in `docs/markdown.md`).
 
 ---
 
