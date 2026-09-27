@@ -9,11 +9,10 @@ everywhere; the prefix is added at the edges (paths.py, build.py).
 import copy
 import json
 import re
-import tomllib
 
 from ansify import COLOURS, sgr
-from config import CFG, CONFIG, CONTENT, STATE, THEME, THEME_TOML, load_config
-from report import error, fail
+from config import CFG, CONFIG, CONTENT, STATE, THEME, THEME_TOML, load_config, read_toml
+from report import BuildError, error, fail
 
 # What looks like a language code after the last dot of a file stem: en,
 # fr, pt-br. A stem like "v1.2" or "notes.final" is a plain name.
@@ -103,8 +102,11 @@ def setup():
             errs.append(error(path, f'"{lang}" is not a declared language',
                               f"Declared: {listed} ([site] languages in {CONFIG.relative_to(CONTENT.parent)})"))
             continue
-        with path.open("rb") as f:
-            said = tomllib.load(f).get("site", {}).get("lang")
+        try:
+            said = read_toml(path).get("site", {}).get("lang")
+        except BuildError as e:     # said again below: gathered once
+            errs.append(e)
+            continue
         if said and said != lang:
             errs.append(error(path, f'[site] lang is "{said}", not "{lang}"',
                               "A language's file sets its own lang, or leaves it out"))
@@ -120,7 +122,12 @@ def setup():
                               f"Declared: {listed} ([site] languages in {CONFIG.relative_to(CONTENT.parent)})"))
     CONFIGS.clear()
     for lang in langs:
-        load_config(lang)
+        try:
+            load_config(lang)
+        except BuildError as e:     # its invalid TOML, already gathered above
+            if str(e) not in [str(x) for x in errs]:
+                errs.append(e)
+            continue
         CONFIGS[lang] = copy.deepcopy(CFG)
         for e in _accent(lang):     # a bad accent in site.toml is every language's: said once
             if e.items not in [x.items for x in errs]:
@@ -148,8 +155,7 @@ def _accent(lang):
 def _sets_accent(path):
     if not path.is_file():
         return False
-    with path.open("rb") as f:
-        return "accent" in tomllib.load(f).get("text", {})
+    return "accent" in read_toml(path).get("text", {})
 
 
 def pages():

@@ -122,6 +122,29 @@ class Errors(unittest.TestCase):
                       "(types/event.py)", lines[0])
         self.assertIn('content/site.toml: collection "oops" has type "tlak", which no type defines', lines[1])
 
+    def test_invalid_toml_is_one_line_with_its_line_and_column(self):
+        for rel in ("content/site.toml", "content/site.fr.toml",
+                    "theme/theme.toml", "theme/theme.fr.toml"):
+            with self.subTest(rel):
+                path = self.site / rel
+                kept = path.read_text() if path.exists() else None
+                with path.open("a") as f:
+                    f.write("\n[labels\n")
+                try:
+                    run = self.build()
+                    self.assertEqual(run.returncode, 1, run.stderr)
+                    self.assertEqual(len(run.stderr.splitlines()), 1, run.stderr)
+                    self.assertRegex(run.stderr, rf"^error: {rel}: is not valid TOML: .+ "
+                                     r"\(at line \d+, column \d+\)\. Fix the TOML syntax there\n$")
+                    debug = self.build("--debug")
+                    self.assertEqual(debug.returncode, 1, debug.stderr)
+                    self.assertIn("Traceback", debug.stderr)
+                finally:
+                    if kept is None:
+                        path.unlink()
+                    else:
+                        path.write_text(kept)
+
 
 if __name__ == "__main__":
     unittest.main()

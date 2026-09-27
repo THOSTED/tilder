@@ -116,10 +116,20 @@ def _merge(base, over):
     return base
 
 
+def read_toml(path):
+    """A TOML file as a dict. A syntax error is a BuildError naming the
+    file, its line and column - the traceback only with --debug."""
+    with path.open("rb") as f:
+        try:
+            return tomllib.load(f)
+        except tomllib.TOMLDecodeError as e:
+            from report import error  # report imports this module
+            raise error(path, f"is not valid TOML: {e}", "Fix the TOML syntax there", exc=e) from None
+
+
 def _layer(data, path):
     if path.is_file():
-        with path.open("rb") as f:
-            _merge(data, tomllib.load(f))
+        _merge(data, read_toml(path))
 
 
 def load_config(lang=None):
@@ -127,13 +137,11 @@ def load_config(lang=None):
     and with a language its theme.<lang>.toml and site.<lang>.toml, each
     over the previous: the site has the last word. With a language, [site]
     lang is that language."""
-    with DEFAULTS.open("rb") as f:
-        data = tomllib.load(f)
+    data = read_toml(DEFAULTS)
     _layer(data, THEME_TOML)
     if lang:
         _layer(data, THEME / f"theme.{lang}.toml")
-    with CONFIG.open("rb") as f:
-        _merge(data, tomllib.load(f))
+    _merge(data, read_toml(CONFIG))
     if lang:
         _layer(data, CONTENT / f"site.{lang}.toml")
         data["site"]["lang"] = lang

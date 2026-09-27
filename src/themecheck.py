@@ -16,7 +16,6 @@ for a theme's README, and the summary lines to standard error."""
 
 import re
 import sys
-import tomllib
 
 from config import CONFIG, DEFAULTS, THEME_TOML, _layer, theme_file
 from contract import CLASSES
@@ -35,10 +34,7 @@ def settings():
     "contrast_min": 4.5}."""
     data = {}
     for path in (DEFAULTS, THEME_TOML, CONFIG):
-        try:
-            _layer(data, path)
-        except tomllib.TOMLDecodeError as e:
-            raise error(path, f"is not valid TOML: {e}", "Fix it, then check again")
+        _layer(data, path)      # invalid TOML: a BuildError naming the file
     check = data.get("check", {})
     if not isinstance(check, dict):
         raise error(THEME_TOML, "[check] must be a table",
