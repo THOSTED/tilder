@@ -93,9 +93,10 @@ site needs no submodule - see `examples/compose.yaml`.
 
 To serve the result, any static server works. `examples/Caddyfile` gives
 the whole contract, for Caddy: clean URLs, the text mirror served to `curl`
-directly, a plain-text host, the CSP (same-origin scripts only), caching
-and compression. Copy it next to your compose file and set the hosts
-through the environment.
+directly, a plain-text host, the CSP (same-origin scripts only, which may
+fetch same-origin files: `connect-src 'self'`), caching and compression.
+Copy it next to your compose file and set the hosts through the
+environment.
 
 ## Configuration
 

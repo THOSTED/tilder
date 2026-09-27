@@ -104,10 +104,11 @@
 		# Two policies, mutually exclusive: no dependency on evaluation
 		# order. Pages may run the site's own script files - members.js,
 		# code.js - and nothing else: script-src 'self', never
-		# 'unsafe-inline' (§4.4). connect-src stays absent, so no script
-		# can reach the network.
+		# 'unsafe-inline' (§4.4). connect-src 'self' lets a theme script
+		# fetch a same-origin file (a search index, say); no other host
+		# can be reached.
 		@page not path *.svg
-		header @page Content-Security-Policy "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; manifest-src 'self'; script-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'"
+		header @page Content-Security-Policy "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; manifest-src 'self'; script-src 'self'; connect-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'"
 		# SVG images (logo, figures in posts) often style themselves with a
 		# <style> element: allowed inside the SVG, scripts still are not.
 		@svg path *.svg
