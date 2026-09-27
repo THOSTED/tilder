@@ -184,6 +184,11 @@ class Parts(unittest.TestCase):
         css = "/* .a { } */ .ab { } .b-c { } .c:hover { }"
         self.assertEqual(themecheck.missing(css, ["a", "b", "c"]), ["a", "b"])
 
+    def test_a_brace_in_a_string_does_not_end_a_rule(self):
+        css = ".a { content: \"}\"; color: red; }\n.b { content: '{'; }\n:root { --bg: #fff; }\n"
+        self.assertEqual([p for p, _ in themecheck.rules(css)], [".a", ".b", ":root"])
+        self.assertEqual(themecheck.tokens(css)["light"], {"--bg": "#fff"})
+
 
 class Contract(unittest.TestCase):
     def test_classes_equal_the_table_of_docs_theme_md(self):

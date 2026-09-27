@@ -23,6 +23,7 @@ from contract import CLASSES
 from report import BuildError, error, message, rel, report
 
 COMMENT = re.compile(r"/\*.*?\*/", re.S)
+STRING = re.compile(r'"(?:[^"\\\n]|\\.)*"|' + r"'(?:[^'\\\n]|\\.)*'")
 TOKEN = re.compile(r"(--[\w-]+)\s*:\s*([^;]*)")
 IMPORTANT = re.compile(r"\s*!\s*important\s*$", re.I)
 HEX = re.compile(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})")
@@ -51,9 +52,9 @@ def missing(css, classes, unstyled=()):
 
 def rules(css):
     """[(prelude, body)]: the top-level rules of a stylesheet, comments
-    aside. A statement before a rule (@import ...;) is not part of its
+    aside, and string literals emptied (content: "}" must not end a rule). A statement before a rule (@import ...;) is not part of its
     prelude."""
-    css, out, i = COMMENT.sub("", css), [], 0
+    css, out, i = STRING.sub(lambda m: m.group(0)[0] * 2, COMMENT.sub("", css)), [], 0
     while (j := css.find("{", i)) >= 0:
         depth = 0
         for k in range(j, len(css)):
