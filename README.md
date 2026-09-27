@@ -89,7 +89,10 @@ With Docker, `builder/Dockerfile` is Python plus `rsvg-convert` and
 Without them, the build falls back to ImageMagick, or skips the images
 with a warning. The image is also published by CI at
 `ghcr.io/thosted/tilder` (`latest`, and one tag per release): with it a
-site needs no submodule - see `examples/compose.yaml`.
+site needs no submodule - see `examples/compose.yaml`. The image carries
+the reference docs of its version in `/tilder/docs/`: `docker run --rm
+ghcr.io/thosted/tilder:<version> cat /tilder/docs/theme.md` prints the
+theme contract a theme is built against.
 
 To serve the result, any static server works. `examples/Caddyfile` gives
 the whole contract, for Caddy: clean URLs, the text mirror served to `curl`
