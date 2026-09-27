@@ -119,6 +119,7 @@ class Check(unittest.TestCase):
         self.assertIn("error: theme/style.css: light: --text is var(--ink), not a hex colour. "
                       "Write it #rrggbb, or leave its pairs out of [check] contrast", r.stderr)
         self.assertIn("error: theme/style.css: light: --gone is not set in :root.", r.stderr)
+        self.assertIn("contrast: 0 of 0 pairs below 4.5:1, 2 unreadable", r.stdout)
 
     def test_no_style_css(self):
         r = self.run_check()
@@ -142,6 +143,13 @@ class Check(unittest.TestCase):
         r = self.run_check()
         self.assertEqual(r.returncode, 1)
         self.assertIn("error: theme/theme.toml: is not valid TOML:", r.stderr)
+
+    def test_check_that_is_not_a_table(self):
+        self.theme(ALL, "check = 1\n")
+        r = self.run_check()
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("theme/theme.toml: [check] must be a table", r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
 
     def test_markdown_table(self):
         self.theme(ALL + LIGHT_DARK, '[check]\ncontrast = [["--text", "--bg"]]\n')
@@ -183,6 +191,9 @@ class Parts(unittest.TestCase):
     def test_missing_ignores_comments_and_longer_names(self):
         css = "/* .a { } */ .ab { } .b-c { } .c:hover { }"
         self.assertEqual(themecheck.missing(css, ["a", "b", "c"]), ["a", "b"])
+
+    def test_missing_ignores_string_contents(self):
+        self.assertEqual(themecheck.missing('.a::before { content: ".b"; }', ["a", "b"]), ["b"])
 
     def test_a_brace_in_a_string_does_not_end_a_rule(self):
         css = ".a { content: \"}\"; color: red; }\n.b { content: '{'; }\n:root { --bg: #fff; }\n"

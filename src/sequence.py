@@ -1,8 +1,9 @@
 """Collection navigation: a collection's items in order as a sidebar
 ({{ collection_nav }}), a page's neighbours ({{ prev }}, {{ next }}), and
-their line in the text mirror, for a SEQUENTIAL type. The order is the one
-load_items returns (the type's sort_key, depth-first in a recursive collection); groups come from the items' group:, sections from their folders.
-docs/theme.md is the contract."""
+their line in the text mirror, for a SEQUENTIAL type. The order is the
+one load_items returns (the type's sort_key, depth-first in a recursive
+collection); groups come from the items' group:, sections from their
+folders. docs/theme.md is the contract."""
 
 import html as H
 
