@@ -25,9 +25,20 @@ An item is `<slug>.md` or `<slug>/index.md` in the folder (a folder, to keep
 images or files next to the page). For a `DATED` type the slug starts with
 `YYYY-MM-DD-`. Names starting with `_` are templates and skipped. A `.md`
 outside every collection is a `page`. The keys a collection may set are
-the type's `DEFAULTS`, plus `dir` (default: the collection's name) and
+the type's `DEFAULTS`, plus `dir` (default: the collection's name),
 `nav_label` (the sidebar's accessible name, see "Order, groups and
-navigation").
+navigation") and `recursive`.
+
+A collection that sets `recursive = true` also reads its subfolders, at
+any depth: `content/docs/guide/install.md` is the item `guide/install`,
+served at `docs/guide/install.html`, in the **section** `guide`. A
+subfolder's `index.md` is the item named like the folder, served beside
+it (`docs/guide.html`): the section's own page when the folder holds
+other items too, else an item kept as a folder, with its files. A section
+without an `index.md` has no page; its folder's name stands for it.
+`recursive` is `false` unless the collection or its type's `DEFAULTS`
+sets it; a `DATED` type cannot be recursive, and two files for one item
+(`guide.md` and `guide/index.md`) stop the build.
 
 ### The built-in types' settings
 
@@ -137,6 +148,13 @@ group first. Group labels are compared as written, per language: an item's
 two groups appear in the sidebar. A collection may set `nav_label`, the
 sidebar's accessible name; else `labels.collection_nav`.
 
+A recursive collection's order is depth-first: within a folder, its items
+and its sections are sorted by `sort_key`, a section by its own page (a
+section without one comes after them, by folder name); a section's own
+page comes first, then what it holds. Lists, feeds, `outputs()`, the
+sidebar, the neighbours and the text line all follow it. The sidebar
+nests the sections (`docs/theme.md`), and `group` works at every level.
+
 ### Functions
 
 Only `entry` is required. `item` is the dict below; `conf` the collection's
@@ -171,7 +189,8 @@ A marker function takes `(items, conf)` and returns:
  "meta": {...},                    # the front matter, after defaults()
  "src": Path("content/talks/2099-03-01-first-talk.md"),
  "path": "talks/2099-03-01-first-talk.html",
- "collection": "talks", "conf": {...}, "type": <the module>}
+ "collection": "talks", "conf": {...}, "type": <the module>,
+ "section": ""}                    # a recursive collection's folder of the item: "guide" for guide/install
 ```
 
 ### The entry node
