@@ -50,6 +50,21 @@ The build also writes, from `site.toml`: `site.webmanifest`, `robots.txt`
 (from `[robots]`, plus the sitemap URL) and `txt/robots.txt`, which is the
 `robots.txt` of the plain-text host (from `[robots_man]`).
 
+The coloured text mirror (`ansi/`) takes two keys from `[text]`:
+`commands`, the words that start a command line in a code block, and
+`accent`, its one accent colour - links, `[ tags ]`, list markers, inline
+`code`, command lines and the INFO box. `accent` is one of the eight colour
+names `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan` (the
+default), `white`, or a 256-colour index from 16 to 255, such as `208` for
+orange; a `site.<lang>.toml` may set its own. Anything else stops the
+build. Warnings stay yellow and errors red.
+
+```toml
+[text]
+commands = ["curl"]
+accent = 208
+```
+
 ---
 
 ## A page, end to end
@@ -405,8 +420,9 @@ cannot be mistaken for each other, nor for a horizontal rule.
 Spacing is kept exactly, and a line past the 75th column is cut and
 continued on the next line, the cut marked with `\` - which a shell reads
 as a continuation. In the coloured mirror, the rules are dim and command
-lines (`[text] commands`) are in the accent; inline `code` is coloured
-exactly as far as its backquotes go, even across a line break.
+lines (`[text] commands`) are in the accent (`[text] accent`); inline
+`code` is coloured exactly as far as its backquotes go, even across a line
+break.
 
 To show a fence inside a code block, open the outer block with more
 backticks: a fence of N backticks closes only on a line of at least N.

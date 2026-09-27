@@ -12,19 +12,36 @@ what the plain-text host serves, and it must survive `curl > file`.
 The rest is layout, recognised line by line: the header and footer rules
 dim, section headings bold, the first section's name bold, callout boxes in
 the colour of their kind, URLs and [ tags ] in the one accent. Eight ANSI
-colours, never a background: it reads on light and dark terminals.
+colours, or a 256-colour accent the site chose ([text] accent); never a
+background: it reads on light and dark terminals.
 """
 
 import re
 
-RESET, BOLD, DIM, UNDER, CYAN = "\033[0m", "\033[1m", "\033[2m", "\033[4m", "\033[36m"
+RESET, BOLD, DIM, UNDER = "\033[0m", "\033[1m", "\033[2m", "\033[4m"
 RED, YELLOW = "\033[31m", "\033[33m"
+# The eight colours, in the order of their SGR codes: 30 black ... 37 white.
+COLOURS = ("black", "red", "green", "yellow", "blue", "magenta", "cyan", "white")
 CODE_ON, CODE_OFF, CODE_BLOCK, LIST_ON, LIST_OFF = "\x02", "\x03", "\x04", "\x05", "\x06"
 FRAME = "\x07"
 
-# Set by the build from site.toml: callout labels and their colour, and the
-# words that start a command line in a code block.
-BOXES = {"INFO": CYAN, "WARNING": YELLOW, "ERROR": RED}
+
+def sgr(value):
+    """The escape of an accent: a colour name -> ESC[3Nm, an index from 16
+    to 255 -> ESC[38;5;Nm (0-15 are the eight colours and their bright
+    twins, which a terminal's theme redefines). None for anything else."""
+    if isinstance(value, str) and value in COLOURS:
+        return f"\033[3{COLOURS.index(value)}m"
+    if type(value) is int and 16 <= value <= 255:
+        return f"\033[38;5;{value}m"
+    return None
+
+
+# Set by the build from site.toml, per language: the accent ([text] accent),
+# callout labels and their colour (INFO in the accent), and the words that
+# start a command line in a code block.
+ACCENT = sgr("cyan")
+BOXES = {"INFO": ACCENT, "WARNING": YELLOW, "ERROR": RED}
 COMMANDS = ["curl"]
 
 HEADING = re.compile(r"^[A-Z][A-Z0-9()' -]*$")
@@ -41,18 +58,18 @@ def _box_top(line):
 
 def text_part(s):
     """Outside code: URLs and [ tags ] in the accent, list markers too."""
-    s = URL.sub(lambda m: CYAN + UNDER + m.group(0) + RESET, s)
-    s = TAG.sub(lambda m: BOLD + CYAN + m.group(0) + RESET, s)
-    return s.replace(LIST_ON, CYAN).replace(LIST_OFF, RESET)
+    s = URL.sub(lambda m: ACCENT + UNDER + m.group(0) + RESET, s)
+    s = TAG.sub(lambda m: BOLD + ACCENT + m.group(0) + RESET, s)
+    return s.replace(LIST_ON, ACCENT).replace(LIST_OFF, RESET)
 
 
 def marked(line, inside):
     """Colour one line's marks. `inside` says whether a code span is still
     open from the line before; returns (line, inside after it)."""
-    out = [CYAN] if inside else []
+    out = [ACCENT] if inside else []
     for part in re.split(f"([{CODE_ON}{CODE_OFF}])", line):
         if part == CODE_ON:
-            out.append(CYAN)
+            out.append(ACCENT)
             inside = True
         elif part == CODE_OFF:
             out.append(RESET)
@@ -71,7 +88,7 @@ def code_line(line):
     a `$ ` prompt - in the accent; anything else as it is."""
     words = "|".join(map(re.escape, COMMANDS))
     m = re.match(rf"^(\s*(?:[$#] )?)((?:{words})\b.*)$", line)
-    return m.group(1) + CYAN + m.group(2) + RESET if m else line
+    return m.group(1) + ACCENT + m.group(2) + RESET if m else line
 
 
 def ansify(text):
