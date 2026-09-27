@@ -14,9 +14,10 @@ from languages import prefix, split
 ITEM_FOLDERS = set()
 
 # content/-relative folders that are sections of a recursive collection:
-# folders holding items, mapped to whether they have their own index.md,
-# which is served next to the folder like an item folder's. Their other
-# files are pages too. Filled by contenttypes.load_items.
+# folders holding items, mapped to whether they have their own page
+# (index.md, or a <name>.md beside the folder), which is served next to
+# the folder like an item folder's. Their other files are pages too.
+# Filled by contenttypes.load_items.
 SECTIONS = {}
 
 
