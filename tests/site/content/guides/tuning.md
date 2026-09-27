@@ -8,3 +8,12 @@ group: Basics
 ## Name
 
 tuning - the fourth guide {mono}
+
+## Labels
+
+Characters no rule folds still reach the text mirror as ASCII.
+
+| Label | Default |
+|---|---|
+| `labels.to_top` | `"↑ back to top"` |
+| `labels.prev` | `"← previous"`, `≥ 1`, `Straße` |

@@ -216,7 +216,7 @@ def txt_blocks(blocks, ind):
                 out.append(f"{ind}  {n:>2}. {to_ascii(x['title']).upper()}")
         elif b["k"] == "profiles":
             for key, label, url in b["items"]:
-                out.extend(wrap(f"{to_ascii(label)}: {url}", ind))
+                out.extend(wrap(to_ascii(f"{label}: {url}"), ind))
         elif b["k"] == "image":
             # The path from the root, not the full URL: a URL does not fit in
             # 75 columns and cannot be cut; the path is enough for curl.
@@ -225,7 +225,7 @@ def txt_blocks(blocks, ind):
             out.extend(wrap(f"[ {to_ascii(CFG['labels']['image'])} ] {alt}", ind))
             if b["caption"]:
                 out.extend(wrap(txt(b["caption"]), ind + "  "))
-            out.append(ind + "  " + src)
+            out.append(ind + "  " + to_ascii(src))
         elif b["k"] == "entry":
             title = txt(b["title"])
             tags = [m[1:-1] for m in b["meta"] if m.startswith("`") and m.endswith("`")]
@@ -250,7 +250,7 @@ def txt_blocks(blocks, ind):
 def render_txt(meta, sections, around=""):
     """The page's text mirror. `around`: the line of a sequential type's
     neighbours (sequence.txt_line), set before the footer rule."""
-    man = meta["man"]
+    man = to_ascii(meta["man"])
     out = [rule(man, to_ascii(CFG["site"]["manual"]), man)]
     if languages.multilingual():
         out += ["", "LANGUAGES: " + " ".join(languages.declared())]
@@ -264,6 +264,6 @@ def render_txt(meta, sections, around=""):
         out += ["", around]
     out.append("")
     foot = CFG["footer"]
-    out.append(rule(to_ascii(foot["left"]), CFG["site"]["updated"], to_ascii(foot["right"])))
+    out.append(rule(to_ascii(foot["left"]), to_ascii(CFG["site"]["updated"]), to_ascii(foot["right"])))
     text = "\n".join(l.rstrip() for l in out) + "\n"
     return re.sub(r"\n{3,}", "\n\n", text)
