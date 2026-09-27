@@ -25,7 +25,7 @@ entry point):
     page.py          the tree -> HTML, inside the site's theme/layout.html
     text.py          the tree -> the text mirror, 75 columns
     ansify.py        the text mirror -> its coloured twin
-    highlight.py     syntax highlighting of code blocks
+    highlight.py     syntax highlighting of code blocks, for both outputs
     contenttypes.py  the types (types/, theme/types/), collections, items, lists
     contract.py      the classes the builder writes: the theme contract as data
     themecheck.py    --check: a theme's style.css against the contract, colour contrast

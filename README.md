@@ -22,8 +22,8 @@ coloured, code framed, tables aligned.*
 - Pages from `content/*.md`, in a small Markdown dialect with man-page
   sections, entries, callouts, tables, task lists, highlighted code
   (`docs/markdown.md`).
-- A text mirror of every page, 75 columns, plain and ANSI-coloured, for
-  terminals and braille displays.
+- A text mirror of every page, 75 columns, plain and ANSI-coloured (code
+  highlighted too), for terminals and braille displays.
 - Collections of content, declared in `site.toml`, each of a **type** -
   posts, events, members, or a type your theme adds in ten lines of Python
   (`docs/types.md`) - with their lists, RSS feeds and iCalendar feeds.

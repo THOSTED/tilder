@@ -50,13 +50,14 @@ def spec(rules, keywords="", builtins=""):
     return {"rules": rules, "k": words(keywords), "b": words(builtins)}
 
 
+SH_KEYWORDS = ("if then else elif fi for while until do done case esac in function "
+               "return break continue local export readonly declare set unset shift "
+               "trap exit select time")
+SH_COMMENT = r"(?<![\w$])#[^\n]*"
+SH_VAR = r"\$\{[^}\n]*\}|\$[A-Za-z_][A-Za-z0-9_]*|\$[0-9#?@*$!-]"
 SH = spec(
-    [("c", r"(?<![\w$])#[^\n]*"), ("s", DQ), ("s", SQ),
-     ("v", r"\$\{[^}\n]*\}|\$[A-Za-z_][A-Za-z0-9_]*|\$[0-9#?@*$!-]"),
-     ("n", NUM)],
-    "if then else elif fi for while until do done case esac in function "
-    "return break continue local export readonly declare set unset shift "
-    "trap exit select time",
+    [("c", SH_COMMENT), ("s", DQ), ("s", SQ), ("v", SH_VAR), ("n", NUM)],
+    SH_KEYWORDS,
     "echo printf cd pwd test read source eval exec true false sudo grep "
     "sed awk cat ls cp mv rm mkdir chmod chown find xargs curl wget git "
     "docker systemctl journalctl ssh scp tar")
@@ -210,64 +211,148 @@ def span(cls, text):
     return f'<span class="hl-{cls}">{html.escape(text, quote=False)}</span>'
 
 
-def tokens(code, sp):
+def lex(code, sp):
+    """[(class or None, text)], covering the code exactly, in order."""
     rx = _compile(sp)
     out, pos = [], 0
     for m in rx.finditer(code):
         if m.start() > pos:
-            out.append(html.escape(code[pos:m.start()], quote=False))
+            out.append((None, code[pos:m.start()]))
         text = m.group(0)
         if m.lastgroup == "w":
             low = text.lower() if sp is SQL else text
-            if low in sp["k"]:
-                out.append(span("k", text))
-            elif low in sp["b"]:
-                out.append(span("b", text))
-            else:
-                out.append(html.escape(text, quote=False))
+            cls = "k" if low in sp["k"] else "b" if low in sp["b"] else None
         else:
-            out.append(span(sp["rules"][int(m.lastgroup[1:])][0], text))
+            cls = sp["rules"][int(m.lastgroup[1:])][0]
+        out.append((cls, text))
         pos = m.end()
-    out.append(html.escape(code[pos:], quote=False))
-    return "".join(out)
+    out.append((None, code[pos:]))
+    return out
 
 
-def diff(code):
+def _lines(code, line):
+    """line(text) -> tokens, for each line, the newlines between them."""
     out = []
-    for line in code.split("\n"):
-        if line.startswith(("+++", "---", "diff ", "index ")):
-            out.append(span("k", line))
-        elif line.startswith("@@"):
-            out.append(span("gh", line))
-        elif line.startswith("+"):
-            out.append(span("gi", line))
-        elif line.startswith("-"):
-            out.append(span("gd", line))
-        else:
-            out.append(html.escape(line, quote=False))
-    return "\n".join(out)
+    for n, text in enumerate(code.split("\n")):
+        if n:
+            out.append((None, "\n"))
+        out.extend(line(text))
+    return out
 
 
-def console(code):
+def _diff_line(line):
+    if line.startswith(("+++", "---", "diff ", "index ")):
+        return [("k", line)]
+    if line.startswith("@@"):
+        return [("gh", line)]
+    if line.startswith("+"):
+        return [("gi", line)]
+    if line.startswith("-"):
+        return [("gd", line)]
+    return [(None, line)]
+
+
+def _console_line(shell):
     """`$ cmd` and `# cmd` lines are shell; everything else is output."""
-    out = []
-    for line in code.split("\n"):
-        m = re.match(r"^([\w@.:~/-]*[$#] )(.*)$", line)
-        if m:
-            out.append(span("p", m.group(1)) + tokens(m.group(2), SH))
-        else:
-            out.append(html.escape(line, quote=False))
-    return "\n".join(out)
+    def line(text):
+        m = re.match(r"^([\w@.:~/-]*[$#] )(.*)$", text)
+        return [("p", m.group(1))] + shell(m.group(2)) if m else [(None, text)]
+    return line
 
 
-def highlight(code, lang):
+def _tokens(code, lang, shell):
     lang = canonical(lang)
     if lang is None:
         return None
     if lang == "text":
-        return html.escape(code, quote=False)
+        return [(None, code)]
     if lang == "diff":
-        return diff(code)
+        return _lines(code, _diff_line)
     if lang == "console":
-        return console(code)
-    return tokens(code, LANGS[lang])
+        return _lines(code, _console_line(shell))
+    if lang == "sh":
+        return shell(code)
+    return lex(code, LANGS[lang])
+
+
+def highlight(code, lang):
+    toks = _tokens(code, lang, lambda c: lex(c, SH))
+    if toks is None:
+        return None
+    return "".join(span(c, t) if c else html.escape(t, quote=False) for c, t in toks)
+
+
+# --- the text mirror -----------------------------------------------------
+#
+# The coloured text mirror (ansify.py) has the same tokens, and for shell
+# two more that HTML has no class for: the command word (x) and an option
+# (o). A command word is the first word of a command: at a line's start,
+# after | || && ; & ( $( or a backquote, after a prefix such as sudo, and
+# after a variable assignment.
+
+KINDS = ("k", "b", "s", "c", "n", "v", "p", "t", "gi", "gd", "gh", "x", "o")
+
+SH_TEXT = spec(
+    [("c", SH_COMMENT), ("s", DQ), ("s", SQ), ("v", SH_VAR),
+     ("r", r"&>>?|\d*(?:>>?|<<?|<>)(?:&\d*-?)?"),      # a redirection: 2>&1
+     ("op", r"\|\||&&|\|&?|;;?|&|\$\(|[()`]"),         # what starts a command
+     ("o", r"(?<![^\s|;&(`])--?[A-Za-z0-9][\w-]*"),
+     ("word", r"[\w./~+@%:,=^-]+")],
+    SH_KEYWORDS)
+# The keywords after which the next word is a name, not a command.
+NAMING = {"for", "select", "case", "function"}
+# The commands whose next word is a command too (a keyword's always is).
+PREFIXES = {"sudo", "doas", "env", "nohup", "exec", "command", "builtin", "nice",
+            "xargs", "watch"}
+ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+NUMBER = re.compile(NUM)
+
+
+def shell(code):
+    """Shell tokens for the text mirror: SH's, plus the command words (x)
+    and the options (o)."""
+    out = []
+    cmd = True       # the next word is a command
+    naming = False   # the next word is a name (for NAME in ...)
+    named = False    # the last word was that name: `in` is a keyword
+    glued = False    # a value glued to an assignment: FOO="bar"
+    for cls, text in lex(code, SH_TEXT):
+        if cls is None:  # spaces and the rest: a newline starts a command,
+            nl = text.rfind("\n")  # unless the line ended with a backslash
+            if nl >= 0 and not text[:nl].endswith("\\"):
+                cmd, naming, named = True, False, False
+            glued = glued and not text
+            out.append((None, text))
+            continue
+        assign = False
+        if cls in ("op", "r"):
+            if cls == "op":
+                cmd = text != ")"
+            cls = None
+        elif cls in ("s", "v"):
+            cmd = cmd and glued
+            assign = glued
+        elif cls == "word":
+            if naming:
+                cls, naming, named = None, False, True
+                out.append((cls, text))
+                continue
+            if cmd and ASSIGN.match(text):
+                cls, assign = None, True
+            elif cmd:
+                cls = "k" if text in SH_TEXT["k"] else "x"
+                naming = text in NAMING
+                cmd = text in PREFIXES or (cls == "k" and not naming)
+            elif text == "in" and named:
+                cls = "k"
+            else:
+                cls = "n" if NUMBER.fullmatch(text) else None
+        named, glued = False, assign
+        out.append((cls, text))
+    return [(c, t) for c, t in out if t]
+
+
+def kinds(code, lang):
+    """The tokens of the text mirror: [(kind or None, text)] covering the
+    code exactly, kind in KINDS; None when the language is unknown."""
+    return _tokens(code, lang, shell)

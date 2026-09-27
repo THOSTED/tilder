@@ -419,10 +419,33 @@ cannot be mistaken for each other, nor for a horizontal rule.
 
 Spacing is kept exactly, and a line past the 75th column is cut and
 continued on the next line, the cut marked with `\` - which a shell reads
-as a continuation. In the coloured mirror, the rules are dim and command
-lines (`[text] commands`) are in the accent (`[text] accent`); inline
-`code` is coloured exactly as far as its backquotes go, even across a line
-break.
+as a continuation.
+
+In the coloured mirror (`ansi/`), the rules are dim, inline `code` is
+coloured exactly as far as its backquotes go, even across a line break,
+and a block in one of the languages above is highlighted with the same
+rules as the HTML, each token in its kind's colour - colour only, never a
+background nor an added character: stripped of its escapes, the block is
+the one of `txt/`. A line cut at the 75th column keeps its colours on the
+next line.
+
+| Token | Colour |
+|---|---|
+| keyword; in `sh` and `console`, the command word | bold, in the accent |
+| builtin or type; in `sh` and `console`, an option (`-s`, `--out`) | the accent |
+| string, `diff` `+` line | green |
+| comment, `console` prompt (`$ `, `# `) | dim |
+| number, variable | magenta |
+| tag, key, section, `diff` hunk header (`@@`) | bold |
+| `diff` `-` line | red |
+
+The accent is `[text] accent` (cyan by default). The command word is the
+first word of a command: at the start of a line (after a `$ ` prompt in
+`console`), after `|`, `||`, `&&`, `;`, `&`, `(`, `$(`, after a prefix
+such as `sudo` or `env`, and after a variable assignment. A block with no
+language, in `text` or in an unknown language is not highlighted: its
+command lines (`[text] commands`) are in the accent, up to their last
+character but closing punctuation.
 
 To show a fence inside a code block, open the outer block with more
 backticks: a fence of N backticks closes only on a line of at least N.
