@@ -119,3 +119,7 @@ hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
 .prev, .next { display: block; margin: 0.4rem 0; font-family: var(--mono); }
 .next { text-align: right; }
 .prev-label, .next-label { margin-right: 1ch; font-size: 0.8rem; color: var(--fg-muted); }
+
+.collection-section { margin-top: 0.6rem; }
+.collection-section-label { display: block; font-weight: 700; }
+.collection-section--open > .collection-section-label { color: var(--fg); }
