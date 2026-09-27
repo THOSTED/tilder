@@ -56,9 +56,32 @@ def _box_top(line):
     return re.match(rf"^(\s*)\+- ({labels}) (-+\+)$", line) if BOXES else None
 
 
+CLOSERS = {")": "(", "]": "[", "}": "{"}
+
+
+def trim(s):
+    """s without the punctuation that closes the sentence around it: a
+    trailing . , ; : ! ?, a quote left unpaired, a bracket left unopened.
+    `(see https://x.org/a_(b)).` -> the URL is https://x.org/a_(b)."""
+    while s:
+        c = s[-1]
+        if not (c in ".,;:!?" or (c in "\"'" and s.count(c) % 2)
+                or (c in CLOSERS and s.count(c) > s.count(CLOSERS[c]))):
+            break
+        s = s[:-1]
+    return s
+
+
+def _accent(s, also=""):
+    """s in the accent (and `also`: UNDER), its closing punctuation left as
+    it is."""
+    kept = trim(s)
+    return ACCENT + also + kept + RESET + s[len(kept):] if kept else s
+
+
 def text_part(s):
     """Outside code: URLs and [ tags ] in the accent, list markers too."""
-    s = URL.sub(lambda m: ACCENT + UNDER + m.group(0) + RESET, s)
+    s = URL.sub(lambda m: _accent(m.group(0), UNDER), s)
     s = TAG.sub(lambda m: BOLD + ACCENT + m.group(0) + RESET, s)
     return s.replace(LIST_ON, ACCENT).replace(LIST_OFF, RESET)
 
@@ -88,7 +111,7 @@ def code_line(line):
     a `$ ` prompt - in the accent; anything else as it is."""
     words = "|".join(map(re.escape, COMMANDS))
     m = re.match(rf"^(\s*(?:[$#] )?)((?:{words})\b.*)$", line)
-    return m.group(1) + ACCENT + m.group(2) + RESET if m else line
+    return m.group(1) + _accent(m.group(2)) if m else line
 
 
 def ansify(text):
