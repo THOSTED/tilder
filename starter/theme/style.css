@@ -123,3 +123,12 @@ hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
 .collection-section { margin-top: 0.6rem; }
 .collection-section-label { display: block; font-weight: 700; }
 .collection-section--open > .collection-section-label { color: var(--fg); }
+
+/* What the rest of the builder writes: section markers, entry states, the
+   cursor of the wordmark, an open task. */
+.posts .entry, .upcoming .entry, .past .entry, .next-event .entry, .members .entry { break-inside: avoid; }
+.past .entry h3 { font-weight: 400; }
+.entry--next { border-left: 3px solid var(--accent); padding-left: 1rem; }
+.entry--full h3 { color: var(--fg-muted); }
+.task--todo { background: transparent; }
+.wordmark .cursor::after { content: "_"; color: var(--fg-muted); font-weight: 400; }

@@ -194,3 +194,10 @@ class Contract(unittest.TestCase):
     def test_classes_equal_the_table_of_docs_theme_md(self):
         text = (BUILDER / "docs" / "theme.md").read_text()
         self.assertEqual(contract_classes(text), list(contract.CLASSES))
+
+    def test_the_starter_passes(self):
+        r = subprocess.run([sys.executable, str(BUILDER / "build.py"), "--root", str(BUILDER / "starter"),
+                            "--check"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("all styled", r.stdout)
+        self.assertIn("contrast: 20 pairs (light, dark), all at or above 4.5:1", r.stdout)

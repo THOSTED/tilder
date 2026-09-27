@@ -1,0 +1,12 @@
+# The theme's own values, under the site's site.toml (docs/theme.md).
+
+# build.py --check: the colour pairs of style.css that carry text, each
+# checked in the light and the dark scheme against contrast_min (WCAG AA).
+[check]
+contrast = [
+	["--fg", "--bg"], ["--fg", "--bg-inset"],
+	["--fg-muted", "--bg"], ["--fg-muted", "--bg-inset"],
+	["--accent", "--bg"], ["--accent", "--bg-inset"],
+	["--warn", "--bg"], ["--warn", "--bg-inset"],
+	["--error", "--bg"], ["--error", "--bg-inset"],
+]
