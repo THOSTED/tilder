@@ -117,8 +117,9 @@ name must not shadow the standard library (`html`, `site`,
   escapes, `ansi/` must equal `txt/` byte for byte.
 - **Code blocks are framed**: `.-- lang ---.` above, `'------'` below; the
   code's lines carry nothing, so they copy clean from a terminal.
-- Eight-colour SGR, never a background; one accent (cyan); callouts in their
-  kind's colour.
+- Eight-colour SGR, or a 256-colour accent chosen by the site (`[text]
+  accent`); never a background; one accent (cyan by default); callouts in
+  their kind's colour.
 
 ---
 

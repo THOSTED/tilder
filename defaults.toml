@@ -123,10 +123,14 @@ prodid = "-//site//events//EN"
 timezone = "UTC"
 uid_domain = "example.org"
 
-# The text mirror, coloured for terminals: words that start a command line
-# worth highlighting.
+# The text mirror, coloured for terminals (ansi/): commands, the words that
+# start a command line worth highlighting; accent, the one accent colour
+# (links, [ tags ], list markers, inline code, command lines, the INFO box):
+# one of the eight colour names black, red, green, yellow, blue, magenta,
+# cyan, white, or a 256-colour index from 16 to 255, such as 208 for orange.
 [text]
 commands = ["curl"]
+accent = "cyan"
 
 [robots]
 disallow = ["/txt/", "/ansi/"]      # the text mirrors

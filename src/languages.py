@@ -7,10 +7,12 @@ everywhere; the prefix is added at the edges (paths.py, build.py).
 """
 
 import copy
+import json
 import re
 import tomllib
 
-from config import CFG, CONFIG, CONTENT, STATE, THEME, load_config
+from ansify import COLOURS, sgr
+from config import CFG, CONFIG, CONTENT, STATE, THEME, THEME_TOML, load_config
 from report import error, fail
 
 # What looks like a language code after the last dot of a file stem: en,
@@ -116,14 +118,38 @@ def setup():
         if lang and lang not in langs:
             errs.append(error(f, f'"{lang}" is not a declared language',
                               f"Declared: {listed} ([site] languages in {CONFIG.relative_to(CONTENT.parent)})"))
-    if errs:
-        fail(errs)
     CONFIGS.clear()
     for lang in langs:
         load_config(lang)
         CONFIGS[lang] = copy.deepcopy(CFG)
+        for e in _accent(lang):     # a bad accent in site.toml is every language's: said once
+            if e.items not in [x.items for x in errs]:
+                errs.append(e)
+    if errs:
+        fail(errs)
     use(dflt)
     return langs
+
+
+def _accent(lang):
+    """[text] accent of the language just loaded, as errors: [] when it is
+    a colour sgr() knows. The error names the file that set it, the most
+    specific one: site.<lang>.toml, site.toml, theme.<lang>.toml, theme.toml."""
+    value = CFG["text"]["accent"]
+    if sgr(value) is not None:
+        return []
+    files = (CONTENT / f"site.{lang}.toml", CONFIG, THEME / f"theme.{lang}.toml", THEME_TOML)
+    path = next((f for f in files if _sets_accent(f)), CONFIG)
+    return [error(path, f"[text] accent is {json.dumps(value, default=str)}, not a colour",
+                  f"Set one of {', '.join(COLOURS)}, "
+                  "or a 256-colour index from 16 to 255 (208: orange)")]
+
+
+def _sets_accent(path):
+    if not path.is_file():
+        return False
+    with path.open("rb") as f:
+        return "accent" in tomllib.load(f).get("text", {})
 
 
 def pages():
