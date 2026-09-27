@@ -17,7 +17,7 @@ class Collections(unittest.TestCase):
 
     def test_declared_collections_merge_type_defaults(self):
         colls = contenttypes.collections()
-        self.assertEqual(list(colls), ["blog", "events", "members", "news", "talks", "guides"])
+        self.assertEqual(list(colls), ["blog", "events", "members", "news", "talks", "guides", "manual"])
         self.assertEqual(colls["blog"]["type"], "post")
         self.assertEqual(colls["blog"]["dir"], "blog")
         self.assertEqual(colls["blog"]["feed"], "blog/feed.xml")
@@ -102,10 +102,11 @@ class Collections(unittest.TestCase):
         with self.assertRaises(report.BuildError) as cm:
             contenttypes.collections()
         msgs = [m for m, _ in cm.exception.items]
-        self.assertEqual(len(msgs), 3, msgs)
+        self.assertEqual(len(msgs), 4, msgs)
         self.assertIn('MARKERS["upcoming"] is already claimed by type "event" (types/event.py)', msgs[0])
         self.assertIn('content/site.toml: collection "talks" has type "tlak", which no type defines', msgs[1])
         self.assertIn('content/site.toml: collection "guides" has type "guide", which no type defines', msgs[2])
+        self.assertIn('content/site.toml: collection "manual" has type "guide", which no type defines', msgs[3])
 
 
 class Lists(unittest.TestCase):
@@ -170,4 +171,4 @@ class Lists(unittest.TestCase):
                          "types: event, member, page, post; from theme: guide, talk\n"
                          "collections: blog (post, 3 items), events (event, 2 items), "
                          "members (member, 2 items), news (post, no folder), talks (talk, 1 item), "
-                         "guides (guide, 4 items)")
+                         "guides (guide, 4 items), manual (guide, 7 items)")

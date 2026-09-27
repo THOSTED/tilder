@@ -9,6 +9,7 @@ import sys
 import highlight
 import inline
 import languages
+import paths
 import sequence
 from config import CFG, CONTENT, STATE, apex, layout, theme_file
 from paths import clean_url, relative
@@ -317,10 +318,16 @@ def render_html(item, sections, preamble=(), colls=None, items=None):
         table = STATE["pages"] or languages.pages()
         for i, part in enumerate(folders):
             target = "/".join(d.split("/")[:i + 1])
+            # A section of a recursive collection without its own page is
+            # named, not linked: no page would answer the link.
+            if paths.SECTIONS.get(target) is False:
+                parents += f"{slash}{H.escape(part)}"
+                continue
             # The folder's index in any language makes the link blog/;
-            # else the page beside the folder, if any: blog.
+            # else the page beside the folder, if any: blog. A section's
+            # index is served beside its folder: docs/guide.
             candidates = table.get(target + "/index.md")
-            index = target + "/" if candidates else target
+            index = target + "/" if candidates and target not in paths.SECTIONS else target
             # The segment is named like the page it links to, in the language
             # of the pass, so the path reads the same everywhere: that page's
             # `name:`, else its title (what its own <h1> shows), else the

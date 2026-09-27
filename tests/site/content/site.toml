@@ -69,3 +69,10 @@ feed = "talks.xml"
 [collections.guides]
 type = "guide"
 nav_label = "Guide contents"
+
+[collections.manual]
+type = "guide"
+recursive = true
+nav = "manual/"
+man = "TEST-MANUAL(7)"
+index = "manual/index.json"

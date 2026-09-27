@@ -13,6 +13,12 @@ from languages import prefix, split
 # it is served next to the folder. Filled by contenttypes.load_items.
 ITEM_FOLDERS = set()
 
+# content/-relative folders that are sections of a recursive collection:
+# folders holding items, mapped to whether they have their own index.md,
+# which is served next to the folder like an item folder's. Their other
+# files are pages too. Filled by contenttypes.load_items.
+SECTIONS = {}
+
 
 def item_folder(rel_parent):
     """Is this content/-relative folder one item?"""
@@ -103,6 +109,6 @@ def page_path(src):
     about.fr.md -> about.html."""
     rel = src.relative_to(CONTENT)
     name, _ = split(rel.stem)
-    if name == "index" and item_folder(rel.parent):
+    if name == "index" and (item_folder(rel.parent) or SECTIONS.get(str(rel.parent))):
         return str(rel.parent) + ".html"
     return str(rel.with_name(name + ".html"))
