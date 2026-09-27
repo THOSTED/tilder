@@ -71,8 +71,9 @@ def use(lang):
 def _language_files():
     """(path, lang) of every site.<lang>.toml and theme.<lang>.toml.
     Everything between the first and the last dot is the language:
-    theme.x.y.toml reads as language "x.y", which setup refuses as
-    undeclared."""
+    site.x.y.toml reads as language "x.y", which setup refuses as
+    undeclared. A theme.<lang>.toml of an undeclared language is setup's
+    to ignore: a theme is reused across sites."""
     out = []
     for folder, stem in ((CONTENT, "site"), (THEME, "theme")):
         for p in sorted(folder.glob(f"{stem}.*.toml")) if folder.is_dir() else []:
@@ -94,6 +95,8 @@ def setup():
         langs.insert(0, dflt)
     listed = ", ".join(langs)
     for path, lang in _language_files():
+        if lang not in langs and path.parent == THEME:
+            continue        # a reusable theme may carry languages this site lacks
         if lang not in langs:
             errs.append(error(path, f'"{lang}" is not a declared language',
                               f"Declared: {listed} ([site] languages in {CONFIG.relative_to(CONTENT.parent)})"))

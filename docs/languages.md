@@ -35,6 +35,11 @@ defaults.toml < theme/theme.toml < theme/theme.fr.toml < content/site.toml < con
 A declared language without a `site.fr.toml` gets the default language's
 words: a site may start translating one word at a time.
 
+A `content/site.<lang>.toml` for a language the site does not declare
+stops the build: it is the site's own file. A `theme/theme.<lang>.toml`
+for such a language is ignored - not read, not served: a theme is reused
+across sites and may carry languages this one lacks.
+
 ## Translate a page
 
 Put `about.fr.md` next to `about.md`. The same for a folder's index
