@@ -265,8 +265,12 @@ muted monospace line that says something does not exist yet:
 *Aucun article publié pour l'instant.*
 ```
 
-The asterisks must enclose the **whole** paragraph. `*À compléter.* Autre
-texte.` prints the asterisks literally.
+The asterisks must open and close the **whole** paragraph. With text after
+the closing asterisk, `*À compléter.* Autre texte.` is an ordinary paragraph
+that begins in italics. A paragraph entirely in bold, `**Tout en gras.**`,
+also starts and ends with an asterisk: it is an empty state, its text in
+italics (`<p class="empty"><em>Tout en gras.</em></p>`). Keep bold for words
+inside a sentence.
 
 ### List
 
@@ -346,9 +350,9 @@ callout - GitHub's syntax. Text may follow the marker on the same line.
 
 The labels come from `[labels]` in `content/site.toml` (`INFO`,
 `ATTENTION`, `ERREUR`). In HTML: a box with a coloured left rule and the
-label; errors carry `role="alert"`, the others `role="note"`. In text: a box
-drawn in ASCII, the label in its top rule, coloured by kind in the ANSI
-mirror:
+label, `role="note"` for every kind (a callout is static content; `alert` is
+for live changes). In text: a box drawn in ASCII, the label in its top rule,
+coloured by kind in the ANSI mirror:
 
 ```text
 +- ATTENTION ------------------------------------------------------+
@@ -504,8 +508,9 @@ Five constructs, no nesting:
 `_italic_` works only around whole words, so `snake_case` stays text;
 `++underlined++` likewise, so `C++` stays text. Underlining is dotted: on
 the web a plain underline reads as a link. A
-paragraph wrapped **entirely** in single asterisks is still an empty state
-(see [Empty state](#empty-state)), not an italic paragraph.
+paragraph that starts and ends with an asterisk is an empty state (see
+[Empty state](#empty-state)), not an italic paragraph - a paragraph all in
+bold too.
 
 Everything else is literal text and is HTML-escaped: no image inside a
 sentence, no raw inline HTML.
@@ -568,7 +573,7 @@ Collections are declared in `site.toml`:
 | Type | Items | Lists | Feeds | Structured data |
 |---|---|---|---|---|
 | `post` | articles, notes, news | newest first | RSS | `BlogPosting` |
-| `event` | meetups, talks, releases | upcoming and past, by the date of the build | RSS and iCalendar | `Event` |
+| `event` | meetups, talks, releases | upcoming and past, by the start date and the date of the build | RSS and iCalendar | `Event` |
 | `member` | people | category order, then last name | - | `ProfilePage` |
 
 ```toml
@@ -628,8 +633,8 @@ Nothing else is written by hand. From these files the build makes:
 | Marker | Fills the section with |
 |---|---|
 | `{posts}` | every post, newest first |
-| `{upcoming}` | events dated today or later, nearest first, the first highlighted |
-| `{past}` | events before today, latest first |
+| `{upcoming}` | events starting today or later, nearest first, the first highlighted |
+| `{past}` | events that started before today, latest first |
 | `{next-event}` | the next event only |
 | `{members}` | every member, a grid, category order then last name |
 
@@ -646,7 +651,9 @@ Nothing else is written by hand. From these files the build makes:
 
 "Upcoming" and "past" depend on the date of the build. The site is built at
 every start, on every change, and again each midnight, so an event moves to
-the past list the day after it ends without anyone touching it.
+the past list the day after it starts without anyone touching it. Only the
+event's date counts, not `end`: an event over several days is past from its
+second day, and its card's tag says `past_tag` from then on.
 
 ---
 
@@ -753,7 +760,10 @@ On purpose, because every construct costs two renderings (HTML and text):
 - headings other than `##` and `###`;
 - footnotes, definition lists, reference-style links, bare URLs;
 - inline images (an image is a block of its own) and raw inline HTML;
-- escaping (`\*`) - rephrase instead;
+- escaping: a backslash is an ordinary character, so `\*` prints the
+  backslash and the asterisk still marks up (`a \*b* c` is `a \` then an
+  italic `b`) - rephrase instead. The one exception is `\|`, a pipe inside
+  a table cell;
 - scripts in content: the site's two scripts are attached by the build
   (`members.js` by `{members}`, `code.js` by a code block).
 
@@ -778,7 +788,7 @@ and documenting it here.
 | ` ```lang ` | `<pre class="code">`, highlighted | verbatim, long lines continued with `\` |
 | `\| a \| b \|` + `\|---\|---\|` | `<table>` in a scrolling wrapper | padded columns, or records |
 | `![alt](file "caption")` alone on a line | `<figure>` + `<img>` | `[ image ] alt`, caption, URL |
-| `*text*` (whole paragraph) | `.empty` | plain |
+| `*text*` (whole paragraph, `**text**` too) | `.empty` | plain |
 | `text {small muted}` | `<p class="small muted">` | plain |
 | `<!-- ... -->` | passthrough | skipped |
 | `[t](u)`, `` `c` ``, `**b**` | `<a>`, `<code>`, `<b>` | `t (u)` if absolute, else `t` |
