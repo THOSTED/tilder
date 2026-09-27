@@ -224,8 +224,9 @@ def _gather(folder, prefix, recursive, groups, sections):
     "guide/" below). A subfolder's index(.<lang>).md is the item named like
     the subfolder; with `recursive`, the subfolder's other files are items
     too, and a subfolder that holds some is a section: `sections` maps its
-    slug to whether it has its own index.md. True when `folder` holds an
-    item. Names starting with _ are templates."""
+    slug to whether it has its own page (index.md, or a <name>.md beside
+    the folder). True when `folder` holds an item. Names starting with _
+    are templates."""
     found = False
     for f in sorted(folder.iterdir()):
         if f.name.startswith("_"):
@@ -298,11 +299,11 @@ def load_items(name, conf):
     in the section guide, and the order is depth-first (_depth_first)."""
     module, base, items = TYPES[conf["type"]], CONTENT / conf["dir"], []
     recursive = conf.get("recursive", False)
-    groups, sections = {}, {}  # slug -> {lang or None: source file}; section slug -> has index.md
+    groups, sections = {}, {}  # slug -> {lang or None: source file}; section slug -> has its own page (index.md, or a <name>.md beside the folder)
     if base.is_dir():
         _gather(base, "", recursive, groups, sections)
     for slug, has_page in sections.items():
-        paths.SECTIONS[f"{conf['dir']}/{slug}"] = has_page
+        paths.SECTIONS[f"{conf['dir']}/{slug}"] = has_page or slug in groups
     for slug, candidates in groups.items():
         src, content_lang = languages.pick(candidates, STATE["lang"])
         if src is None:

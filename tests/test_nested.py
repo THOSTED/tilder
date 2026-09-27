@@ -136,6 +136,26 @@ class Pages(unittest.TestCase):
         self.assertNotIn('href="../extra', tips)
         self.assertIn('<a href="../usage">Usage</a>', h1(out["manual/usage/deep.html"]))
 
+    def test_a_section_with_a_page_beside_its_folder_is_linked(self):
+        beside = CONTENT / "manual/extra.md"
+        beside.write_text(
+            "---\ntitle: Extra things\n"
+            "description: A page beside its own folder becomes the section "
+            "page, and the wordmark links to it.\norder: 4\n---\n\n"
+            "## Name\n\nextra {mono}\n")
+        try:
+            languages.setup()
+            contenttypes.load()
+            contenttypes.load_items("manual", contenttypes.collections()["manual"])
+            self.assertEqual(paths.SECTIONS["manual/extra"], True)
+            out = rebuild()
+        finally:
+            beside.unlink()
+        tips = h1(out["manual/extra/tips.html"])
+        self.assertIn('<a href="../extra">Extra things</a>', tips)
+        self.assertIn('<a class="collection-section-label" href="../extra">Extra things</a>',
+                      nav(out["manual/extra/tips.html"]))
+
 
 class Neighbours(unittest.TestCase):
     def link(self, page, kind):

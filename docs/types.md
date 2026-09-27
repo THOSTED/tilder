@@ -34,8 +34,9 @@ any depth: `content/docs/guide/install.md` is the item `guide/install`,
 served at `docs/guide/install.html`, in the **section** `guide`. A
 subfolder's `index.md` is the item named like the folder, served beside
 it (`docs/guide.html`): the section's own page when the folder holds
-other items too, else an item kept as a folder, with its files. A section
-without an `index.md` has no page; its folder's name stands for it.
+other items too, else an item kept as a folder, with its files. A section's
+own page is its `index.md`, or a `<name>.md` beside the folder; without
+either it has no page, and its folder's name stands for it.
 `recursive` is `false` unless the collection or its type's `DEFAULTS`
 sets it; a `DATED` type cannot be recursive, and two files for one item
 (`guide.md` and `guide/index.md`) stop the build.
