@@ -112,6 +112,21 @@ class ConfigErrors(unittest.TestCase):
         self.assertIn('error: content/site.de.toml: "de" is not a declared language. '
                       "Declared: en, fr ([site] languages in content/site.toml)", err)
 
+    def test_theme_file_for_an_undeclared_language_is_ignored(self):
+        # A theme is reused across sites: its theme.de.toml is not the
+        # site's mistake. Not read, not served, no German anywhere.
+        (self.site / "theme" / "theme.de.toml").write_text(
+            '[site]\nlang = "de"\n\n[labels]\nskip = "zum Inhalt springen"\n')
+        code, err = run(self.site)
+        self.assertEqual(code, 0, err)
+        self.assertNotIn("theme.de.toml", err)
+        out = self.site / "out"
+        self.assertFalse((out / "de").exists())
+        self.assertFalse(list(out.rglob("theme.de.toml")))
+        for f in out.rglob("*"):
+            if f.is_file() and f.suffix in (".html", ".txt", ".xml", ".json", ".webmanifest"):
+                self.assertNotIn("zum Inhalt springen", f.read_text(errors="replace"), f)
+
     def test_default_missing_from_languages(self):
         toml = self.site / "content" / "site.toml"
         toml.write_text(toml.read_text().replace('languages = ["en", "fr"]', 'languages = ["fr"]'))
