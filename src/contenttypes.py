@@ -104,6 +104,7 @@ def load(dirs=None):
     TYPES.clear()
     MARKERS.clear()
     paths.ITEM_FOLDERS.clear()
+    paths.SECTIONS.clear()
     ERRORS.clear()
     errs = ERRORS
     for n, folder in enumerate(dirs):
@@ -180,6 +181,16 @@ def collections():
         merged.update(conf)
         merged.setdefault("dir", name)
         merged["type"] = kind
+        recursive = merged.get("recursive", False)
+        if not isinstance(recursive, bool):
+            errs.append(error(CONFIG, f'collection "{name}" has recursive = {recursive!r}',
+                              "Write recursive = true or recursive = false"))
+            continue
+        if recursive and TYPES[kind].DATED:
+            errs.append(error(CONFIG, f'collection "{name}" is recursive, and its type "{kind}" is dated: '
+                                      "a dated collection cannot be recursive",
+                              f"Remove recursive, and keep its items in content/{merged['dir']}/ itself"))
+            continue
         out[name] = merged
     seen = {}
     for name, conf in out.items():
@@ -207,25 +218,91 @@ def call(path, module, hook, *args, fn=None):
                     "Run with --debug for the traceback", exc=e)
 
 
+def _gather(folder, prefix, recursive, groups, sections):
+    """Fill `groups` ({slug: {lang or None: source file}}) from `folder`,
+    whose items' slugs start with `prefix` ("" at the collection's top,
+    "guide/" below). A subfolder's index(.<lang>).md is the item named like
+    the subfolder; with `recursive`, the subfolder's other files are items
+    too, and a subfolder that holds some is a section: `sections` maps its
+    slug to whether it has its own index.md. True when `folder` holds an
+    item. Names starting with _ are templates."""
+    found = False
+    for f in sorted(folder.iterdir()):
+        if f.name.startswith("_"):
+            continue
+        if f.suffix == ".md":
+            name, lang = languages.split(f.stem)
+            if name != "index":
+                _add(groups, prefix + name, lang, f, recursive)
+                found = True
+        elif f.is_dir():
+            slug = prefix + f.name
+            inner = recursive and _gather(f, slug + "/", True, groups, sections)
+            own = [g for g in sorted(f.glob("index*.md")) if languages.split(g.stem)[0] == "index"]
+            for g in own:
+                _add(groups, slug, languages.split(g.stem)[1], g, recursive)
+            if inner:
+                sections[slug] = bool(own)
+            found = found or inner or bool(own)
+    return found
+
+
+def _add(groups, slug, lang, f, recursive):
+    """Record `f` as the file of item `slug` in `lang`. In a recursive
+    collection, two files for one item (guide.md and guide/index.md) are an
+    error; a flat one keeps its old rule, the last file wins."""
+    files = groups.setdefault(slug, {})
+    if recursive and lang in files:
+        raise error(f, f"is a second file for the item {slug}, with {rel(files[lang])}",
+                    "Keep one of them: a page is <name>.md or <name>/index.md, not both")
+    files[lang] = f
+
+
+def _depth_first(items, key):
+    """The items in a depth-first walk of their folders. Within a folder,
+    its items and its sections are sorted by `key` (an item -> its sort
+    key): a section by its own page (its index.md), a section without one
+    after them, by name. A section's own page comes first, then what it
+    holds."""
+    subs, below = {}, set()   # folder -> its sections; every section
+    for it in items:
+        parts = it["section"].split("/") if it["section"] else []
+        for i in range(len(parts)):
+            subs.setdefault("/".join(parts[:i]), set()).add("/".join(parts[:i + 1]))
+            below.add("/".join(parts[:i + 1]))
+    own = {it["slug"]: it for it in items if it["slug"] in below}
+    keys = {id(it): key(it) for it in items}
+
+    def walk(folder):
+        entries = [(it, None) for it in items if it["section"] == folder and it["slug"] not in below]
+        entries += [(own[s], s) for s in subs.get(folder, ()) if s in own]
+        entries.sort(key=lambda e: keys[id(e[0])])
+        out = []
+        for it, section in entries:
+            out.append(it)
+            if section is not None:
+                out += walk(section)
+        for section in sorted(s for s in subs.get(folder, ()) if s not in own):
+            out += walk(section)
+        return out
+    return walk("")
+
+
 def load_items(name, conf):
     """Every item of a collection, in the type's order, as served in the
     current language: <slug>.md, <slug>.<lang>.md, or <slug>/index(.<lang>).md
     in content/<dir>/, the file chosen by the language fallback
     (languages.pick). For a DATED type the slug starts with YYYY-MM-DD.
-    Names starting with _ are templates."""
+    Names starting with _ are templates. A `recursive` collection reads its
+    subfolders too: content/docs/guide/install.md is the item guide/install,
+    in the section guide, and the order is depth-first (_depth_first)."""
     module, base, items = TYPES[conf["type"]], CONTENT / conf["dir"], []
-    groups = {}  # slug -> {lang or None: source file}
-    for f in sorted(base.iterdir()) if base.is_dir() else []:
-        if f.name.startswith("_"):
-            continue
-        if f.suffix == ".md":
-            slug, lang = languages.split(f.stem)
-            if slug != "index":
-                groups.setdefault(slug, {})[lang] = f
-        elif f.is_dir():
-            for g in sorted(f.glob("index*.md")):
-                if languages.split(g.stem)[0] == "index":
-                    groups.setdefault(f.name, {})[languages.split(g.stem)[1]] = g
+    recursive = conf.get("recursive", False)
+    groups, sections = {}, {}  # slug -> {lang or None: source file}; section slug -> has index.md
+    if base.is_dir():
+        _gather(base, "", recursive, groups, sections)
+    for slug, has_page in sections.items():
+        paths.SECTIONS[f"{conf['dir']}/{slug}"] = has_page
     for slug, candidates in groups.items():
         src, content_lang = languages.pick(candidates, STATE["lang"])
         if src is None:
@@ -242,16 +319,17 @@ def load_items(name, conf):
                 raise error(src, f'"{m.group(1)}" is not a date',
                             f"Name the file YYYY-MM-DD-slug.md with the {module.NAME}'s date")
             date = m.group(1)
-        elif src.parent != base:
+        elif languages.split(src.stem)[0] == "index" and slug not in sections:
             paths.ITEM_FOLDERS.add(str(src.parent.relative_to(CONTENT)))
         meta, _ = front_matter(src.read_text())
         items.append({"slug": slug, "date": date, "meta": meta, "src": src,
                       "path": f"{conf['dir']}/{slug}.html", "collection": name,
+                      "section": slug.rpartition("/")[0],
                       "conf": conf, "type": module, "lang": STATE["lang"],
                       "content_lang": content_lang})
     for it in items:
         call(it["src"], module, "defaults", it, conf)
-    return sorted(items, key=lambda it: call(it["src"], module, "sort_key", it, conf))
+    return _depth_first(items, lambda it: call(it["src"], module, "sort_key", it, conf))
 
 
 def page_item(src, meta):
