@@ -20,7 +20,7 @@ CLASSES = (
     "code", "hl-k", "hl-s", "hl-c", "hl-b", "hl-n", "hl-v", "hl-p", "hl-t", "hl-gi", "hl-gd", "hl-gh",
     "table", "center", "right",
     "tasks", "task", "task--done", "task--todo",
-    "figure",
+    "figure", "map",
     "toc", "toc-label",
     "profiles", "icon",
     "u",

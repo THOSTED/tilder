@@ -122,3 +122,92 @@ def ico(pngs):
         data += png
         offset += len(png)
     return head + entries + data
+
+
+# --- a smaller PNG: a palette instead of RGBA, standard library only -------------
+
+def _chunks(png):
+    i = 8
+    while i + 8 <= len(png):
+        n, kind = struct.unpack(">I4s", png[i:i + 8])
+        yield kind, png[i + 8:i + 8 + n]
+        i += 12 + n
+
+
+def _pixels(png):
+    """(width, height, [row of RGBA bytes]) of an 8-bit RGBA or RGB PNG, not
+    interlaced; None for anything else."""
+    import zlib
+    head = dict(_chunks(png)).get(b"IHDR")
+    if not head:
+        return None
+    w, h, depth, kind, _, _, interlace = struct.unpack(">IIBBBBB", head)
+    if depth != 8 or kind not in (2, 6) or interlace:
+        return None
+    bpp = 4 if kind == 6 else 3
+    data = zlib.decompress(b"".join(d for k, d in _chunks(png) if k == b"IDAT"))
+    stride, rows, prev = w * bpp, [], bytearray(w * bpp)
+    for y in range(h):
+        f, line = data[y * (stride + 1)], bytearray(data[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
+        if f == 1:
+            for i in range(bpp, stride):
+                line[i] = (line[i] + line[i - bpp]) & 255
+        elif f == 2:
+            line = bytearray((a + b) & 255 for a, b in zip(line, prev))
+        elif f == 3:
+            for i in range(stride):
+                left = line[i - bpp] if i >= bpp else 0
+                line[i] = (line[i] + ((left + prev[i]) >> 1)) & 255
+        elif f == 4:
+            for i in range(stride):
+                a = line[i - bpp] if i >= bpp else 0
+                b, c = prev[i], prev[i - bpp] if i >= bpp else 0
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                line[i] = (line[i] + (a if pa <= pb and pa <= pc else b if pb <= pc else c)) & 255
+        prev = line
+        rows.append(bytes(line) if bpp == 4 else
+                    b"".join(bytes(line[i:i + 3]) + b"\xff" for i in range(0, stride, 3)))
+    return w, h, rows
+
+
+def palette_png(png):
+    """The PNG with at most 256 colours, as an indexed PNG, when that is
+    smaller: exact when the image has 256 colours or fewer, else the 256
+    most frequent, each other colour drawn with the nearest of them. A
+    map's tiles share a small palette; the few colours of the marker's
+    edge are the ones that may move. Anything but an 8-bit RGB(A) PNG is
+    returned as it is."""
+    import collections
+    import zlib
+    decoded = _pixels(png)
+    if decoded is None:
+        return png
+    w, h, rows = decoded
+    counts = collections.Counter()
+    for row in rows:
+        counts.update(row[i:i + 4] for i in range(0, len(row), 4))
+    palette = [c for c, _ in counts.most_common(256)]
+    index = {c: n for n, c in enumerate(palette)}
+
+    def nearest(c):
+        return min(range(len(palette)), key=lambda n: sum((a - b) ** 2 for a, b in zip(c, palette[n])))
+    raw = bytearray()
+    for row in rows:
+        raw.append(0)
+        for i in range(0, len(row), 4):
+            c = row[i:i + 4]
+            if c not in index:
+                index[c] = nearest(c)
+            raw.append(index[c])
+
+    def chunk(kind, data):
+        import zlib as z
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", z.crc32(kind + data))
+    out = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 3, 0, 0, 0))
+    out += chunk(b"PLTE", b"".join(c[:3] for c in palette))
+    alpha = bytes(c[3] for c in palette)
+    if alpha.strip(b"\xff"):
+        out += chunk(b"tRNS", alpha.rstrip(b"\xff"))
+    out += chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b"")
+    return out if len(out) < len(png) else png

@@ -3,7 +3,8 @@ an RSS feed and an iCalendar. The built-in `event` type (docs/types.md)."""
 
 import urllib.parse
 
-from config import STATE, apex
+import maps
+from config import CFG, STATE, apex
 from dates import human_date
 from feeds import calendar
 from paths import clean_url
@@ -74,6 +75,14 @@ def entry(item, link, conf):
             # The text mirror leaves the map link out: the address is on the
             # card already, and the URL cannot fit in 75 columns.
             blocks.append({"k": "para", "cls": ["small"], "text": " · ".join(links), "txt": site})
+        # A static map, drawn at build time when [maps] is on and the event
+        # gives lat and lon: an image of the site's own, linking where the
+        # map link does. The text mirror has the address already.
+        drawn = maps.draw(meta, item["src"])
+        if drawn:
+            alt = CFG["labels"]["map_alt"].replace("{place}", meta.get("place") or meta["title"])
+            blocks.append({"k": "map", "src": drawn, "alt": alt, "href": osm_url(meta),
+                           "width": CFG["maps"]["width"], "height": CFG["maps"]["height"]})
     return {"k": "entry", "id": None, "cls": ["link"] if link else [], "meta": line,
             "blocks": blocks, "own": not link,
             "title": f"[{meta['title']}]({item['path'][:-5]})" if link else meta["title"]}

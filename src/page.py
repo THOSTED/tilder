@@ -149,6 +149,17 @@ def html_diagram(b, res):
             f'<code>{code}</code></pre>{figcaption}</figure>')
 
 
+def html_map(b, res):
+    """A static map (maps.py): the image links to the place on the map
+    site, and the attribution the tiles' licence asks for is visible."""
+    href = b["href"]
+    credit = inline.to_html(f"[{CFG['labels']['map_attribution']}]({CFG['maps']['attribution_url']})", res)
+    return (f'<figure class="figure map"><a href="{H.escape(href)}"{inline.link_attrs(href)}>'
+            f'<img src="{H.escape(res("/" + b["src"]))}" alt="{H.escape(b["alt"])}" '
+            f'width="{b["width"]}" height="{b["height"]}" loading="lazy" decoding="async"></a>'
+            f"<figcaption>{credit}</figcaption></figure>")
+
+
 def html_table(b, res, ind):
     """Wrapped so a wide table scrolls on its own instead of the page."""
     label = H.escape(CFG["labels"]["table"])
@@ -197,6 +208,8 @@ def html_blocks(blocks, res, entry_cls=(), ind="\t\t"):
             out.append(ind + html_image(b, res))
         elif b["k"] == "diagram":
             out.append(ind + html_diagram(b, res))
+        elif b["k"] == "map":
+            out.append(ind + html_map(b, res))
         elif b["k"] == "toc":
             out.extend(html_toc(b, ind))
         elif b["k"] == "profiles":

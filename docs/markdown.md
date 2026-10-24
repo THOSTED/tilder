@@ -631,6 +631,52 @@ every visitor's browser call openstreetmap.org. Do not look up coordinates
 you are not given. The text mirror leaves the map link out: the address is
 on the card, and the URL would not fit in 75 columns.
 
+### Static maps
+
+With `[maps] enabled = true` in `site.toml`, an event that gives `lat`
+and `lon` also shows a **map**, drawn at build time: the build fetches
+the few map tiles around the point (a dozen at most, at the default
+720x360 and zoom 16), composes them with a marker in `share.theme_color`
+(or `[maps] marker`), and writes `maps/<key>.png`. Visitors load nothing
+from another host. On the page it is a `<figure class="figure map">`:
+the image links to the same OpenStreetMap address as the map link, its
+alt text names the place (`labels.map_alt`, `"Map of {place}"`), and the
+attribution the tiles' licence asks for is visible under it
+(`labels.map_attribution`, linking to `[maps] attribution_url`). The text
+mirror is unchanged: the address and the link say it already.
+
+```toml
+[maps]
+enabled = true
+tiles = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"   # the default
+zoom = 16
+width = 720
+height = 360
+
+[labels]
+map_alt = "Plan : {place}"
+map_attribution = "© les contributeurs d'OpenStreetMap"
+```
+
+It is **opt-in**: building then asks a tile server, which a site does on
+its own terms - OpenStreetMap's tiles come with a usage policy
+(https://operations.osmfoundation.org/policies/tiles/) and an
+attribution - and a build that must work offline should not depend on it.
+The build follows the policy: a User-Agent naming tilder and the site
+(`tilder/<version> (+<site.url>)`), a handful of tiles per map, and a
+cache that outlives the build: `TILDER_CACHE` (else a folder of the
+system's temporary directory) keeps each tile, fetched again only after
+`[maps] max_age_days` (30), and a map already in the previous output is
+reused as is. `tiles` names another provider, with `{z}`, `{x}`, `{y}`;
+set `attribution_url` and `labels.map_attribution` to its terms.
+
+A tile that cannot be fetched, offline or refused, is a warning: the
+page keeps its OpenStreetMap link and the build goes on. Without a
+rasteriser (`rsvg-convert`), no map either. The map is an indexed PNG
+(about 130 KB at 720x360): the tiles are composed as an SVG, rasterised
+like `share.png`, then reduced to their own palette - the SVG itself,
+carrying every tile whole, would be several times larger.
+
 In a list, an item's card is clickable as a whole: its title's link covers
 the card.
 

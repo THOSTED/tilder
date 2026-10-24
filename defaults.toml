@@ -27,6 +27,8 @@ warning = "WARNING"
 error = "ERROR"
 image = "image"                     # text mirror: [ image ] alt text
 diagram = "diagram"                 # text mirror: [ diagram ] description
+map_alt = "Map of {place}"          # an event's static map, [maps]; {place}: its place
+map_attribution = "© OpenStreetMap contributors"   # under the map, linking to maps.attribution_url
 task_done = "done"                  # task lists, read by screen readers
 task_todo = "to do"
 to_top = "↑ back to top"
@@ -66,6 +68,22 @@ robots = "index, follow, max-image-preview:large"
 title_max = 60                      # build warnings past these limits
 description_min = 50
 description_max = 160
+
+# Static maps on event pages: for an event with lat and lon, the build
+# fetches a few tiles around the point and draws them, with a marker, to
+# maps/<key>.png - visitors load nothing from another host. Opt-in: the
+# build then asks a tile server, whose usage policy the site accepts
+# (OpenStreetMap's: https://operations.osmfoundation.org/policies/tiles/).
+# Tiles are cached in TILDER_CACHE; a fetch that fails keeps the map link.
+[maps]
+enabled = false
+tiles = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+attribution_url = "https://www.openstreetmap.org/copyright"
+zoom = 16
+width = 720                         # px, the map's size
+height = 360
+marker = ""                         # the marker's colour; empty: share.theme_color
+max_age_days = 30                   # a cached tile is fetched again after this
 
 # Mermaid diagrams (```mermaid blocks), drawn at build time by the Mermaid
 # CLI with the theme's mermaid.json; usually set by a theme, in theme.toml.
