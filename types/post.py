@@ -17,6 +17,7 @@ DEFAULTS = {
     "feed": "",                     # RSS path, e.g. "blog/feed.xml"; empty for none
     "feed_title": "posts",
     "feed_description": "Posts.",
+    "scheduled": True,              # a post dated after the build's date waits for it
 }
 
 

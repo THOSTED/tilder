@@ -20,6 +20,14 @@ ITEM_FOLDERS = set()
 # Filled by contenttypes.load_items.
 SECTIONS = {}
 
+# Items of a collection that schedules them (`scheduled`, a post's
+# default) dated after the build's date: not published yet. Their
+# logical target ("blog/2026-11-01-launch") -> {"date", "collection",
+# "files": every source file of the item, "folder": its folder or None}.
+# Filled by contenttypes.load_items; the build skips them (no page, no
+# mirror, no file of their folder) and warns about links to them.
+SCHEDULED = {}
+
 
 def item_folder(rel_parent):
     """Is this content/-relative folder one item?"""
@@ -91,6 +99,25 @@ def _relative(from_dir, target):
     folder, name = os.path.split(target)
     r = os.path.relpath(folder or ".", base)
     return name if r == "." else f"{r}/{name}"
+
+
+def scheduled(target):
+    """The SCHEDULED record a link target reaches, or None: the item
+    itself (blog/2026-11-01-launch, /fr/blog/2026-11-01-launch#x) or a
+    file of its folder (blog/2026-11-01-launch/photo.png)."""
+    if not SCHEDULED or target.startswith(("http:", "https:", "mailto:", "#")):
+        return None
+    t = target.partition("#")[0].partition("?")[0]
+    if t.startswith("/"):
+        t = t.lstrip("/")
+        first, _, rest = t.partition("/")
+        if first in STATE["languages"][1:]:
+            t = rest
+    t = t.removeprefix("./").rstrip("/")
+    for key, record in SCHEDULED.items():
+        if t == key or t.startswith(key + "/"):
+            return record
+    return None
 
 
 def rendered(path):

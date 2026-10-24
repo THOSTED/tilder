@@ -15,7 +15,7 @@ from config import CFG, CONTENT, STATE, apex, layout, theme_file
 from paths import clean_url, relative
 from images import image_size
 from markdown import front_matter
-from report import error
+from report import error, warning
 from seo import head_tags, is_landing, page_heading, page_title
 
 def html_meta(items, entry_cls):
@@ -241,10 +241,30 @@ def switcher(item, res):
     return f'<nav class="languages" aria-label="{label}">\n' + "\n".join(links) + "\n</nav>"
 
 
+# (page source, target) already warned about in this build: a page built in
+# every language, or linking twice, is said once. Cleared by build().
+WARNED = set()
+
+
+def _warn_scheduled(src, target):
+    """A link to an item that is not published yet is broken until its
+    date: a warning, not an error, so the build still publishes."""
+    record = paths.scheduled(target)
+    if record is None or (src, target) in WARNED:
+        return
+    WARNED.add((src, target))
+    warning(src, f"links to {target}, scheduled for {record['date']}: the link is broken until then",
+            f"Remove the link, or publish the item earlier (its date, or "
+            f"scheduled = false under [collections.{record['collection']}])")
+
+
 def render_html(item, sections, preamble=(), colls=None, items=None):
     meta, path, module = item["meta"], item["path"], item["type"]
     d = os.path.dirname(path)
-    res = lambda u: relative(d, u)
+
+    def res(u):
+        _warn_scheduled(item["src"], u)
+        return relative(d, u)
 
     nav = []
     for n in CFG["nav"]:

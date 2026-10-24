@@ -656,6 +656,28 @@ the past list the day after it starts without anyone touching it. Only the
 event's date counts, not `end`: an event over several days is past from its
 second day, and its card's tag says `past_tag` from then on.
 
+### Scheduled posts
+
+A post dated after the date of the build is **not published yet**: commit
+`blog/2026-11-01-launch.md` today, and it appears on 1 November, at the
+midnight rebuild. Until then the build writes nothing of it - no page, no
+text mirror, no card in `{posts}`, no feed item, no sitemap entry, none of
+the files of its folder - in any language, and the build's summary counts
+it: `blog (post, 4 items, 1 scheduled)`. A post dated today is published.
+
+A link to a scheduled post (or to a file of its folder) is broken until
+its date. The build still publishes, and warns once per page:
+
+```
+warning: content/index.md: links to blog/2026-11-01-launch, scheduled for 2026-11-01: the link is broken until then. Remove the link, or publish the item earlier (its date, or scheduled = false under [collections.blog])
+```
+
+The date of the build is the day, or `BUILD_TODAY`: `BUILD_TODAY=2026-11-01`
+builds the site as it will be that day, to preview a scheduled post. A
+collection that sets `scheduled = false` publishes every post whatever its
+date. Events are never scheduled: an event in the future is an upcoming
+event.
+
 ---
 
 ## Images
