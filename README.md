@@ -85,6 +85,12 @@ python3 builder/build.py --check            # check the theme, build nothing
 `--root` defaults to the current directory when it has a `content/` folder,
 else to the folder that holds `builder/`.
 
+The build's date is the day, or `BUILD_TODAY` when it is set: it decides
+which events are upcoming and which posts are published yet (a post dated
+after it waits for its day, `docs/markdown.md`). Set it to preview a
+scheduled post: `BUILD_TODAY=2026-11-01 python3 builder/build.py --out
+/tmp/preview` (with Docker, `-e BUILD_TODAY=2026-11-01`).
+
 With Docker, `builder/Dockerfile` is Python plus `rsvg-convert` and
 `woff2_decompress`: the share image then uses the theme's own fonts.
 Without them, the build falls back to ImageMagick, or skips the images

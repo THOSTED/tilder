@@ -105,6 +105,7 @@ def load(dirs=None):
     MARKERS.clear()
     paths.ITEM_FOLDERS.clear()
     paths.SECTIONS.clear()
+    paths.SCHEDULED.clear()
     ERRORS.clear()
     errs = ERRORS
     for n, folder in enumerate(dirs):
@@ -185,6 +186,16 @@ def collections():
         if not isinstance(recursive, bool):
             errs.append(error(CONFIG, f'collection "{name}" has recursive = {recursive!r}',
                               "Write recursive = true or recursive = false"))
+            continue
+        if "scheduled" in conf and "scheduled" not in TYPES[kind].DEFAULTS:
+            errs.append(error(CONFIG, f'collection "{name}" sets scheduled, and its type "{kind}" '
+                                      "does not schedule its items",
+                              "Remove scheduled: only a type whose DEFAULTS has it (post) waits "
+                              "for an item's date"))
+            continue
+        if not isinstance(merged.get("scheduled", False), bool):
+            errs.append(error(CONFIG, f'collection "{name}" has scheduled = {merged["scheduled"]!r}',
+                              "Write scheduled = true or scheduled = false"))
             continue
         if recursive and TYPES[kind].DATED:
             errs.append(error(CONFIG, f'collection "{name}" is recursive, and its type "{kind}" is dated: '
@@ -320,6 +331,14 @@ def load_items(name, conf):
                 raise error(src, f'"{m.group(1)}" is not a date',
                             f"Name the file YYYY-MM-DD-slug.md with the {module.NAME}'s date")
             date = m.group(1)
+            # A scheduled item dated after the build's date is not published
+            # yet: left out of the collection, and of the pages (build.py).
+            if conf.get("scheduled") and date > (STATE["today"] or datetime.date.today().isoformat()):
+                own = languages.split(src.stem)[0] == "index"
+                paths.SCHEDULED[f"{conf['dir']}/{slug}"] = {
+                    "date": date, "collection": name, "files": set(candidates.values()),
+                    "folder": src.parent if own else None}
+                continue
         elif languages.split(src.stem)[0] == "index" and slug not in sections:
             paths.ITEM_FOLDERS.add(str(src.parent.relative_to(CONTENT)))
         meta, _ = front_matter(src.read_text())
@@ -401,5 +420,7 @@ def summary(colls, items):
             parts.append(f"{name} ({conf['type']}, no folder)")
         else:
             n = len(items.get(name, []))
-            parts.append(f"{name} ({conf['type']}, {n} item{'s' if n != 1 else ''})")
+            later = sum(1 for r in paths.SCHEDULED.values() if r["collection"] == name)
+            later = f", {later} scheduled" if later else ""
+            parts.append(f"{name} ({conf['type']}, {n} item{'s' if n != 1 else ''}{later})")
     return first + "\ncollections: " + ", ".join(parts)

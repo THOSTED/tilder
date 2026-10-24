@@ -92,7 +92,9 @@ short_name = "site"                 # web manifest
 # {members}, each with an optional collection name - {upcoming:meetups}.
 #
 # The three collections most sites have. Inactive until content/blog/,
-# content/events/ or content/members/ exists.
+# content/events/ or content/members/ exists. A post dated after the
+# build's date (BUILD_TODAY, else the day) is published on that date, not
+# before; `scheduled = false` under [collections.blog] publishes it now.
 
 [collections.blog]
 type = "post"

@@ -41,6 +41,13 @@ either it has no page, and its folder's name stands for it.
 sets it; a `DATED` type cannot be recursive, and two files for one item
 (`guide.md` and `guide/index.md`) stop the build.
 
+A `DATED` type schedules its items when its `DEFAULTS` has `scheduled`
+(`post` does, with `true`): an item dated after the build's date is left
+out of the collection - `load_items` does not return it, so no list, feed
+or `outputs()` sees it - and of the pages. A collection may set
+`scheduled` (a bool) only when its type's `DEFAULTS` has it; `event` has
+not, its future items being its upcoming ones.
+
 ### The built-in types' settings
 
 The `DEFAULTS` of the built-in types, as `types/<type>.py` lists them. A
@@ -57,6 +64,7 @@ language. `page` has none.
 | `feed` | `""` | RSS path, e.g. `"blog/feed.xml"`; empty for none |
 | `feed_title` | `"posts"` | the feed's title |
 | `feed_description` | `"Posts."` | the feed's description |
+| `scheduled` | `true` | a post dated after the build's date (`BUILD_TODAY`, else the day) is not published until that date: no page, mirror, card, feed item, sitemap entry or folder file, and a link to it warns; `false` publishes every post |
 
 `event` - lists: `{upcoming}`, `{past}`, `{next-event}`, by the build's date.
 

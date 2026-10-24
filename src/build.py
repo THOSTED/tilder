@@ -58,6 +58,8 @@ import ansify as ansify_module
 import contenttypes
 import inline
 import languages
+import page as page_module
+import paths
 import report
 from ansify import ansify
 from config import (ASSETS, BUILDER, CFG, CONTENT, EXTRA, ROOT, STATE,
@@ -80,6 +82,7 @@ def build():
     the types' own files (the calendar) and the copies once."""
     langs = languages.setup()
     STATE["today"] = os.environ.get("BUILD_TODAY") or datetime.date.today().isoformat()
+    page_module.WARNED.clear()
     out, every, table = {}, [], {}  # every: the pages of every language, for the sitemap
     for lang in langs:
         languages.use(lang)
@@ -108,6 +111,8 @@ def build():
         prefix, pages = STATE["prefix"], []
         for key in sorted(table):
             src, content_lang = languages.pick(table[key], lang)
+            if any(src in r["files"] for r in paths.SCHEDULED.values()):
+                continue        # not published yet: no page, no mirror
             STATE["content_lang"] = content_lang
             try:
                 meta, sections, preamble = parse(src)
@@ -159,7 +164,8 @@ def build():
     for f in sorted(CONTENT.rglob("*")):
         rel = f.relative_to(CONTENT)
         if f.is_file() and f.suffix != ".md" and not config_file(f.name) \
-                and not any(part.startswith("_") for part in rel.parts):
+                and not any(part.startswith("_") for part in rel.parts) \
+                and not any(r["folder"] in f.parents for r in paths.SCHEDULED.values()):
             out[str(rel)] = f.read_bytes()
     # The theme, then the project's assets/, which win over it by name.
     # config.UNSERVED and UNSERVED_DIRS name the files the build reads and never serves.
