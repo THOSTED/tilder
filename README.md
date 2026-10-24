@@ -109,9 +109,9 @@ and renews the certificates (`examples/compose.yaml` lists every value).
 `content/site.toml` is merged over `builder/defaults.toml`, which lists
 every key with a comment: the site's name and URL, the man-page header and
 footer, the navigation, every label a reader sees (in your language), feed
-and calendar texts, how dates are written, SEO limits, colours of the share
-image, the accent of the coloured text mirror (`[text] accent`), member
-categories. The builder holds no user-facing text.
+and calendar texts, how dates are written, SEO limits and the publisher's
+profiles elsewhere (`[seo] same_as`), colours of the share image, the
+accent of the coloured text mirror (`[text] accent`), member categories. The builder holds no user-facing text.
 
 Three layers: `builder/defaults.toml`, then the theme's `theme.toml` if it
 has one, then `content/site.toml`. A type's own words default from its

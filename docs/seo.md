@@ -27,6 +27,26 @@ Write for people first: a title that says what the page is, a description
 that says why to click. Name what the site is about - its subject, its
 city, its audience - where it is true, not everywhere.
 
+Site-wide, `[seo]` in `content/site.toml` names the publisher of the
+structured data and where else it is found:
+
+```toml
+[seo]
+organization = "My Organisation"
+same_as = [
+  "https://www.linkedin.com/company/my-organisation/",
+  "https://github.com/my-organisation",
+]
+```
+
+`same_as` lists the organisation's official profiles on other sites,
+as absolute `http://` or `https://` URLs; they become the `sameAs` of the
+`Organization` node, which helps search engines tie those profiles to the
+site. Empty by default, and then no `sameAs` is written. Anything else -
+a relative path, another scheme, a value that is not a list - stops the
+build with one error per bad entry. A language's `site.<lang>.toml` may
+set its own list.
+
 ---
 
 ## What the build does
@@ -35,8 +55,8 @@ city, its audience - where it is true, not everywhere.
   landing page, `~/<site>/<title>` elsewhere. Screen readers and search
   engines read "<site>, <title>". Sections are `<h2>`, entries `<h3>`.
 - **Canonical URL** on every page, on the apex, without `.html`.
-- **Structured data** (JSON-LD, `seo.py`): `Organization` and `WebSite` on
-  every page, plus:
+- **Structured data** (JSON-LD, `seo.py`): `Organization` (with `sameAs`
+  when `[seo] same_as` is set) and `WebSite` on every page, plus:
   - `BlogPosting` for posts - headline, dates, author, image;
   - `Event` for events - dates, place, geo when `lat`/`lon` are given,
     status, organiser: what search engines use for event results;
