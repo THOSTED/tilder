@@ -186,6 +186,10 @@ def txt_table(b, ind):
 def txt_blocks(blocks, ind):
     out = []
     for b in blocks:
+        # A {html} block is the page's only; a {html} diagram with a {text}
+        # drawing paired to it shows that drawing here.
+        if b.get("only") == "html" and not (b["k"] == "diagram" and b.get("ascii") is not None):
+            continue
         if out and out[-1] != "":
             out.append("")
         if b["k"] in ("para", "empty"):
@@ -218,8 +222,8 @@ def txt_blocks(blocks, ind):
             for key, label, url in b["items"]:
                 out.extend(wrap(to_ascii(f"{label}: {url}"), ind))
         elif b["k"] == "diagram":
-            # The description, then the author's ASCII drawing (a ```text
-            # block right after the ```d2 one) in a frame without a label,
+            # The description, then the author's ASCII drawing (a {text}
+            # block right after a {html} d2 one) in a frame without a label,
             # else the D2 source in a code frame: D2 is written to be read.
             alt = to_ascii(b["alt"]) or to_ascii(CFG["labels"]["diagram"])
             out.extend(wrap(f"[ {to_ascii(CFG['labels']['diagram'])} ] {alt}", ind))
