@@ -11,25 +11,26 @@ contrast = [
 	["--error", "--bg"], ["--error", "--bg-inset"],
 ]
 
-# Mermaid diagrams (docs/theme.md, "Diagrams"): mermaid.json writes its
-# colours as tokens of style.css; the colours Mermaid still picks itself
-# are folded into tokens here, so a drawing follows the light and the dark
-# scheme like the page.
-[diagrams.fold]
-"#ECECFF" = "--bg"
-"#FFFFFF" = "--bg"
-"#EAEAEA" = "--bg"
-"#F4F4F4" = "--bg-inset"
-"#E8E8E8" = "--bg-inset"
-"#000000" = "--fg"
-"#0C0C0C" = "--fg"
-"#333333" = "--fg"
-"#11172A" = "--fg"
-"#02091C" = "--fg"
-"#9370DB" = "--fg"
-"#552222" = "--fg"
-"#666666" = "--fg-muted"
-"#999999" = "--rule"
-"#CCCCCC" = "--rule"
-"#DDDDDD" = "--rule"
-"#AAAA33" = "--rule"
+# D2 diagrams (docs/theme.md, "Diagrams"): D2's colour codes take the
+# tokens of style.css, so a drawing follows the light and the dark scheme
+# like the page. N: neutrals, from text (N1) to background (N7); B: the
+# shapes' borders (B1) to fills (B6); AA, AB: the accents.
+[diagrams.d2]
+N1 = "--fg"
+N2 = "--fg-muted"
+N3 = "--fg-muted"
+N4 = "--rule"
+N5 = "--bg-inset"
+N6 = "--bg-inset"
+N7 = "--bg"
+B1 = "--fg"
+B2 = "--fg-muted"
+B3 = "--rule"
+B4 = "--bg-inset"
+B5 = "--bg"
+B6 = "--bg"
+AA2 = "--accent"
+AA4 = "--bg-inset"
+AA5 = "--bg"
+AB4 = "--bg-inset"
+AB5 = "--bg"

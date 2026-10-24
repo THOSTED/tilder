@@ -771,18 +771,25 @@ policy that lets them style themselves, never run scripts.
 
 ## Diagrams
 
-A diagram is written in [Mermaid](https://mermaid.js.org/), in the page,
-and drawn at every build: no source file and no SVG sit next to the page,
-nothing generated is committed. The fence names `mermaid`, then the
-description, then, optional and quoted, the caption - the alt text and
-the caption of an image:
+A diagram is written in [D2](https://d2lang.com), in the page, and drawn
+at every build: no source file and no SVG sit next to the page, nothing
+generated is committed. The fence names `d2`, then the description, then,
+optional and quoted, the caption - the alt text and the caption of an
+image:
 
 ````markdown
-```mermaid curl asks the resolver, then connects to the proxy "One request, end to end."
-sequenceDiagram
-  curl->>resolver: example.org, type A?
-  resolver-->>curl: 192.0.2.10
-  curl->>proxy: GET / (HTTPS)
+```d2 curl asks the resolver, then connects to the proxy "One request, end to end."
+shape: sequence_diagram
+curl -> resolver: "example.org, type A?"
+resolver -> curl: "192.0.2.10"
+curl -> proxy: "GET / (HTTPS)"
+```
+
+```text
+  curl            resolver          proxy
+   |-- type A? ---->|                 |
+   |<-- 192.0.2.10 -|                 |
+   |------------ GET / (HTTPS) ------>|
 ```
 ````
 
@@ -794,27 +801,36 @@ sequenceDiagram
   width and height, and the caption. Never inline SVG: the page's CSP
   keeps `<style>` out, and an SVG file may style itself
   (`examples/Caddyfile`).
-- In text: `[ diagram ] description`, the caption, then the Mermaid
-  source in a code frame - Mermaid is written to be read.
-- It follows the theme, light and dark: the theme's `mermaid.json` is
-  Mermaid's configuration, and each colour of the drawing becomes a token
-  of its `style.css`, redefined under `prefers-color-scheme: dark`
-  (`docs/theme.md`, "Diagrams"). Corners are square and shadows dropped,
-  unless the theme says otherwise.
+- It follows the theme, light and dark, in the theme's fonts: the theme
+  maps D2's colours to the tokens of its `style.css`, and D2 writes both
+  schemes into the SVG, under `prefers-color-scheme` (`docs/theme.md`,
+  "Diagrams").
 
-The drawing is the Mermaid CLI's, `mmdc`, an outside tool like
-`rsvg-convert`: tilder's `-mermaid` image has it, with a headless
-Chromium (`ghcr.io/thosted/tilder:<version>-mermaid`); the default image
-does not, to stay small. Without it, the build warns once and the page
-shows the diagram's source, as a code block, with its description as the
-caption: nothing is lost, only drawn. `TILDER_MMDC` names another command.
+**In text**, a terminal cannot show the drawing: the mirror prints
+`[ diagram ] description`, the caption, then
 
-A diagram the CLI cannot draw - a syntax error - stops the build, with
-the CLI's message. A drawing takes about a second; it is cached by its key
-(source, the theme's configuration and palette, its fonts, the CLI's
-version): in memory for `--watch`, in `TILDER_CACHE` when it is set (else
-a folder of the system's temporary directory), and in the previous
-output, so a rebuild into the same `--out` draws only what changed.
+- the **text drawing**, when a ` ```text ` block comes right after the
+  ` ```d2 ` one (blank lines between them are fine, nothing else): an
+  ASCII version of the diagram, drawn by hand, printed verbatim in a code
+  frame without a label. It is never shown on the web page. It must be
+  ASCII, and fit the mirror's frame: **68 columns** for a diagram in a
+  section (75, less the 5 of the section's indent and the 2 inside the
+  frame), 64 inside an entry (`###`). A wider line, or a character that
+  is not ASCII, is a warning; the mirror would cut the line, or fold the
+  character. D2's own text output is not used: it garbles labels and
+  overlaps boxes;
+- else the **D2 source**, in a code frame: D2 is written to be read.
+
+The drawing is the D2 CLI's, `d2`, an outside tool like `rsvg-convert`:
+one static binary, no browser, in tilder's image. Without it, the build
+warns once and the page shows the diagram's source, as a code block,
+with its description as the caption: nothing is lost, only drawn.
+`TILDER_D2` names another command. A diagram D2 cannot draw - a syntax
+error - stops the build, with D2's message and the source's line. A
+drawing takes a few tens of milliseconds; it is cached by its key
+(source, the theme's settings and colours, its fonts, D2's version): in
+memory for `--watch`, in `TILDER_CACHE` when it is set (else a folder of
+the system's temporary directory), and in the previous output.
 
 ---
 
@@ -915,7 +931,7 @@ and documenting it here.
 | ` ```lang ` | `<pre class="code">`, highlighted | verbatim, long lines continued with `\` |
 | `\| a \| b \|` + `\|---\|---\|` | `<table>` in a scrolling wrapper | padded columns, or records |
 | `![alt](file "caption")` alone on a line | `<figure>` + `<img>` | `[ image ] alt`, caption, URL |
-| ` ```mermaid description "caption" ` | `<figure>` + `<img>` of `diagrams/<key>.svg` | `[ diagram ] description`, caption, the source framed |
+| ` ```d2 description "caption" `, and a ` ```text ` drawing right after | `<figure>` + `<img>` of `diagrams/<key>.svg` | `[ diagram ] description`, caption, the text drawing (else the D2 source) framed |
 | `*text*` (whole paragraph, `**text**` too) | `.empty` | plain |
 | `text {small muted}` | `<p class="small muted">` | plain |
 | `<!-- ... -->` | passthrough | skipped |

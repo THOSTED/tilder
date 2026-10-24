@@ -38,7 +38,7 @@ entry point):
     watch.py         polling, rebuild on change and at midnight
     icons.py         the favicon, app icons and share.png, made at every build
     images.py        an image's width and height, read from the file itself
-    diagrams.py      ```mermaid blocks drawn to SVG files (the Mermaid CLI), cached
+    diagrams.py      ```d2 blocks drawn to SVG files (the D2 CLI), cached
     previews.py      a share preview per page, from the theme's share-page.svg, cached
     maps.py          an event's static map, from map tiles fetched at build time, cached
 

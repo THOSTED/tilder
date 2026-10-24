@@ -1,26 +1,26 @@
-"""Mermaid diagrams: a ```mermaid block drawn at build time into an SVG file,
+"""D2 diagrams: a ```d2 block drawn at build time into an SVG file,
 diagrams/<key>.svg at the site root, shown by the page as an <img>.
 
-The drawing is the Mermaid CLI's (`mmdc`, or the command TILDER_MMDC
-names), an outside tool like rsvg-convert: without it, the build warns once
-and the page shows the diagram's source, with its description. The theme
-gives the look:
+The drawing is the D2 CLI's (`d2`, or the command TILDER_D2 names), an
+outside tool like rsvg-convert: a single binary, no browser. Without it,
+the build warns once and the page shows the diagram's source, with its
+description. The theme gives the look, in theme.toml:
 
-    theme/mermaid.json   Mermaid's configuration; a colour may be written
-                         var(--token), a custom property of style.css
-    style.css            the tokens, light and dark
-    [diagrams]           in theme.toml: fold (Mermaid's own colours -> a
-                         token), sharp, shadow
+    [diagrams]       layout (dagre, elk), pad, the font files of fonts/
+    [diagrams.d2]    D2's colour codes (N1..N7, B1..B6, AA2.., AB4..) ->
+                     custom properties of style.css
 
-Mermaid draws with fixed colours. Each colour that is the light value of a
-token becomes var(--token), and the SVG defines the tokens, light and
-under prefers-color-scheme: dark, so the figure follows the reader's
-scheme like the page does. Corners are squared and shadows dropped unless
-the theme says otherwise. Fonts: the theme's fonts/, so labels are measured
-in its typeface.
+Each code takes its token's light value in D2's theme-overrides, and its
+dark value in dark-theme-overrides: D2 writes both into the SVG, under
+prefers-color-scheme, so the figure follows the reader's scheme like the
+page does. The fonts are embedded by D2 itself.
+
+A ```text block right after the ```d2 one is the diagram's drawing for
+the text mirror, never shown on the web page; it must be ASCII and fit
+the mirror (draw_all warns).
 
 A drawing is cached by a key of everything it depends on (source,
-configuration, palette, fonts, the renderer's version): in memory, in
+configuration, colours, fonts, the renderer's version): in memory, in
 TILDER_CACHE (else a folder of the system's temporary directory), and in
 the previous output (--out), so a rebuild draws only what changed.
 """
@@ -33,19 +33,20 @@ import re
 import shutil
 import subprocess
 import tempfile
-import xml.etree.ElementTree as ET
 
-from config import CFG, STATE, THEME, THEME_TOML, theme_file
+from config import CFG, INDENT, STATE, THEME, THEME_TOML, WIDTH, theme_file
 from report import error, warning
 
-VERSION = 1             # of the post-processing below: part of the key
+VERSION = 2             # of the configuration written below: part of the key
 FOLDER = "diagrams"     # where the SVGs land, at the site root
-TIMEOUT = 120           # seconds for one drawing
-SVG = "http://www.w3.org/2000/svg"
+TIMEOUT = 60            # seconds for one drawing
 HEX = re.compile(r"#[0-9A-Fa-f]{6}\b|#[0-9A-Fa-f]{3}\b")
-VAR = re.compile(r"var\(\s*(--[\w-]+)\s*\)")
-ET.register_namespace("", SVG)
-ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+CODE = re.compile(r"^(N[1-7]|B[1-6]|AA[245]|AB[45])$")
+LAYOUTS = ("dagre", "elk")
+FONTS = ("regular", "italic", "bold", "semibold")
+# A drawing for the text mirror sits in a code frame: the section's indent,
+# then two spaces inside the frame; an entry's blocks four columns deeper.
+FRAME_WIDTH = WIDTH - INDENT - 2
 
 MEMORY = {}     # key -> SVG text, for the life of the process (--watch)
 FILES = {}      # this build's drawings: "diagrams/<key>.svg" -> SVG text
@@ -60,8 +61,8 @@ def reset():
 
 
 def command():
-    """The Mermaid CLI's argv prefix, or None when it is not installed."""
-    name = os.environ.get("TILDER_MMDC", "mmdc")
+    """(path, version) of the D2 CLI; path None when it is not installed."""
+    name = os.environ.get("TILDER_D2", "d2")
     if name not in _renderer:
         path = shutil.which(name)
         version = ""
@@ -85,7 +86,7 @@ def _say(key, path, what, hint=""):
 
 def palette():
     """(light, dark): {token: value} of the colour tokens of the theme's
-    style.css, in its order; dark is {} when the theme has no dark scheme."""
+    style.css; dark is {} when the theme has no dark scheme."""
     import themecheck  # it imports config and report, as this module does
     css = theme_file("style.css")
     if not css.is_file():
@@ -98,43 +99,73 @@ def palette():
 
 
 def settings():
-    """[diagrams] of the configuration, checked."""
+    """[diagrams] of the configuration, checked: (layout, pad, {code:
+    token}, {font: path})."""
     conf = CFG.get("diagrams", {})
-    fold = conf.get("fold", {})
-    if not isinstance(fold, dict) or not all(
-            isinstance(k, str) and HEX.fullmatch(k) and isinstance(v, str) and v.startswith("--")
-            for k, v in fold.items()):
-        raise error(THEME_TOML, "[diagrams] fold must map colours to tokens",
-                    'Write fold = { "#ECECFF" = "--bg" }')
-    return {"fold": {_long(k): v for k, v in fold.items()},
-            "sharp": conf.get("sharp", True) is not False,
-            "shadow": conf.get("shadow", False) is True}
+    layout = conf.get("layout", "dagre")
+    if layout not in LAYOUTS:
+        raise error(THEME_TOML, f"[diagrams] layout is {json.dumps(layout)}, not a layout D2 ships",
+                    f"Write one of {', '.join(LAYOUTS)}")
+    pad = conf.get("pad", 16)
+    if not isinstance(pad, int) or isinstance(pad, bool) or pad < 0:
+        raise error(THEME_TOML, f"[diagrams] pad is {pad!r}", "Write a number of pixels, like 16")
+    codes = conf.get("d2", {})
+    if not isinstance(codes, dict) or not all(
+            isinstance(k, str) and CODE.match(k) and isinstance(v, str) and v.startswith("--")
+            for k, v in codes.items()):
+        raise error(THEME_TOML, "[diagrams.d2] must map D2's colour codes to tokens",
+                    'Write N1 = "--fg", with codes N1-N7, B1-B6, AA2, AA4, AA5, AB4, AB5')
+    fonts = {}
+    for name in FONTS:
+        file = conf.get(f"font_{name}", "")
+        if file:
+            path = THEME / "fonts" / file
+            if not path.is_file():
+                raise error(THEME_TOML, f"[diagrams] font_{name} names no file of theme/fonts/: {file}",
+                            "Name a .woff2, .ttf or .otf file of the theme's fonts/")
+            fonts[name] = path
+    if "bold" in fonts:
+        fonts.setdefault("semibold", fonts["bold"])
+    if "regular" in fonts:
+        fonts.setdefault("italic", fonts["regular"])
+    return layout, pad, codes, fonts
 
 
-def mermaid_config(light):
-    """theme/mermaid.json as text, var(--token) replaced by the token's
-    light value; "{}" when the theme has none."""
-    path = theme_file("mermaid.json")
-    if not path.is_file():
-        return "{}", None
-    text = path.read_text()
-    try:
-        json.loads(text)
-    except ValueError as e:
-        raise error(path, f"is not valid JSON: {e}", "Fix the JSON syntax there") from None
-
-    def value(m):
-        if m.group(1) not in light:
-            raise error(path, f"{m.group(0)} names no colour token of style.css",
+def d2_config(layout, pad, codes, light, dark):
+    """The `vars: { d2-config: ... }` block appended to every source: the
+    layout, the padding, theme 0 and its overrides, the dark theme 200 and
+    its overrides when the theme has a dark scheme (D2 applies the dark
+    overrides only with a dark theme)."""
+    for code, token in codes.items():
+        if token not in light:
+            raise error(THEME_TOML, f'[diagrams.d2] {code} = "{token}" names no colour token of style.css',
                         "Use a custom property of :root whose value is a #hex colour")
-        return light[m.group(1)]
-    return VAR.sub(value, text), path
+    lines = ["vars: {", "  d2-config: {", f"    layout-engine: {layout}", f"    pad: {pad}",
+             "    theme-id: 0"]
+    if codes:
+        lines.append("    theme-overrides: {")
+        lines += [f'      {code}: "{light[token]}"' for code, token in codes.items()]
+        lines.append("    }")
+    if dark:
+        lines.append("    dark-theme-id: 200")
+        dark_codes = {c: t for c, t in codes.items() if t in dark}
+        if dark_codes:
+            lines.append("    dark-theme-overrides: {")
+            lines += [f'      {code}: "{dark[token]}"' for code, token in dark_codes.items()]
+            lines.append("    }")
+    return "\n".join(lines + ["  }", "}"]) + "\n"
 
 
-def _fonts():
-    """What the theme's fonts are, for the key: name and size of each."""
-    folder = THEME / "fonts"
-    return [(f.name, f.stat().st_size) for f in sorted(folder.glob("*"))] if folder.is_dir() else []
+def _ttf(path):
+    """A font D2 can read: a .ttf or .otf as it is; a .woff2 decompressed
+    to TTF, as for share.png (images._fontconfig); None without a
+    decompressor."""
+    if path.suffix.lower() in (".ttf", ".otf"):
+        return path
+    from images import _fontconfig
+    _fontconfig()
+    ttf = pathlib.Path(tempfile.gettempdir()) / "site-builder-fonts" / "ttf" / (path.stem + ".ttf")
+    return ttf if ttf.is_file() else None
 
 
 # --- drawing --------------------------------------------------------------------
@@ -144,25 +175,29 @@ def draw(source, src):
     or None when no renderer is installed. `src` is the page, for messages."""
     path, version = command()
     if path is None:
-        _say("none", None, f"no {os.environ.get('TILDER_MMDC', 'mmdc')} (the Mermaid CLI): "
+        _say("none", None, f"no {os.environ.get('TILDER_D2', 'd2')} (the D2 CLI): "
              "diagrams are shown as their source",
-             "Build with tilder's -mermaid image, or install @mermaid-js/mermaid-cli")
+             "Build with tilder's image, or install D2 (https://d2lang.com)")
         return None
     light, dark = palette()
-    look = settings()
-    config, config_path = mermaid_config(light)
-    key = hashlib.sha256(json.dumps(
-        [VERSION, source, config, version, _fonts(), light, dark, look],
-        sort_keys=True).encode()).hexdigest()[:20]
+    layout, pad, codes, fonts = settings()
+    config = d2_config(layout, pad, codes, light, dark)
+    ttfs = {}
+    for name, font in fonts.items():
+        ttf = _ttf(font)
+        if ttf is None:
+            _say(("font", name), THEME_TOML,
+                 f"[diagrams] font_{name} cannot be read without woff2_decompress",
+                 "Install it (tilder's image has it), or name a .ttf file: D2 draws with its own font")
+        else:
+            ttfs[name] = ttf
+    fonts_key = sorted((n, p.name, p.stat().st_size) for n, p in ttfs.items())
+    key = hashlib.sha256(json.dumps([VERSION, source, config, version, fonts_key],
+                                    sort_keys=True).encode()).hexdigest()[:20]
     name = f"{FOLDER}/{key}.svg"
     svg = MEMORY.get(key) or _cached(key, name)
     if svg is None:
-        raw = _render(path, source, config, src)
-        svg, unknown = fit(raw, light, dark, look)
-        if unknown and config_path is not None:
-            _say(("colours", tuple(unknown)), config_path,
-                 f"diagram colours left as they are: {' '.join(unknown)}",
-                 f"Map each to a token under [diagrams] fold in {THEME_TOML.name}")
+        svg = _sized(_render(path, source, config, ttfs, src))
         _store(key, svg)
     MEMORY[key] = svg
     FILES[name] = svg
@@ -171,8 +206,8 @@ def draw(source, src):
 
 def _cache_dir():
     if os.environ.get("TILDER_CACHE"):
-        return pathlib.Path(os.environ["TILDER_CACHE"]) / "mermaid"
-    return pathlib.Path(tempfile.gettempdir()) / "tilder-mermaid"
+        return pathlib.Path(os.environ["TILDER_CACHE"]) / "diagrams"
+    return pathlib.Path(tempfile.gettempdir()) / "tilder-diagrams"
 
 
 def _cached(key, name):
@@ -200,149 +235,88 @@ def _store(key, svg):
         pass        # a read-only cache: the memory one still serves --watch
 
 
-def _render(path, source, config, src):
-    """The Mermaid CLI's SVG for `source`, as text."""
-    from images import _fontconfig  # the theme's fonts, as TTF, for fontconfig
+def _render(path, source, config, ttfs, src):
+    """The D2 CLI's SVG for `source`, as text. The configuration goes after
+    the source, so the line numbers of D2's messages are the source's."""
     with tempfile.TemporaryDirectory() as tmp:
         d = pathlib.Path(tmp)
-        (d / "in.mmd").write_text(source)
-        (d / "config.json").write_text(config)
-        # A container has no user namespace for Chromium's sandbox; the
-        # page drawn is the site's own source, never a visitor's.
-        (d / "puppeteer.json").write_text(json.dumps({"args": ["--no-sandbox", "--disable-gpu"]}))
-        env = dict(os.environ, FONTCONFIG_FILE=_fontconfig())
-        env.setdefault("HOME", tmp)
-        cmd = [path, "-q", "-i", str(d / "in.mmd"), "-o", str(d / "out.svg"),
-               "-c", str(d / "config.json"), "-p", str(d / "puppeteer.json"), "-b", "transparent"]
+        (d / "diagram.d2").write_text(source.rstrip("\n") + "\n\n" + config)
+        cmd = [path]
+        for name, ttf in ttfs.items():
+            cmd += [f"--font-{name}", str(ttf)]
+        cmd += [str(d / "diagram.d2"), str(d / "diagram.svg")]
         try:
-            run = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=TIMEOUT)
+            run = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT,
+                                 env=dict(os.environ, HOME=os.environ.get("HOME") or tmp))
         except subprocess.TimeoutExpired:
-            raise error(src, f"a mermaid diagram took more than {TIMEOUT} s to draw",
-                        "Simplify it, or check that the Mermaid CLI runs") from None
-        out = d / "out.svg"
+            raise error(src, f"a d2 diagram took more than {TIMEOUT} s to draw",
+                        "Simplify it, or check that the D2 CLI runs") from None
+        out = d / "diagram.svg"
         if run.returncode != 0 or not out.is_file():
             lines = [l.strip() for l in (run.stderr or run.stdout).splitlines() if l.strip()]
-            said = next((l for l in lines if "rror" in l), lines[0] if lines else "no output")
-            raise error(src, f"a mermaid diagram cannot be drawn: {said}",
-                        "Fix its source (the syntax: https://mermaid.js.org/)")
+            said = next((l for l in lines if "err" in l.lower()), lines[0] if lines else "no output")
+            said = re.sub(r"^err:\s*", "", said)
+            said = re.sub(r"failed to compile \S+: ", "", said)
+            said = said.replace(str(d / "diagram.d2") + ":", "line ").replace(str(d) + "/", "")
+            raise error(src, f"a d2 diagram cannot be drawn: {said}",
+                        "Fix its source (the syntax: https://d2lang.com/tour/intro)")
         return out.read_text()
 
 
-# --- fitting the drawing to the theme -------------------------------------------
-
-def fit(raw, light, dark, look):
-    """(svg, unknown): Mermaid's SVG with its colours as tokens, its size
-    fixed, corners squared and shadows dropped as the theme says; the
-    colours no token matched."""
-    lookup = {}
-    for name, value in light.items():
-        lookup.setdefault(_long(value), name)
-    lookup.update({k: v for k, v in look["fold"].items() if v in light})
-    used, unknown = set(), set()
-
-    def var(m):
-        name = lookup.get(_long(m.group(0)))
-        if name is None:
-            if light:
-                unknown.add(m.group(0).upper())
-            return m.group(0)
-        used.add(name)
-        return f"var({name})"
-
-    root = ET.fromstring(raw)
-    for el in list(root.iter()):
-        tag = el.tag.split("}")[-1]
-        # A presentation attribute cannot hold var(): the colour moves to style.
-        moved = []
-        for attr in ("fill", "stroke", "stop-color", "color", "flood-color"):
-            value = el.get(attr)
-            if value and HEX.fullmatch(value.strip()):
-                moved.append(f"{attr}:{HEX.sub(var, value.strip())}")
-                del el.attrib[attr]
-        style = HEX.sub(var, el.get("style", ""))
-        if moved:
-            style = ";".join(moved) + (";" + style if style else "")
-        if style:
-            el.set("style", style)
-        if look["sharp"]:
-            for attr in ("rx", "ry"):
-                if attr in el.attrib:
-                    el.set(attr, "0")
-        if not look["shadow"]:
-            el.attrib.pop("filter", None)
-        if tag == "style" and el.text:
-            text = HEX.sub(var, el.text)
-            if look["sharp"]:
-                text = re.sub(r"\b(rx|ry)\s*:\s*[^;}]+", r"\1:0", text)
-            if not look["shadow"]:
-                text = re.sub(r"filter\s*:\s*[^;}]+;?", "", text)
-            el.text = text
-    if not look["shadow"]:
-        for parent in list(root.iter()):
-            for child in list(parent):
-                if child.tag.split("}")[-1] == "filter":
-                    parent.remove(child)
-    _size(root)
-    if used:
-        names = [n for n in light if n in used]
-        css = ":root{" + ";".join(f"{n}:{light[n]}" for n in names) + "}"
-        if any(n in dark for n in names):
-            css += ("@media (prefers-color-scheme: dark){:root{"
-                    + ";".join(f"{n}:{dark[n]}" for n in names if n in dark) + "}}")
-        style = ET.Element(f"{{{SVG}}}style")
-        style.text = css
-        root.insert(0, style)
-    return ET.tostring(root, encoding="unicode") + "\n", sorted(unknown)
-
-
-def _long(colour):
-    """#abc -> #AABBCC; #aabbcc -> #AABBCC."""
-    c = colour.upper()
-    return "#" + "".join(ch * 2 for ch in c[1:]) if len(c) == 4 else c
-
-
-def _size(root):
-    """The drawing at its natural size: width and height from the viewBox,
-    instead of Mermaid's width="100%" and max-width, so the page can write
-    them on the <img> and never stretch it."""
-    box = root.get("viewBox", "").replace(",", " ").split()
-    if len(box) != 4:
-        return
-    try:
-        w, h = float(box[2]), float(box[3])
-    except ValueError:
-        return
-    root.set("width", f"{w:g}")
-    root.set("height", f"{h:g}")
-    style = re.sub(r"max-width\s*:\s*[^;]+;?\s*", "", root.get("style", "")).strip()
-    if style:
-        root.set("style", style)
-    else:
-        root.attrib.pop("style", None)
+def _sized(svg):
+    """The drawing at its natural size: D2's outer <svg> has a viewBox but
+    no width and height; they are written from it, so the page can give
+    the <img> its size and never stretch it."""
+    m = re.search(r"<svg\b[^>]*>", svg)
+    if not m or re.search(r'\swidth="', m.group(0)):
+        return svg
+    box = re.search(r'viewBox="([-\d.]+)[ ,]+([-\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)"', m.group(0))
+    if not box:
+        return svg
+    w, h = float(box.group(3)), float(box.group(4))
+    tag = m.group(0)[:-1].rstrip("/") + f' width="{w:g}" height="{h:g}">'
+    return svg[:m.start()] + tag + svg[m.end():]
 
 
 def size(name):
     """(width, height) of a drawing of this build, rounded."""
-    m = re.search(r'<svg[^>]*\swidth="([\d.]+)"[^>]*\sheight="([\d.]+)"', FILES.get(name, ""))
-    return (round(float(m.group(1))), round(float(m.group(2)))) if m else None
+    m = re.search(r"<svg\b[^>]*>", FILES.get(name, ""))
+    if not m:
+        return None
+    w = re.search(r'\swidth="([\d.]+)"', m.group(0))
+    h = re.search(r'\sheight="([\d.]+)"', m.group(0))
+    return (round(float(w.group(1))), round(float(h.group(1)))) if w and h else None
 
 
 # --- the pages' diagram blocks ---------------------------------------------------
 
-def draw_all(nodes, src):
+def draw_all(nodes, src, width=FRAME_WIDTH):
     """Draw every diagram block of a page; warn once about one without a
-    description. Each block gets "svg": its path, or None."""
+    description, and about a text drawing that is not ASCII or wider than
+    the mirror holds at its place (`width`: an entry's blocks sit four
+    columns deeper). Each block gets "svg": its path, or None."""
     for n in nodes:
         if n["k"] == "diagram":
+            source = "\n".join(n["lines"]) + "\n"
             if not n["alt"].strip():
-                _say(("alt", str(src), "\n".join(n["lines"])), src,
-                     "a mermaid diagram without a description",
-                     'Describe it after the word mermaid: ```mermaid What the diagram shows')
-            n["svg"] = draw("\n".join(n["lines"]) + "\n", src)
-        draw_all(n.get("blocks", []), src)
+                _say(("alt", str(src), source), src, "a d2 diagram without a description",
+                     "Describe it after the word d2: ```d2 What the diagram shows")
+            for i, line in enumerate(n.get("ascii") or [], 1):
+                if any(ord(c) > 127 for c in line):
+                    _say(("ascii", str(src), source, i), src,
+                         f"the text drawing of a d2 diagram has a character that is not ASCII, "
+                         f"line {i}: {line.strip()!r}",
+                         "Draw it with ASCII only: the text mirror is ASCII")
+                wide = len(line.expandtabs(4).rstrip())
+                if wide > width:
+                    _say(("wide", str(src), source, i), src,
+                         f"the text drawing of a d2 diagram is {wide} columns wide, line {i}; "
+                         f"the text mirror holds {width} there",
+                         f"Draw it in {width} columns or fewer")
+            n["svg"] = draw(source, src)
+        draw_all(n.get("blocks", []), src, width - 4 if n["k"] == "entry" else width)
 
 
 def outputs():
     """{path: SVG text} of this build's drawings."""
     return dict(FILES)
-

@@ -145,7 +145,7 @@ def html_diagram(b, res):
     code = H.escape("\n".join(b["lines"]), quote=False)
     text = " ".join(t for t in (H.escape(b["alt"]), caption) if t)
     figcaption = f"<figcaption>{text}</figcaption>" if text else ""
-    return (f'<figure class="figure"><pre class="code" data-lang="mermaid" tabindex="0">'
+    return (f'<figure class="figure"><pre class="code" data-lang="d2" tabindex="0">'
             f'<code>{code}</code></pre>{figcaption}</figure>')
 
 
