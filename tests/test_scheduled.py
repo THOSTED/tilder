@@ -6,6 +6,7 @@ to a scheduled post is a warning. Each build runs on an edited copy of
 the fixture in a subprocess, since config reads its paths at import."""
 
 import os
+from tests import site_warnings
 import pathlib
 import shutil
 import subprocess
@@ -101,7 +102,7 @@ class Scheduled(unittest.TestCase):
         self.assertRegex(self.run_.stdout, r"blog \(post, \d+ items, 2 scheduled\)")
 
     def test_no_warning_without_a_link(self):
-        self.assertNotIn("warning:", self.run_.stderr)
+        self.assertEqual(site_warnings(self.run_.stderr), [], self.run_.stderr)
 
     def test_on_its_date_it_is_published_everywhere(self):
         run, out = build(today="2026-07-01")
@@ -147,7 +148,7 @@ class Links(unittest.TestCase):
                 f"the link is broken until then. Remove the link, or publish the item earlier "
                 f"(its date, or scheduled = false under [collections.blog])\n")
         self.assertIn(line, run.stderr)
-        self.assertEqual(run.stderr.count("warning:"), 1, run.stderr)
+        self.assertEqual(len(site_warnings(run.stderr)), 1, run.stderr)
         self.assertNotIn(f"{LATER}.html", out)
 
     def test_a_link_to_a_file_of_its_folder_warns(self):
