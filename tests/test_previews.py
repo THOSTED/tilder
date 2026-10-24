@@ -38,8 +38,7 @@ TEMPLATE = ('<svg xmlns="http://www.w3.org/2000/svg" id="page-template">'
             "<t n='man'>{{ man }}</t><t n='path'>{{ path }}</t><t n='url'>{{ url }}</t>"
             "<t n='title_1'>{{ title_1 }}</t><t n='title_2'>{{ title_2 }}</t>"
             "<t n='shift'>{{ title_shift }}</t><t n='detail_1'>{{ detail_1 }}</t>"
-            "<t n='detail_2'>{{ detail_2 }}</t><t n='tag'>{{ tag }}</t>"
-            "<t n='tag_width'>{{ tag_width }}</t><t n='tag_display'>{{ tag_display }}</t>"
+            "<t n='detail_2'>{{ detail_2 }}</t><t n='tags'>{{ tags }}</t>"
             "<t n='wordmark'>{{ wordmark }}</t><t n='bg'>{{ share.background_color }}</t></svg>")
 
 
@@ -131,9 +130,9 @@ class Pages(unittest.TestCase):
         c = self.card("Hello")
         self.assertEqual(c["man"], "SITE-BLOG(7)")    # the collection's man
         self.assertEqual((c["path"], c["url"]), ("/blog", "test.example/blog"))
-        self.assertEqual(c["tag"], "note")
-        self.assertEqual(c["tag_display"], "inline")
-        self.assertEqual(c["tag_width"], f"{4 * 14.4 + 32:g}")
+        self.assertEqual(c["tags"], f'<rect x="0" y="0" width="{4 * 14.4 + 32:g}" height="48" fill="none" '
+                                    'stroke="currentColor" stroke-width="2"/>'
+                                    '<text x="16" y="33" fill="currentColor">note</text>')
         self.assertEqual(c["detail_2"], "Ada Lovelace")       # the author
         self.assertEqual(c["title_2"], "")
         self.assertEqual(c["shift"], "-68")                   # one title line unused
@@ -147,7 +146,7 @@ class Pages(unittest.TestCase):
         c = self.card("Future meetup")
         self.assertEqual(c["path"], "/events")
         self.assertEqual(c["detail_2"], "Library, Springfield")
-        self.assertEqual((c["tag"], c["tag_display"]), ("", "none"))
+        self.assertEqual(c["tags"], "")
 
     def test_the_landing_page_keeps_the_site_card(self):
         meta, _ = head(self.files, "index.html")
@@ -165,6 +164,51 @@ class Pages(unittest.TestCase):
 
     def test_templates_are_not_served(self):
         self.assertNotIn("share-page.svg", self.files)
+
+
+class Tags(unittest.TestCase):
+    def setUp(self):
+        import config
+        self.saved = dict(config.CFG.get("share", {}))
+        config.CFG.setdefault("share", {}).update(
+            tag_advance=10, tag_padding=5, tag_height=40, tag_baseline=28, tag_gap=10,
+            tag_line_gap=10, tag_room=200)
+
+    def tearDown(self):
+        import config
+        config.CFG["share"].clear()
+        config.CFG["share"].update(self.saved)
+
+    def boxes(self, tags, lines):
+        svg, shown = previews.tag_boxes(tags, lines)
+        rects = [tuple(float(v) for v in r) for r in
+                 re.findall(r'<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"', svg)]
+        return rects, shown, re.findall(r'fill="currentColor">(.*?)</text>', svg)
+
+    def test_the_list(self):
+        self.assertEqual(previews.tag_list({"tag": "note", "share_tags": " stand,  atelier technique ,note,"}),
+                         ["note", "stand", "atelier technique"])
+        self.assertEqual(previews.tag_list({}), [])
+
+    def test_side_by_side_then_a_second_line(self):
+        rects, shown, _ = self.boxes(["aaaa", "bbbbbbbb", "cccccccccc"], 2)
+        # widths 50, 90, 110 in 200 px: two on the first line, the third below
+        self.assertEqual(rects, [(0, 0, 50), (60, 0, 90), (0, 50, 110)])
+        self.assertEqual(shown, ["aaaa", "bbbbbbbb", "cccccccccc"])
+
+    def test_what_does_not_fit_is_dropped_never_overflows(self):
+        rects, shown, _ = self.boxes(["aaaa", "bbbbbbbb", "cccccccccc", "d"], 1)
+        self.assertEqual(shown, ["aaaa", "bbbbbbbb"])
+        self.assertTrue(all(x + w <= 200 for x, _, w in rects))
+
+    def test_a_tag_longer_than_a_line_is_cut(self):
+        rects, _, texts = self.boxes(["x" * 40], 1)
+        self.assertEqual(texts, ["x" * 16 + "..."])
+        self.assertLessEqual(rects[0][2], 200)
+
+    def test_text_is_escaped(self):
+        _, _, texts = self.boxes(["a<b>&c"], 1)
+        self.assertEqual(texts, ["a&lt;b&gt;&amp;c"])
 
 
 class Choices(unittest.TestCase):
@@ -185,6 +229,19 @@ class Choices(unittest.TestCase):
         run, _, cards = build(with_template, title)
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertTrue(any(c["title_1"] == "A &lt;b&gt; &amp; &quot;c&quot;" for c in cards), cards)
+
+    def test_share_tags_and_share_detail(self):
+        def tags(site):
+            p = site / "content" / "events" / "2099-01-01-future-meetup.md"
+            p.write_text(p.read_text().replace("title: Future meetup\n", "title: Future meetup\n"
+                                               "share_tags: stand all day, workshop\nshare_detail: Downtown\n", 1))
+        run, files, cards = build(with_template, tags)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        c = next(c for c in cards if c["title_1"] == "Future meetup")
+        self.assertEqual(re.findall(r'fill="currentColor">(.*?)</text>', c["tags"]), ["stand all day", "workshop"])
+        self.assertEqual(c["detail_2"], "Downtown")
+        meta, _ = head(files, "events/2099-01-01-future-meetup.html")
+        self.assertTrue(meta["og:image:alt"].endswith(" - Downtown - stand all day - workshop"))
 
     def test_a_type_template_wins_over_the_page_one(self):
         run, _, cards = build(with_template,

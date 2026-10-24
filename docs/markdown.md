@@ -155,6 +155,8 @@ line. Values are plain text, not quoted.
 | `text` | no | `text: no` skips the text mirror for this page (the 404 does). |
 | `image` | no | Preview image for link sharing, relative to the page's folder. Default: the page's own card, drawn from the theme's `share-page.svg`, else `share.image`. |
 | `share_title` | no | The title on the page's drawn card, when `title` is too long for it. |
+| `share_detail` | no | The card's second detail line, instead of an event's `place` or a post's `author`. |
+| `share_tags` | no | Tags on the card only, comma-separated: `share_tags: stand all day, workshop`. A post's `tag` comes first. |
 | `group` | no | In a collection: the item's group in the theme's collection sidebar (`docs/types.md`). |
 
 \* Items of a collection (posts, events) may leave `man`, `nav` and

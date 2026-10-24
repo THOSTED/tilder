@@ -144,16 +144,20 @@ page's own:
 | `{{ title_1 }}`, `{{ title_2 }}` (`{{ title_3 }}`...) | the page's `share_title:`, else its `title`, wrapped on `[share] title_lines` lines of `title_columns` characters |
 | `{{ title_shift }}` | `-title_line_height` times the title lines left empty: a `translate` for what follows the title, so it moves up under a short title |
 | `{{ detail_1 }}` | the page's `tagline` (a post's or an event's default: its date in words) |
-| `{{ detail_2 }}` | an event's `place`, else a post's `author` |
-| `{{ tag }}` | the page's `tag` |
-| `{{ tag_width }}` | the width of a box around the tag: its characters times `[share] tag_advance`, plus `tag_padding` on each side |
-| `{{ tag_display }}` | `inline`, or `none` when the page has no tag: for `display=` on the tag's group |
+| `{{ detail_2 }}` | the page's `share_detail:`, else an event's `place`, else a post's `author` |
+| `{{ tags }}` | SVG: the post's `tag`, then the page's `share_tags:` (comma-separated), each in an outlined box, laid out from (0, 0) - place them with a `transform` on the enclosing group, which also gives the font and, as `color`, the colour (boxes and text draw in `currentColor`) |
 
 Text is fitted by **character count**, so the template is meant for a
 monospace face: lines break at spaces, a word longer than a line is
 split, and the last line that does not fit is cut, with `...` (three
-dots, never the ellipsis character). Each detail line, and the tag, is
-cut at `[share] detail_columns`. Set the columns in `theme.toml` for the
+dots, never the ellipsis character). Each detail line is cut at
+`[share] detail_columns`. Tags go left to right, as many on a line as
+`tag_room` pixels hold (a box is its characters times `tag_advance`, plus
+`tag_padding` on each side; `tag_gap` between two), on up to `tag_lines`
+lines - a second line only when the title leaves its second line empty,
+the room `{{ title_shift }}` gives back. A tag longer than a line is cut
+with `...`; a tag that no longer fits is left out, with the ones after
+it: a card never overflows. Set the columns in `theme.toml` for the
 font sizes the template uses (at 0.6 em per character, a 60px title in
 832px holds 23).
 
@@ -163,9 +167,15 @@ font sizes the template uses (at 0.6 em per character, a 60px title in
 | `title_columns` | `23` | characters per title line |
 | `title_lines` | `2` | title lines |
 | `title_line_height` | `68` | the step of `{{ title_shift }}` |
-| `detail_columns` | `48` | characters per detail line, and of the tag |
-| `tag_advance` | `14.4` | px per character of the tag |
-| `tag_padding` | `16` | px on each side of the tag |
+| `detail_columns` | `48` | characters per detail line |
+| `tag_advance` | `14.4` | px per character of a tag |
+| `tag_padding` | `16` | px inside a box, on each side of its text |
+| `tag_height` | `48` | px, a box |
+| `tag_baseline` | `33` | px from a box's top to its text's baseline |
+| `tag_gap` | `14` | px between two boxes |
+| `tag_line_gap` | `12` | px between two lines of boxes |
+| `tag_lines` | `2` | lines of boxes, at most |
+| `tag_room` | `830` | px, the width of a line of boxes |
 
 The cards are drawn by the rasteriser of `share.png` (`rsvg-convert`,
 with the theme's fonts), and cached like diagrams: in memory for

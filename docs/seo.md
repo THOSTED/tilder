@@ -17,6 +17,8 @@ Everything a search engine shows comes from a page's front matter:
 | `image` | the share preview (`og:image`) | 1200x630 PNG or JPEG, relative to the page's folder |
 | `image_alt` | `og:image:alt` | what the image shows |
 | `share_title` | the title on the page's drawn preview (`previews/`) | a shorter title, when `title` would be cut there |
+| `share_detail` | the preview's second detail line, instead of an event's `place` or a post's `author` | a short place: `Library · Downtown` |
+| `share_tags` | tags on the preview, each in a box, after a post's `tag`: `share_tags: stand all day, workshop` | a few words each, comma-separated; on the preview only |
 | `updated` | `<lastmod>` in `sitemap.xml`, `dateModified` of a post | set it when a page changes in substance |
 | `robots` | `<meta name="robots">` | `noindex` for a page that must stay out of results |
 

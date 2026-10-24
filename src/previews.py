@@ -104,6 +104,46 @@ def path_of(item):
     return "/" + p if p and p != "index" else ""
 
 
+def tag_list(meta):
+    """The page's tags for its card: a post's `tag`, then `share_tags`,
+    comma-separated, each once."""
+    out = []
+    for t in [meta.get("tag", "")] + str(meta.get("share_tags", "")).split(","):
+        t = " ".join(str(t).split())
+        if t and t not in out:
+            out.append(t)
+    return out
+
+
+def tag_boxes(tags, lines):
+    """(SVG fragment, tags shown): each tag in an outlined box, laid out
+    left to right on at most `lines` lines of [share] tag_room pixels,
+    measured by character count. A tag longer than a line is cut with
+    "..."; a tag that no longer fits is dropped, with all after it. The
+    boxes draw in currentColor: the template's group gives the colour, the
+    font and the place."""
+    conf = CFG["share"]
+    adv, pad, room = conf["tag_advance"], conf["tag_padding"], conf["tag_room"]
+    height, gap, line_gap = conf["tag_height"], conf["tag_gap"], conf["tag_line_gap"]
+    most = max(int((room - 2 * pad) // adv), 1)
+    parts, shown, x, line = [], [], 0.0, 0
+    for tag in tags:
+        text = cut(tag, most)
+        width = len(text) * adv + 2 * pad
+        if x and x + width > room:
+            line, x = line + 1, 0.0
+        if line >= lines:
+            break
+        y = line * (height + line_gap)
+        parts.append(f'<rect x="{x:g}" y="{y:g}" width="{width:g}" height="{height:g}" fill="none" '
+                     f'stroke="currentColor" stroke-width="2"/>'
+                     f'<text x="{x + pad:g}" y="{y + conf["tag_baseline"]:g}" fill="currentColor">'
+                     f"{H.escape(text)}</text>")
+        shown.append(tag)
+        x += width + gap
+    return "".join(parts), shown
+
+
 def fields(item, logo):
     """{placeholder: XML-escaped value} for the page's template."""
     meta, conf = item["meta"], CFG["share"]
@@ -111,12 +151,13 @@ def fields(item, logo):
                  conf["title_columns"], conf["title_lines"])
     used = sum(1 for t in title if t)
     details = [meta.get("tagline", "") or (human_date(item["date"]) if item.get("date") else ""),
-               meta.get("place", "") or meta.get("author", "")]
+               meta.get("share_detail", "") or meta.get("place", "") or meta.get("author", "")]
     if not details[0]:
         details = [details[1], ""]
     said = [d for d in details if d]   # in full, for the alt text
     details = [cut(d, conf["detail_columns"]) for d in details]
-    tag = cut(meta.get("tag", ""), conf["detail_columns"])
+    # A second line of tags only where the title leaves a line empty.
+    boxes, shown = tag_boxes(tag_list(meta), min(conf["tag_lines"], 1 + conf["title_lines"] - max(used, 1)))
     path = path_of(item)
     domain = urlparse(CFG["site"]["url"]).netloc
     # The address of that place, in the page's language: example.org/fr/events.
@@ -136,14 +177,12 @@ def fields(item, logo):
         "title_shift": str(-(conf["title_lines"] - max(used, 1)) * conf["title_line_height"]),
         "detail_1": details[0],
         "detail_2": details[1],
-        "tag": tag,
-        "tag_width": f"{len(tag) * conf['tag_advance'] + 2 * conf['tag_padding']:g}",
-        "tag_display": "inline" if tag else "none",
     }
     alt = " - ".join(x for x in (f"~/{values['wordmark']}{path}",
                                   meta.get("share_title") or meta.get("title", ""),
-                                  *said, meta.get("tag", "")) if x)
+                                  *said, *shown) if x)
     out = {k: (v if k == "logo" else H.escape(v)) for k, v in values.items()}
+    out["tags"] = boxes         # SVG, its text escaped
     return out, alt
 
 

@@ -100,9 +100,17 @@ pages = true
 title_columns = 23                  # characters per title line
 title_lines = 2
 title_line_height = 68              # {{ title_shift }}: this, per unused title line
-detail_columns = 48                 # characters per detail line, and of the tag
-tag_advance = 14.4                  # {{ tag_width }}: px per character of the tag...
-tag_padding = 16                    # ...plus this on each side
+detail_columns = 48                 # characters per detail line
+# {{ tags }}: the post's tag and the page's share_tags, each in a box, on
+# tag_lines lines of tag_room px (a second only under a one-line title).
+tag_advance = 14.4                  # px per character of a tag
+tag_padding = 16                    # px inside the box, on each side of the text
+tag_height = 48                     # px, a box
+tag_baseline = 33                   # px, from a box's top to its text's baseline
+tag_gap = 14                        # px between two boxes
+tag_line_gap = 12                   # px between two lines of boxes
+tag_lines = 2
+tag_room = 830                      # px, the width of a line of boxes
 
 # Collections: a folder under content/ whose files are items of one type.
 # A site declares its own as [collections.<name>]: a `type` (page, post,
