@@ -43,7 +43,7 @@ DATED = re.compile(r"^(\d{4}-\d{2}-\d{2})-[a-z0-9-]+$")
 
 # Files of the theme (and of assets/, which may override them) read by the
 # build and never served.
-UNSERVED = ("layout.html", "share.svg", "theme.toml")
+UNSERVED = ("layout.html", "share.svg", "theme.toml", "mermaid.json")
 UNSERVED_DIRS = ("icons/", "layouts/", "types/")
 # site.toml, theme.toml and their per-language twins (site.fr.toml).
 CONFIG_FILE = re.compile(r"^(site|theme)(\.[^.]+)?\.toml$")

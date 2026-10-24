@@ -6,6 +6,7 @@ import re
 import struct
 import sys
 
+import diagrams
 import highlight
 import inline
 import languages
@@ -131,6 +132,23 @@ def html_image(b, res):
             f'{size} loading="lazy" decoding="async">{caption}</figure>')
 
 
+def html_diagram(b, res):
+    """A drawn diagram is an image: its SVG file, never inline (the CSP
+    keeps <style> out of pages; an SVG file may style itself). Without a
+    drawing, its source as a code block, the description as the caption."""
+    caption = inline.to_html(b["caption"], res) if b["caption"] else ""
+    if b.get("svg"):
+        size = "".join(f' width="{w}" height="{h}"' for w, h in [diagrams.size(b["svg"]) or (0, 0)] if w)
+        figcaption = f"<figcaption>{caption}</figcaption>" if caption else ""
+        return (f'<figure class="figure"><img src="{H.escape(res("/" + b["svg"]))}" '
+                f'alt="{H.escape(b["alt"])}"{size} loading="lazy" decoding="async">{figcaption}</figure>')
+    code = H.escape("\n".join(b["lines"]), quote=False)
+    text = " ".join(t for t in (H.escape(b["alt"]), caption) if t)
+    figcaption = f"<figcaption>{text}</figcaption>" if text else ""
+    return (f'<figure class="figure"><pre class="code" data-lang="mermaid" tabindex="0">'
+            f'<code>{code}</code></pre>{figcaption}</figure>')
+
+
 def html_table(b, res, ind):
     """Wrapped so a wide table scrolls on its own instead of the page."""
     label = H.escape(CFG["labels"]["table"])
@@ -177,6 +195,8 @@ def html_blocks(blocks, res, entry_cls=(), ind="\t\t"):
             out.extend(html_table(b, res, ind))
         elif b["k"] == "image":
             out.append(ind + html_image(b, res))
+        elif b["k"] == "diagram":
+            out.append(ind + html_diagram(b, res))
         elif b["k"] == "toc":
             out.extend(html_toc(b, ind))
         elif b["k"] == "profiles":
@@ -223,7 +243,9 @@ def fill(template, computed, meta, path):
 
 
 def has_code(nodes):
-    return any(n["k"] == "code" or has_code(n.get("blocks", [])) for n in nodes)
+    """A code block, or a diagram shown as its source."""
+    return any(n["k"] == "code" or (n["k"] == "diagram" and not n.get("svg"))
+               or has_code(n.get("blocks", [])) for n in nodes)
 
 
 def switcher(item, res):

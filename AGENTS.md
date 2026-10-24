@@ -38,7 +38,9 @@ content format; `docs/seo.md` is what the build does for search engines.
 2. **Python's standard library only.** No `pip install`, no npm, no
    framework, no preprocessor. The only outside tools are optional and used
    for images: `rsvg-convert` and `woff2_decompress` (the `Dockerfile` has
-   them), else ImageMagick, else the images are skipped with a warning.
+   them), else ImageMagick, else the images are skipped with a warning;
+   and the Mermaid CLI, `mmdc`, for diagrams (the `Dockerfile`'s `mermaid`
+   target), else a diagram is shown as its source, with a warning.
 3. **Nothing generated is committed**, here or in a site: pages, mirrors,
    feeds, icons, `share.png` are made at every build.
 4. **Two renderings per construct.** A Markdown construct is not done until
@@ -83,6 +85,7 @@ src/
   feeds.py        RSS and iCalendar
   icons.py        icons and share.png from the site's assets/logo.svg
   images.py       image sizes, rasterising, .ico packing
+  diagrams.py     ```mermaid blocks -> SVG files (the Mermaid CLI), themed, cached
   paths.py, fold.py, watch.py
 types/          the built-in content types, one module each - no
                 `__init__.py`, ever: the folder must not become a package
@@ -91,7 +94,7 @@ docs/           markdown.md (the format), theme.md (the theme contract),
 starter/        a minimal site to copy: content/, assets/, theme/ (a minimal theme)
 examples/       Caddyfile, compose.yaml: serving a site
 tests/          the suite: `python3 -m unittest discover -s tests -t . -v`
-Dockerfile      Python + rsvg-convert + woff2_decompress
+Dockerfile      Python + rsvg-convert + woff2_decompress; target mermaid adds mmdc + Chromium
 ```
 
 The root holds what a visitor looks for; code goes in `src/`. One concern

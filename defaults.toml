@@ -26,6 +26,7 @@ info = "INFO"
 warning = "WARNING"
 error = "ERROR"
 image = "image"                     # text mirror: [ image ] alt text
+diagram = "diagram"                 # text mirror: [ diagram ] description
 task_done = "done"                  # task lists, read by screen readers
 task_todo = "to do"
 to_top = "↑ back to top"
@@ -65,6 +66,16 @@ robots = "index, follow, max-image-preview:large"
 title_max = 60                      # build warnings past these limits
 description_min = 50
 description_max = 160
+
+# Mermaid diagrams (```mermaid blocks), drawn at build time by the Mermaid
+# CLI with the theme's mermaid.json; usually set by a theme, in theme.toml.
+# Each colour of a drawing that is the light value of a style.css token
+# becomes that token, light and dark; fold maps Mermaid's own colours to
+# tokens too: { "#ECECFF" = "--bg" }.
+[diagrams]
+fold = {}
+sharp = true                        # square corners (rx, ry = 0)
+shadow = false                      # drop Mermaid's drop shadows
 
 # Link previews and icons. The PNG and ICO files are made from assets/logo.svg
 # at every build; share.png from the theme's share.svg, filled from here.

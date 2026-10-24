@@ -10,3 +10,26 @@ contrast = [
 	["--warn", "--bg"], ["--warn", "--bg-inset"],
 	["--error", "--bg"], ["--error", "--bg-inset"],
 ]
+
+# Mermaid diagrams (docs/theme.md, "Diagrams"): mermaid.json writes its
+# colours as tokens of style.css; the colours Mermaid still picks itself
+# are folded into tokens here, so a drawing follows the light and the dark
+# scheme like the page.
+[diagrams.fold]
+"#ECECFF" = "--bg"
+"#FFFFFF" = "--bg"
+"#EAEAEA" = "--bg"
+"#F4F4F4" = "--bg-inset"
+"#E8E8E8" = "--bg-inset"
+"#000000" = "--fg"
+"#0C0C0C" = "--fg"
+"#333333" = "--fg"
+"#11172A" = "--fg"
+"#02091C" = "--fg"
+"#9370DB" = "--fg"
+"#552222" = "--fg"
+"#666666" = "--fg-muted"
+"#999999" = "--rule"
+"#CCCCCC" = "--rule"
+"#DDDDDD" = "--rule"
+"#AAAA33" = "--rule"

@@ -21,12 +21,13 @@ A file of the same name in the site's `assets/` wins over the theme's.
 | `share.svg` | optional | the link preview, drawn to `share.png` (1200x630); without it, `og:image` is the icon |
 | `layouts/<name>.html` | optional | a layout for the pages of a type (`docs/types.md`), or asked for by `layout:` in a page's front matter; same placeholders as `layout.html` |
 | `types/<name>.py` | optional | a content type the theme adds, or a built-in one it replaces (`docs/types.md`) |
+| `mermaid.json` | optional | Mermaid's configuration for diagrams, its colours written `var(--token)` ("Diagrams") |
 | `theme.toml` | optional | the theme's own configuration values, merged under the site's `site.toml`: the `[share]` colours, and `[check]` for `build.py --check` ("Checking a theme") |
 | `theme.<lang>.toml` | optional | `theme.toml`'s per-language twin, between it and the site's `site.toml` (`docs/languages.md`); ignored when the site does not declare `<lang>`, so a theme may ship languages a site lacks |
 
 Everything in `theme/` but `layout.html`, `layouts/`, `share.svg`,
-`icons/`, `types/` and `theme.toml` (and its `theme.<lang>.toml` twins) is
-copied to the site as it is. Like `site.toml`, `theme.toml` and its twins
+`icons/`, `types/`, `mermaid.json` and `theme.toml` (and its
+`theme.<lang>.toml` twins) is copied to the site as it is. Like `site.toml`, `theme.toml` and its twins
 are read at build time and never served. A theme kept in its own repository may carry a `README.md`, a `LICENSE` and git files (`.git`, `.gitignore`): they are never served either.
 
 ---
@@ -111,6 +112,43 @@ reads; a test keeps the two equal.
 Accessibility the theme is responsible for: contrast (4.5:1 for text), a
 visible focus outline, `.sr-only`, reduced motion. The builder takes care
 of the markup: headings, alt text, labels, `aria-*`.
+
+---
+
+## Diagrams
+
+A ```` ```mermaid ```` block is drawn by the Mermaid CLI into an SVG file
+(`docs/markdown.md`, "Diagrams"), shown as `<img>` in a `.figure`, like
+an image. The theme gives its look, in three places:
+
+- **`mermaid.json`**: Mermaid's configuration - `theme`, `look`,
+  `themeVariables`, the settings of each kind of diagram. Write a colour
+  as `var(--token)`, a custom property of `style.css` whose value is a
+  `#hex` colour: the build replaces it with the token's light value,
+  since Mermaid computes with real colours. A token `style.css` lacks
+  stops the build. Without the file, Mermaid's own defaults.
+- **`style.css`**: the palette. Each colour of the drawing that is the
+  light value of a token becomes `var(--token)` again, and the SVG
+  defines those tokens, light and under `@media (prefers-color-scheme:
+  dark)` with the dark values: the drawing follows the reader's scheme,
+  inside its `<img>`, as the page does. When two tokens share a light
+  value, the first in `style.css` wins.
+- **`theme.toml`, `[diagrams]`**:
+
+  | Key | Default | |
+  |---|---|---|
+  | `fold` | `{}` | Mermaid's own colours, which no `themeVariables` reaches, mapped to tokens: `{ "#ECECFF" = "--bg" }` |
+  | `sharp` | `true` | square corners: every `rx` and `ry` set to 0 |
+  | `shadow` | `false` | `true` keeps Mermaid's drop shadows; `false` drops its filters |
+
+  A colour that is neither a token's nor folded is left as it is, and
+  the build warns once, naming it: fold it.
+
+The labels are measured with the theme's `fonts/` (decompressed to TTF,
+as for `share.png`), so a box fits its text in the theme's typeface;
+inside an `<img>` the SVG cannot load the page's web fonts, so name a
+fallback in Mermaid's `fontFamily`. `starter/theme/mermaid.json` and its
+`[diagrams]` are a complete example.
 
 ---
 
