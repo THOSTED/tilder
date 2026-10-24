@@ -5,7 +5,7 @@ a file target, which resolve from the site root)."""
 
 import os
 
-from config import CONTENT, DATED, STATE, apex
+from config import CONTENT, DATED, STATE, apex, hidden
 from languages import prefix, split
 
 # content/-relative folders that are one item each (a member kept as a
@@ -125,7 +125,7 @@ def rendered(path):
     (templates), or it sits in an item's folder without being its index
     (index.md, index.fr.md)."""
     rel = path.relative_to(CONTENT)
-    if any(part.startswith("_") for part in rel.parts):
+    if any(part.startswith("_") for part in rel.parts) or hidden(rel.as_posix()):
         return False
     name, _ = split(rel.stem)
     return name == "index" or not item_folder(rel.parent)

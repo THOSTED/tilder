@@ -17,7 +17,7 @@ import importlib.util
 
 import languages
 import paths
-from config import BUILDER, CFG, CONFIG, CONTENT, DATED, STATE, THEME
+from config import BUILDER, CFG, CONFIG, CONTENT, DATED, STATE, THEME, hidden
 from markdown import front_matter
 from report import BuildError, error, fail, rel
 
@@ -240,7 +240,7 @@ def _gather(folder, prefix, recursive, groups, sections):
     are templates."""
     found = False
     for f in sorted(folder.iterdir()):
-        if f.name.startswith("_"):
+        if f.name.startswith("_") or hidden(f.name):
             continue
         if f.suffix == ".md":
             name, lang = languages.split(f.stem)

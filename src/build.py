@@ -67,7 +67,7 @@ import previews
 import report
 from ansify import ansify
 from config import (ASSETS, BUILDER, CFG, CONTENT, EXTRA, ROOT, STATE,
-                    THEME, apex, config_file, served)
+                    THEME, apex, config_file, hidden, served)
 from icons import generated
 from fold import to_ascii
 from feeds import feed
@@ -174,6 +174,7 @@ def build():
         rel = f.relative_to(CONTENT)
         if f.is_file() and f.suffix != ".md" and not config_file(f.name) \
                 and not any(part.startswith("_") for part in rel.parts) \
+                and not hidden(rel.as_posix()) \
                 and not any(r["folder"] in f.parents for r in paths.SCHEDULED.values()):
             out[str(rel)] = f.read_bytes()
     # The theme, then the project's assets/, which win over it by name.

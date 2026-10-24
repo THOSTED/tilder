@@ -6,7 +6,7 @@ import sys
 import time
 
 import report
-from config import ASSETS, BUILDER, CONTENT, EXTRA, THEME
+from config import ASSETS, BUILDER, CONTENT, EXTRA, THEME, hidden
 
 CODE = (str(BUILDER) + os.sep, str(THEME / "types") + os.sep)
 
@@ -23,7 +23,10 @@ def snapshot():
     state = {}
     for base in (CONTENT, THEME, ASSETS, BUILDER, *EXTRA):
         for f in [base] if base.is_file() else base.rglob("*"):
-            if f.is_file() and "__pycache__" not in f.parts:
+            # An editor's swap file or a git object is not a change to
+            # rebuild for: what is hidden is never read (config.hidden).
+            rel = f.relative_to(base).as_posix() if f != base else f.name
+            if f.is_file() and "__pycache__" not in f.parts and not hidden(rel):
                 st = f.stat()
                 state[str(f)] = (st.st_mtime_ns, st.st_size)
     return state
