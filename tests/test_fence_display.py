@@ -3,6 +3,7 @@
 block is in both. Only trailing {html} and {text} tokens are markers."""
 
 import os
+from tests import site_warnings
 import pathlib
 import shutil
 import subprocess
@@ -107,7 +108,7 @@ class Rendered(unittest.TestCase):
             self.assertNotIn("page-only", txt, name)
 
     def test_no_warning(self):
-        self.assertNotIn("warning:", self.result.stderr)
+        self.assertEqual(site_warnings(self.result.stderr), [], self.result.stderr)
 
     def test_the_copy_script_only_where_the_page_has_code(self):
         import page

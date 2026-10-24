@@ -8,6 +8,7 @@ edited copy of the fixture in a subprocess, since config reads its paths
 at import."""
 
 import os
+from tests import site_warnings
 import pathlib
 import re
 import shutil
@@ -242,7 +243,7 @@ class Drawn(unittest.TestCase):
         self.assertIn(f'src="../../{self.svg_path()}"', self.b.out["fr/blog/2026-03-01-drawn.html"])
 
     def test_no_warning(self):
-        self.assertNotIn("warning:", self.b.run.stderr)
+        self.assertEqual(site_warnings(self.b.run.stderr), [], self.b.run.stderr)
 
 
 class Drawing(unittest.TestCase):
@@ -255,7 +256,7 @@ class Drawing(unittest.TestCase):
         html = b.out["blog/2026-03-01-drawn.html"]
         self.assertNotIn("[ first ]", html)
         self.assertIn('<img src="../diagrams/', html)
-        self.assertNotIn("warning:", b.run.stderr)
+        self.assertEqual(site_warnings(b.run.stderr), [], b.run.stderr)
 
     def test_a_drawing_too_wide_or_not_ascii_warns(self):
         wide = "x" * 69
@@ -265,7 +266,7 @@ class Drawing(unittest.TestCase):
                       "wide, line 2; the text mirror holds 68 there. Draw it in 68 columns or fewer", b.run.stderr)
         self.assertIn("the text drawing of a d2 diagram has a character that is not ASCII, line 3: 'écrit'",
                       b.run.stderr)
-        self.assertEqual(b.run.stderr.count("warning:"), 2, b.run.stderr)
+        self.assertEqual(len(site_warnings(b.run.stderr)), 2, b.run.stderr)
 
     def test_a_html_diagram_without_a_drawing_is_not_in_the_mirror(self):
         b = build(themed, post(HTML_ONLY))
