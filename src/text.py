@@ -218,13 +218,17 @@ def txt_blocks(blocks, ind):
             for key, label, url in b["items"]:
                 out.extend(wrap(to_ascii(f"{label}: {url}"), ind))
         elif b["k"] == "diagram":
-            # The description, then the source: a terminal cannot show the
-            # drawing, and Mermaid is written to be read.
+            # The description, then the author's ASCII drawing (a ```text
+            # block right after the ```d2 one) in a frame without a label,
+            # else the D2 source in a code frame: D2 is written to be read.
             alt = to_ascii(b["alt"]) or to_ascii(CFG["labels"]["diagram"])
             out.extend(wrap(f"[ {to_ascii(CFG['labels']['diagram'])} ] {alt}", ind))
             if b["caption"]:
                 out.extend(wrap(txt(b["caption"]), ind + "  "))
-            out.extend(txt_code({"lang": "mermaid", "lines": b["lines"]}, ind))
+            if b.get("ascii") is not None:
+                out.extend(txt_code({"lang": "", "lines": b["ascii"]}, ind))
+            else:
+                out.extend(txt_code({"lang": "d2", "lines": b["lines"]}, ind))
         elif b["k"] == "image":
             # The path from the root, not the full URL: a URL does not fit in
             # 75 columns and cannot be cut; the path is enough for curl.

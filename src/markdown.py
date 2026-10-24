@@ -169,8 +169,10 @@ CAPTION = re.compile(r'^(.*?)\s*"([^"]*)"$')
 
 
 def diagram(info, lines):
-    """```mermaid <description> "<caption>": the description is the alt
-    text, the quoted end, optional, the caption - as for an image."""
+    """```d2 <description> "<caption>": the description is the alt
+    text, the quoted end, optional, the caption - as for an image. A
+    ```text block right after it is its drawing for the text mirror
+    (parse attaches it as "ascii")."""
     m = CAPTION.match(info)
     alt, caption = (m.group(1), m.group(2)) if m else (info, "")
     return {"k": "diagram", "alt": alt.strip(), "caption": caption.strip(), "lines": lines}
@@ -187,8 +189,8 @@ def classify(block):
                 "meta": [], "blocks": []}
     if head.strip().startswith("```"):
         info = head.strip().lstrip("`").strip()
-        if info.split(" ", 1)[0] == "mermaid":
-            return diagram(info[len("mermaid"):].strip(), block[1:])
+        if info.split(" ", 1)[0] == "d2":
+            return diagram(info[len("d2"):].strip(), block[1:])
         return {"k": "code", "lang": info, "lines": block[1:]}
     if len(block) == 1 and RULE.match(head.strip()):
         return {"k": "rule"}
@@ -241,6 +243,7 @@ def parse(path):
     sections, section, entry = [], None, None
     after_entry = False
     preamble = []
+    last = None     # the node just placed: a ```text right after a ```d2 is its drawing
     for block in raw_blocks(body):
         indent = len(block[0]) - len(block[0].lstrip())
         indented = indent >= 2
@@ -250,6 +253,11 @@ def parse(path):
             entry = None
             after_entry = False
         n = classify(block)
+        if (n["k"] == "code" and n["lang"] == "text" and last is not None
+                and last["k"] == "diagram" and "ascii" not in last):
+            last["ascii"] = n["lines"]
+            continue
+        last = n
         if section is None and n["k"] != "section":
             preamble.append(n)
             continue

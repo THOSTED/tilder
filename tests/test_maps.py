@@ -84,7 +84,7 @@ def build(*edits, cache=None, tiles=True, tile_dir=None):
         env = {**os.environ, "SITE_ROOT": str(site), "BUILD_TODAY": "2026-06-15",
                "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}",
                "TILDER_CACHE": str(cache or tmp / "cache"), "FAKE_LOG": str(log),
-               "TILDER_MMDC": str(tmp / "no-mmdc")}
+               "TILDER_D2": str(tmp / "no-d2")}
         run = subprocess.run([sys.executable, str(BUILDER / "build.py"), "--root", str(site),
                               "--out", str(site / "out")], capture_output=True, text=True, env=env)
         out = {str(p.relative_to(site / "out")): p.read_bytes() for p in (site / "out").rglob("*") if p.is_file()}

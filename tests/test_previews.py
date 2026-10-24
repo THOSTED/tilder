@@ -63,7 +63,7 @@ def build(*edits, cache=None, out=None):
         env = {**os.environ, "SITE_ROOT": str(site), "BUILD_TODAY": "2026-06-15",
                "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}",
                "TILDER_CACHE": str(cache or tmp / "cache"), "FAKE_DIR": str(drawn),
-               "TILDER_MMDC": str(tmp / "no-mmdc")}
+               "TILDER_D2": str(tmp / "no-d2")}
         dest = out or site / "out"
         run = subprocess.run([sys.executable, str(BUILDER / "build.py"), "--root", str(site),
                               "--out", str(dest)], capture_output=True, text=True, env=env)
