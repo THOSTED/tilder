@@ -56,10 +56,13 @@ def site_ref():
 
 def share_image(meta):
     """(absolute URL, width, height) of the page's preview image: `image:`,
-    relative to the page's folder, else [share] image."""
+    relative to the page's folder, else the page's own preview
+    (previews.py), else [share] image."""
     if meta.get("image"):
         rel = posixpath.normpath(posixpath.join(meta.get("_dir", ""), meta["image"]))
         size = image_size(CONTENT / rel)
+    elif meta.get("_preview"):  # the page's own preview, drawn by the build
+        rel, *size = meta["_preview"][:3]
     elif theme_file("share.svg").is_file():  # drawn by the build, 1200x630
         rel = CFG["share"]["image"]
         size = image_size(ASSETS / rel) or (1200, 630)
@@ -120,7 +123,9 @@ def head_tags(item):
         ("og:description", meta["description"]),
         ("og:url", apex() + clean_url(path)),
         ("og:image", image),
-        ("og:image:alt", meta.get("image_alt") or CFG["share"]["image_alt"]),
+        ("og:image:alt", meta.get("image_alt")
+         or (meta["_preview"][3] if meta.get("_preview") and not meta.get("image") else "")
+         or CFG["share"]["image_alt"]),
     ]
     if width and height:
         props += [("og:image:width", str(width)), ("og:image:height", str(height))]
