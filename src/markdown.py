@@ -165,6 +165,17 @@ def parse_list(lines):
 IMAGE = re.compile(r'^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$')
 
 
+CAPTION = re.compile(r'^(.*?)\s*"([^"]*)"$')
+
+
+def diagram(info, lines):
+    """```mermaid <description> "<caption>": the description is the alt
+    text, the quoted end, optional, the caption - as for an image."""
+    m = CAPTION.match(info)
+    alt, caption = (m.group(1), m.group(2)) if m else (info, "")
+    return {"k": "diagram", "alt": alt.strip(), "caption": caption.strip(), "lines": lines}
+
+
 def classify(block):
     head = block[0]
     if head.startswith("## "):
@@ -175,7 +186,10 @@ def classify(block):
         return {"k": "entry", "title": t, "cls": cls, "id": ident,
                 "meta": [], "blocks": []}
     if head.strip().startswith("```"):
-        return {"k": "code", "lang": head.strip().lstrip("`").strip(), "lines": block[1:]}
+        info = head.strip().lstrip("`").strip()
+        if info.split(" ", 1)[0] == "mermaid":
+            return diagram(info[len("mermaid"):].strip(), block[1:])
+        return {"k": "code", "lang": info, "lines": block[1:]}
     if len(block) == 1 and RULE.match(head.strip()):
         return {"k": "rule"}
     if LIST_ITEM.match(head) and not head[0].isspace() and all(

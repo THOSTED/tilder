@@ -38,6 +38,7 @@ entry point):
     watch.py         polling, rebuild on change and at midnight
     icons.py         the favicon, app icons and share.png, made at every build
     images.py        an image's width and height, read from the file itself
+    diagrams.py      ```mermaid blocks drawn to SVG files (the Mermaid CLI), cached
 
 types/ holds the built-in content types, one module each (docs/types.md).
 
@@ -56,6 +57,7 @@ if "--root" in sys.argv:
     os.environ["SITE_ROOT"] = sys.argv[sys.argv.index("--root") + 1]
 import ansify as ansify_module
 import contenttypes
+import diagrams
 import inline
 import languages
 import page as page_module
@@ -83,6 +85,7 @@ def build():
     langs = languages.setup()
     STATE["today"] = os.environ.get("BUILD_TODAY") or datetime.date.today().isoformat()
     page_module.WARNED.clear()
+    diagrams.reset()
     out, every, table = {}, [], {}  # every: the pages of every language, for the sitemap
     for lang in langs:
         languages.use(lang)
@@ -116,6 +119,7 @@ def build():
             STATE["content_lang"] = content_lang
             try:
                 meta, sections, preamble = parse(src)
+                diagrams.draw_all(preamble + sections, src)
                 it = by_src[src] if src in by_src else contenttypes.page_item(src, meta)
                 meta = it["meta"]
                 meta["_dir"] = site_path(src)
@@ -158,6 +162,7 @@ def build():
     out["sitemap.xml"] = sitemap_xml(indexed)
     out["sitemap.txt"] = "".join(f"{apex()}{clean_url(it['path'], it['lang'])}\n" for it in
                                  sorted(indexed, key=lambda it: clean_url(it["path"], it["lang"])))
+    out.update(diagrams.outputs())
     out = {k: v.encode("utf-8") for k, v in out.items()}
     # Files next to the pages (images of a post or an event...) are copied
     # as they are, at the same path. Markdown and the configuration files are not.
@@ -208,6 +213,7 @@ _SAID = False
 
 def build_into(dest):
     global _SAID
+    STATE["out"] = str(dest)    # the previous output: drawings it holds are reused
     changed = write(build(), dest)
     if not _SAID:
         print(STATE["summary"], flush=True)

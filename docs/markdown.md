@@ -21,6 +21,7 @@ terminal mirror (`curl example.org`, or a plain-text host such as
 - [Links](#links)
 - [Collections](#collections)
 - [Images](#images)
+- [Diagrams](#diagrams)
 - [Members](#members)
 - [What is not supported](#what-is-not-supported)
 - [Quick reference](#quick-reference)
@@ -714,6 +715,55 @@ policy that lets them style themselves, never run scripts.
 
 ---
 
+## Diagrams
+
+A diagram is written in [Mermaid](https://mermaid.js.org/), in the page,
+and drawn at every build: no source file and no SVG sit next to the page,
+nothing generated is committed. The fence names `mermaid`, then the
+description, then, optional and quoted, the caption - the alt text and
+the caption of an image:
+
+````markdown
+```mermaid curl asks the resolver, then connects to the proxy "One request, end to end."
+sequenceDiagram
+  curl->>resolver: example.org, type A?
+  resolver-->>curl: 192.0.2.10
+  curl->>proxy: GET / (HTTPS)
+```
+````
+
+- The description is required - it is what a screen reader says instead
+  of the drawing. The build warns when it is missing.
+- In HTML: a `<figure>` with an `<img>` of the drawing, an SVG file the
+  build writes at `diagrams/<key>.svg` (the key is a hash of what the
+  drawing depends on: the same diagram on two pages is one file), with its
+  width and height, and the caption. Never inline SVG: the page's CSP
+  keeps `<style>` out, and an SVG file may style itself
+  (`examples/Caddyfile`).
+- In text: `[ diagram ] description`, the caption, then the Mermaid
+  source in a code frame - Mermaid is written to be read.
+- It follows the theme, light and dark: the theme's `mermaid.json` is
+  Mermaid's configuration, and each colour of the drawing becomes a token
+  of its `style.css`, redefined under `prefers-color-scheme: dark`
+  (`docs/theme.md`, "Diagrams"). Corners are square and shadows dropped,
+  unless the theme says otherwise.
+
+The drawing is the Mermaid CLI's, `mmdc`, an outside tool like
+`rsvg-convert`: tilder's `-mermaid` image has it, with a headless
+Chromium (`ghcr.io/thosted/tilder:<version>-mermaid`); the default image
+does not, to stay small. Without it, the build warns once and the page
+shows the diagram's source, as a code block, with its description as the
+caption: nothing is lost, only drawn. `TILDER_MMDC` names another command.
+
+A diagram the CLI cannot draw - a syntax error - stops the build, with
+the CLI's message. A drawing takes about a second; it is cached by its key
+(source, the theme's configuration and palette, its fonts, the CLI's
+version): in memory for `--watch`, in `TILDER_CACHE` when it is set (else
+a folder of the system's temporary directory), and in the previous
+output, so a rebuild into the same `--out` draws only what changed.
+
+---
+
 ## Members
 
 Each member is one file, `content/members/<slug>.md`, and is described
@@ -811,6 +861,7 @@ and documenting it here.
 | ` ```lang ` | `<pre class="code">`, highlighted | verbatim, long lines continued with `\` |
 | `\| a \| b \|` + `\|---\|---\|` | `<table>` in a scrolling wrapper | padded columns, or records |
 | `![alt](file "caption")` alone on a line | `<figure>` + `<img>` | `[ image ] alt`, caption, URL |
+| ` ```mermaid description "caption" ` | `<figure>` + `<img>` of `diagrams/<key>.svg` | `[ diagram ] description`, caption, the source framed |
 | `*text*` (whole paragraph, `**text**` too) | `.empty` | plain |
 | `text {small muted}` | `<p class="small muted">` | plain |
 | `<!-- ... -->` | passthrough | skipped |

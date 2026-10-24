@@ -96,7 +96,17 @@ With Docker, `builder/Dockerfile` is Python plus `rsvg-convert` and
 Without them, the build falls back to ImageMagick, or skips the images
 with a warning. The image is also published by CI at
 `ghcr.io/thosted/tilder` (`latest`, and one tag per release): with it a
-site needs no submodule - see `examples/compose.yaml`. The image carries
+site needs no submodule - see `examples/compose.yaml`.
+
+Mermaid diagrams (```` ```mermaid ```` blocks, `docs/markdown.md`) are
+drawn by the Mermaid CLI, `mmdc`, which needs a headless Chromium: about
+a gigabyte. The default image leaves it out and shows a diagram as its
+source; the `-mermaid` image has it, on every tag (`1.5.0-mermaid`,
+`1-mermaid`, `latest-mermaid`), built from the `Dockerfile`'s `mermaid`
+target (`docker build --target mermaid .`). A drawing is cached; set
+`TILDER_CACHE` to a folder that outlives the container to keep the cache
+between one-shot builds, or build into the same `--out`, whose drawings
+are reused. The image carries
 the reference docs of its version in `/tilder/docs/`: `docker run --rm
 ghcr.io/thosted/tilder:<version> cat /tilder/docs/theme.md` prints the
 theme contract a theme is built against.
