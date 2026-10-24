@@ -68,10 +68,11 @@ POST = textwrap.dedent('''\
 
 DRAWING = textwrap.dedent('''\
 
-    ```text
+    ```text {text}
     [ first ] --> [ second ]
     ```
     ''')
+HTML_ONLY = POST.replace('"The flow, in short."', '"The flow, in short." {html}')
 
 
 def themed(site):
@@ -144,19 +145,37 @@ class Syntax(unittest.TestCase):
             _, sections, _ = markdown.parse(p)
         return sections[0]["blocks"]
 
-    def test_a_text_block_right_after_is_the_drawing(self):
-        blocks = self.parse("```d2 A\na -> b\n```\n\n```text\n[a] -> [b]\n```\n")
+    def test_a_text_block_right_after_a_html_diagram_is_its_drawing(self):
+        blocks = self.parse("```d2 A {html}\na -> b\n```\n\n```text {text}\n[a] -> [b]\n```\n")
         self.assertEqual([b["k"] for b in blocks], ["diagram"])
+        self.assertEqual((blocks[0]["only"], blocks[0]["ascii"]), ("html", ["[a] -> [b]"]))
+
+    def test_any_text_only_block_pairs(self):
+        blocks = self.parse("```d2 A {html}\na -> b\n```\n```{text}\n[a] -> [b]\n```\n")
         self.assertEqual(blocks[0]["ascii"], ["[a] -> [b]"])
 
+    def test_a_plain_text_block_after_a_diagram_is_just_code(self):
+        blocks = self.parse("```d2 A\na -> b\n```\n\n```text\n[a] -> [b]\n```\n")
+        self.assertEqual([b["k"] for b in blocks], ["diagram", "code"])
+        self.assertNotIn("ascii", blocks[0])
+        self.assertIsNone(blocks[1]["only"])
+
+    def test_a_text_block_after_a_diagram_shown_in_both_is_its_own(self):
+        blocks = self.parse("```d2 A\na -> b\n```\n\n```text {text}\n[a] -> [b]\n```\n")
+        self.assertEqual([(b["k"], b["only"]) for b in blocks], [("diagram", None), ("code", "text")])
+
     def test_a_text_block_after_something_else_is_code(self):
-        blocks = self.parse("```d2 A\na -> b\n```\n\nA paragraph.\n\n```text\n[a] -> [b]\n```\n")
+        blocks = self.parse("```d2 A {html}\na -> b\n```\n\nA paragraph.\n\n```text {text}\n[a]\n```\n")
         self.assertEqual([b["k"] for b in blocks], ["diagram", "para", "code"])
         self.assertNotIn("ascii", blocks[0])
 
     def test_only_one_drawing(self):
-        blocks = self.parse("```d2 A\na -> b\n```\n\n```text\none\n```\n\n```text\ntwo\n```\n")
+        blocks = self.parse("```d2 A {html}\na -> b\n```\n\n```text {text}\none\n```\n\n```text {text}\ntwo\n```\n")
         self.assertEqual([b["k"] for b in blocks], ["diagram", "code"])
+
+    def test_markers_after_the_caption(self):
+        n = markdown.classify(['```d2 Two {boxes} "The {flow}." {html}', "a -> b"])
+        self.assertEqual((n["alt"], n["caption"], n["only"]), ("Two {boxes}", "The {flow}.", "html"))
 
 
 class Config(unittest.TestCase):
@@ -228,7 +247,7 @@ class Drawn(unittest.TestCase):
 
 class Drawing(unittest.TestCase):
     def test_the_text_drawing_replaces_the_source_in_the_mirror_only(self):
-        b = build(themed, post(POST + DRAWING))
+        b = build(themed, post(HTML_ONLY + DRAWING))
         self.assertEqual(b.run.returncode, 0, b.run.stderr)
         txt = b.out["txt/blog/2026-03-01-drawn.txt"]
         self.assertRegex(txt, r"The flow, in short\.\n +\.-+\.\n +\[ first \] --> \[ second \]\n +'-+'")
@@ -240,7 +259,7 @@ class Drawing(unittest.TestCase):
 
     def test_a_drawing_too_wide_or_not_ascii_warns(self):
         wide = "x" * 69
-        b = build(themed, post(POST + f"\n```text\n{'x' * 68}\n{wide}\nécrit\n```\n"))
+        b = build(themed, post(HTML_ONLY + f"\n```text {{text}}\n{'x' * 68}\n{wide}\nécrit\n```\n"))
         self.assertEqual(b.run.returncode, 0, b.run.stderr)
         self.assertIn("warning: content/blog/2026-03-01-drawn.md: the text drawing of a d2 diagram is 69 columns "
                       "wide, line 2; the text mirror holds 68 there. Draw it in 68 columns or fewer", b.run.stderr)
@@ -248,10 +267,25 @@ class Drawing(unittest.TestCase):
                       b.run.stderr)
         self.assertEqual(b.run.stderr.count("warning:"), 2, b.run.stderr)
 
+    def test_a_html_diagram_without_a_drawing_is_not_in_the_mirror(self):
+        b = build(themed, post(HTML_ONLY))
+        self.assertEqual(b.run.returncode, 0, b.run.stderr)
+        self.assertNotIn("diagram", b.out["txt/blog/2026-03-01-drawn.txt"])
+        self.assertIn('<img src="../diagrams/', b.out["blog/2026-03-01-drawn.html"])
+
+    def test_a_text_diagram_is_its_source_in_the_mirror_only(self):
+        text = POST.replace('"The flow, in short."', '"The flow, in short." {text}')
+        b = build(themed, post(text.replace("Two boxes, the first pointing to the second ", "")))
+        self.assertEqual(b.run.returncode, 0, b.run.stderr)
+        self.assertEqual(b.calls.count("draw"), 0)
+        self.assertNotIn("figure", b.out["blog/2026-03-01-drawn.html"].split("<main")[-1])
+        self.assertRegex(b.out["txt/blog/2026-03-01-drawn.txt"], r"\.-- d2 -+\.\n +a: first")
+        self.assertNotIn("without a description", b.run.stderr)      # no image, no alt text needed
+
     def test_the_width_counts_an_entry_deeper(self):
-        text = POST.replace("## Body\n\n", "## Body\n\n### An entry\n\n  ").replace(
+        text = HTML_ONLY.replace("## Body\n\n", "## Body\n\n### An entry\n\n  ").replace(
             "\na: first\nb: second\na -> b\n```\n", "\n  a: first\n  b: second\n  a -> b\n  ```\n")
-        text += "\n  ```text\n  " + "x" * 65 + "\n  ```\n"
+        text += "\n  ```text {text}\n  " + "x" * 65 + "\n  ```\n"
         b = build(themed, post(text))
         self.assertIn("is 65 columns wide, line 1; the text mirror holds 64 there", b.run.stderr)
 

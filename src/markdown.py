@@ -166,13 +166,36 @@ IMAGE = re.compile(r'^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$')
 
 
 CAPTION = re.compile(r'^(.*?)\s*"([^"]*)"$')
+FENCE_MARKER = re.compile(r"\s*\{(html|text)\}\s*$")
+
+
+class FenceError(ValueError):
+    """A fence marked both {html} and {text}: parse names the file."""
+
+
+def fence_markers(info):
+    """(info, only) of a fence's opening line: only is "html" or "text"
+    when the line ends with that marker, else None. Only trailing {html}
+    and {text} tokens are markers: braces anywhere else (a description
+    with {x} in it, a trailing {other}) are text. Both on one fence would
+    show the block nowhere: an error."""
+    found = set()
+    while True:
+        m = FENCE_MARKER.search(info)
+        if not m:
+            break
+        found.add(m.group(1))
+        info = info[:m.start()].rstrip()
+    if len(found) > 1:
+        raise FenceError("a code block is marked both {html} and {text}, so it would be shown nowhere")
+    return info, (found.pop() if found else None)
 
 
 def diagram(info, lines):
     """```d2 <description> "<caption>": the description is the alt
     text, the quoted end, optional, the caption - as for an image. A
-    ```text block right after it is its drawing for the text mirror
-    (parse attaches it as "ascii")."""
+    {text} block right after a {html} diagram is its drawing for the text
+    mirror (parse attaches it as "ascii")."""
     m = CAPTION.match(info)
     alt, caption = (m.group(1), m.group(2)) if m else (info, "")
     return {"k": "diagram", "alt": alt.strip(), "caption": caption.strip(), "lines": lines}
@@ -188,10 +211,13 @@ def classify(block):
         return {"k": "entry", "title": t, "cls": cls, "id": ident,
                 "meta": [], "blocks": []}
     if head.strip().startswith("```"):
-        info = head.strip().lstrip("`").strip()
+        info, only = fence_markers(head.strip().lstrip("`").strip())
         if info.split(" ", 1)[0] == "d2":
-            return diagram(info[len("d2"):].strip(), block[1:])
-        return {"k": "code", "lang": info, "lines": block[1:]}
+            node = diagram(info[len("d2"):].strip(), block[1:])
+        else:
+            node = {"k": "code", "lang": info, "lines": block[1:]}
+        node["only"] = only
+        return node
     if len(block) == 1 and RULE.match(head.strip()):
         return {"k": "rule"}
     if LIST_ITEM.match(head) and not head[0].isspace() and all(
@@ -252,9 +278,14 @@ def parse(path):
         if entry is not None and not indented:
             entry = None
             after_entry = False
-        n = classify(block)
-        if (n["k"] == "code" and n["lang"] == "text" and last is not None
-                and last["k"] == "diagram" and "ascii" not in last):
+        try:
+            n = classify(block)
+        except FenceError as e:
+            from report import error  # report imports config, as this module does
+            raise error(path, str(e), "Keep one marker, or none to show it in both") from None
+        # A {text} block right after a {html} diagram is its text version.
+        if (n["k"] == "code" and n.get("only") == "text" and last is not None
+                and last["k"] == "diagram" and last.get("only") == "html" and "ascii" not in last):
             last["ascii"] = n["lines"]
             continue
         last = n

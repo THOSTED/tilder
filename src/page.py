@@ -182,6 +182,8 @@ def html_table(b, res, ind):
 def html_blocks(blocks, res, entry_cls=(), ind="\t\t"):
     out = []
     for b in blocks:
+        if b.get("only") == "text":
+            continue        # a {text} code block or diagram: the mirror's only
         if b["k"] == "para":
             cls = f' class="{" ".join(b["cls"])}"' if b["cls"] else ""
             out.append(f"{ind}<p{cls}>{inline.to_html(b['text'], res)}</p>")
@@ -257,8 +259,8 @@ def fill(template, computed, meta, path):
 
 def has_code(nodes):
     """A code block, or a diagram shown as its source."""
-    return any(n["k"] == "code" or (n["k"] == "diagram" and not n.get("svg"))
-               or has_code(n.get("blocks", [])) for n in nodes)
+    return any((n["k"] == "code" or (n["k"] == "diagram" and not n.get("svg")))
+               and n.get("only") != "text" or has_code(n.get("blocks", [])) for n in nodes)
 
 
 def switcher(item, res):

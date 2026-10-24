@@ -388,6 +388,29 @@ def plier(texte, largeur=75):
 ```
 ````
 
+**Where a block shows.** The fence's opening line may end with `{html}`
+or `{text}`, like a section's markers: `{html}`, on the web page only;
+`{text}`, in the text mirror only (`txt/` and `ansi/`); neither, in both.
+It works for every language, an unknown one or none:
+
+````markdown
+```console {html}
+$ curl -I https://example.org/
+```
+
+```{text}
+Copy the command from the web page: it is longer than 75 columns.
+```
+````
+
+Only the **last** tokens of the line are markers, and only `{html}` and
+`{text}` exactly: braces anywhere else are text (a diagram's description
+may hold `{x}`; `{other}` at the end stays part of the line, where an
+unknown language is a warning). The marker comes after everything else -
+the language, a diagram's description and caption. A block marked both
+`{html}` and `{text}` would show nowhere: it stops the build. The same
+marker twice is one.
+
 | Language | Also accepted |
 |---|---|
 | `sh` | `bash`, `shell`, `zsh` |
@@ -775,17 +798,18 @@ A diagram is written in [D2](https://d2lang.com), in the page, and drawn
 at every build: no source file and no SVG sit next to the page, nothing
 generated is committed. The fence names `d2`, then the description, then,
 optional and quoted, the caption - the alt text and the caption of an
-image:
+image - then, optional, a display marker (`{html}`, `{text}`, "Code
+block"):
 
 ````markdown
-```d2 curl asks the resolver, then connects to the proxy "One request, end to end."
+```d2 curl asks the resolver, then connects to the proxy "One request, end to end." {html}
 shape: sequence_diagram
 curl -> resolver: "example.org, type A?"
 resolver -> curl: "192.0.2.10"
 curl -> proxy: "GET / (HTTPS)"
 ```
 
-```text
+```text {text}
   curl            resolver          proxy
    |-- type A? ---->|                 |
    |<-- 192.0.2.10 -|                 |
@@ -793,8 +817,9 @@ curl -> proxy: "GET / (HTTPS)"
 ```
 ````
 
-- The description is required - it is what a screen reader says instead
-  of the drawing. The build warns when it is missing.
+- The description is required wherever the page shows the drawing - it
+  is what a screen reader says instead of it. The build warns when it is
+  missing.
 - In HTML: a `<figure>` with an `<img>` of the drawing, an SVG file the
   build writes at `diagrams/<key>.svg` (the key is a hash of what the
   drawing depends on: the same diagram on two pages is one file), with its
@@ -806,20 +831,27 @@ curl -> proxy: "GET / (HTTPS)"
   schemes into the SVG, under `prefers-color-scheme` (`docs/theme.md`,
   "Diagrams").
 
-**In text**, a terminal cannot show the drawing: the mirror prints
-`[ diagram ] description`, the caption, then
+Its markers say where it shows:
 
-- the **text drawing**, when a ` ```text ` block comes right after the
-  ` ```d2 ` one (blank lines between them are fine, nothing else): an
-  ASCII version of the diagram, drawn by hand, printed verbatim in a code
-  frame without a label. It is never shown on the web page. It must be
-  ASCII, and fit the mirror's frame: **68 columns** for a diagram in a
-  section (75, less the 5 of the section's indent and the 2 inside the
-  frame), 64 inside an entry (`###`). A wider line, or a character that
-  is not ASCII, is a warning; the mirror would cut the line, or fold the
-  character. D2's own text output is not used: it garbles labels and
-  overlaps boxes;
-- else the **D2 source**, in a code frame: D2 is written to be read.
+| Fence | Web page | Text mirror |
+|---|---|---|
+| ` ```d2 ... ` | the drawing | `[ diagram ] description`, the caption, the D2 source in a code frame: D2 is written to be read |
+| ` ```d2 ... {html} ` | the drawing | nothing - or its text drawing, below |
+| ` ```d2 ... {text} ` | nothing | the description, the caption, the source |
+
+**A text drawing.** A `{text}` block that comes right after a `{html}`
+diagram (blank lines between them are fine, nothing else) is that
+diagram's **text version**: the mirror prints `[ diagram ] description`,
+the caption, then the block verbatim, in a code frame without a label;
+the page never shows it. It must be ASCII, and fit the mirror's frame:
+**68 columns** for a diagram in a section (75, less the 5 of the
+section's indent and the 2 inside the frame), 64 inside an entry
+(`###`). A wider line, or a character that is not ASCII, is a warning;
+the mirror would cut the line, or fold the character. A `{text}` block
+anywhere else is a code block of the mirror's, nothing more; a ` ```text `
+block without a marker after a diagram is an ordinary block, in both
+renderings. D2's own text output is not used: it garbles labels and
+overlaps boxes.
 
 The drawing is the D2 CLI's, `d2`, an outside tool like `rsvg-convert`:
 one static binary, no browser, in tilder's image. Without it, the build
@@ -931,7 +963,8 @@ and documenting it here.
 | ` ```lang ` | `<pre class="code">`, highlighted | verbatim, long lines continued with `\` |
 | `\| a \| b \|` + `\|---\|---\|` | `<table>` in a scrolling wrapper | padded columns, or records |
 | `![alt](file "caption")` alone on a line | `<figure>` + `<img>` | `[ image ] alt`, caption, URL |
-| ` ```d2 description "caption" `, and a ` ```text ` drawing right after | `<figure>` + `<img>` of `diagrams/<key>.svg` | `[ diagram ] description`, caption, the text drawing (else the D2 source) framed |
+| ` ```lang {html} `, ` ```lang {text} ` | the block, or nothing | nothing, or the block |
+| ` ```d2 description "caption" `, `{html}`, then a ` ```text {text} ` drawing | `<figure>` + `<img>` of `diagrams/<key>.svg` | `[ diagram ] description`, caption, the text drawing (without one: the D2 source, unless `{html}`) framed |
 | `*text*` (whole paragraph, `**text**` too) | `.empty` | plain |
 | `text {small muted}` | `<p class="small muted">` | plain |
 | `<!-- ... -->` | passthrough | skipped |

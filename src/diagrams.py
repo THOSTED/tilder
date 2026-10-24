@@ -15,9 +15,9 @@ dark value in dark-theme-overrides: D2 writes both into the SVG, under
 prefers-color-scheme, so the figure follows the reader's scheme like the
 page does. The fonts are embedded by D2 itself.
 
-A ```text block right after the ```d2 one is the diagram's drawing for
-the text mirror, never shown on the web page; it must be ASCII and fit
-the mirror (draw_all warns).
+A {text} code block right after a {html} d2 block is the diagram's
+drawing for the text mirror, never shown on the web page; it must be
+ASCII and fit the mirror (draw_all warns).
 
 A drawing is cached by a key of everything it depends on (source,
 configuration, colours, fonts, the renderer's version): in memory, in
@@ -296,7 +296,9 @@ def draw_all(nodes, src, width=FRAME_WIDTH):
     the mirror holds at its place (`width`: an entry's blocks sit four
     columns deeper). Each block gets "svg": its path, or None."""
     for n in nodes:
-        if n["k"] == "diagram":
+        if n["k"] == "diagram" and n.get("only") == "text":
+            pass            # the mirror's only: its source, nothing to draw
+        elif n["k"] == "diagram":
             source = "\n".join(n["lines"]) + "\n"
             if not n["alt"].strip():
                 _say(("alt", str(src), source), src, "a d2 diagram without a description",
