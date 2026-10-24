@@ -59,6 +59,8 @@ href = ""
 
 [seo]
 organization = "My Site"            # the publisher, in structured data
+same_as = []                        # its official profiles elsewhere, absolute
+                                    # http(s) URLs: the Organization's sameAs
 robots = "index, follow, max-image-preview:large"
 title_max = 60                      # build warnings past these limits
 description_min = 50

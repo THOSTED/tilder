@@ -9,6 +9,7 @@ everywhere; the prefix is added at the edges (paths.py, build.py).
 import copy
 import json
 import re
+import urllib.parse
 
 from ansify import COLOURS, sgr
 from config import CFG, CONFIG, CONTENT, STATE, THEME, THEME_TOML, load_config, read_toml
@@ -129,7 +130,8 @@ def setup():
                 errs.append(e)
             continue
         CONFIGS[lang] = copy.deepcopy(CFG)
-        for e in _accent(lang):     # a bad accent in site.toml is every language's: said once
+        # a bad value in site.toml is every language's: said once
+        for e in _accent(lang) + _same_as(lang):
             if e.items not in [x.items for x in errs]:
                 errs.append(e)
     if errs:
@@ -140,22 +142,52 @@ def setup():
 
 def _accent(lang):
     """[text] accent of the language just loaded, as errors: [] when it is
-    a colour sgr() knows. The error names the file that set it, the most
-    specific one: site.<lang>.toml, site.toml, theme.<lang>.toml, theme.toml."""
+    a colour sgr() knows. The error names the file that set it."""
     value = CFG["text"]["accent"]
     if sgr(value) is not None:
         return []
-    files = (CONTENT / f"site.{lang}.toml", CONFIG, THEME / f"theme.{lang}.toml", THEME_TOML)
-    path = next((f for f in files if _sets_accent(f)), CONFIG)
-    return [error(path, f"[text] accent is {json.dumps(value, default=str)}, not a colour",
+    return [error(_setter(lang, "text", "accent"),
+                  f"[text] accent is {json.dumps(value, default=str)}, not a colour",
                   f"Set one of {', '.join(COLOURS)}, "
                   "or a 256-colour index from 16 to 255 (208: orange)")]
 
 
-def _sets_accent(path):
+def _same_as(lang):
+    """[seo] same_as of the language just loaded, as errors: [] when it is
+    a list of absolute http(s) URLs. One error per bad entry, naming the
+    file that set it."""
+    value = CFG["seo"].get("same_as", [])
+    hint = 'Give a list of absolute http(s) URLs, like ["https://example.org/our-page"]'
+    if not isinstance(value, list):
+        return [error(_setter(lang, "seo", "same_as"),
+                      f"[seo] same_as is {json.dumps(value, default=str)}, not a list", hint)]
+    return [error(_setter(lang, "seo", "same_as"),
+                  f"[seo] same_as holds {json.dumps(url, default=str)}, not an absolute http(s) URL",
+                  hint)
+            for url in value if not _absolute_url(url)]
+
+
+def _absolute_url(url):
+    if not isinstance(url, str) or url != url.strip() or any(c.isspace() for c in url):
+        return False
+    try:
+        parts = urllib.parse.urlsplit(url)
+    except ValueError:
+        return False
+    return parts.scheme in ("http", "https") and bool(parts.hostname)
+
+
+def _setter(lang, table, key):
+    """The file that set [table] key for lang, the most specific one:
+    site.<lang>.toml, site.toml, theme.<lang>.toml, theme.toml."""
+    files = (CONTENT / f"site.{lang}.toml", CONFIG, THEME / f"theme.{lang}.toml", THEME_TOML)
+    return next((f for f in files if _sets(f, table, key)), CONFIG)
+
+
+def _sets(path, table, key):
     if not path.is_file():
         return False
-    return "accent" in read_toml(path).get("text", {})
+    return key in read_toml(path).get(table, {})
 
 
 def pages():

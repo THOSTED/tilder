@@ -147,6 +147,8 @@ def json_ld(item, image):
     org = {"@type": "Organization", "@id": org_ref()["@id"],
            "name": CFG["seo"]["organization"], "url": f"{a}/",
            "logo": f"{a}/{CFG['share']['logo']}"}
+    if CFG["seo"]["same_as"]:
+        org["sameAs"] = list(CFG["seo"]["same_as"])
     site = {"@type": "WebSite", "@id": site_ref()["@id"], "name": CFG["site"]["name"],
             "url": f"{a}/", "inLanguage": lang, "publisher": org_ref()}
     node = call(item["src"], item["type"], "json_ld", item, item["conf"]) or {
