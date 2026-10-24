@@ -30,7 +30,7 @@ A file of the same name in the site's `assets/` wins over the theme's.
 Everything in `theme/` but `layout.html`, `layouts/`, `share.svg`,
 `share-*.svg`, `icons/`, `types/`, `mermaid.json` and `theme.toml` (and its
 `theme.<lang>.toml` twins) is copied to the site as it is. Like `site.toml`, `theme.toml` and its twins
-are read at build time and never served. A theme kept in its own repository may carry a `README.md`, a `LICENSE` and git files (`.git`, `.gitignore`): they are never served either.
+are read at build time and never served. A theme kept in its own repository may carry a `README.md`, a `LICENSE` and git files (`.git`, `.gitignore`): they are never served either. Nor are hidden files and editors' leftovers, here as in `content/` and `assets/`: a name that starts with a dot (but `.well-known/`), `*~`, `*.swp`, `*.swo`, `*.swx`, `#name#` (`docs/markdown.md`, "Files and URLs").
 
 ---
 

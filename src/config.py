@@ -74,14 +74,27 @@ def config_file(name):
     return bool(CONFIG_FILE.match(name))
 
 
+def hidden(rel):
+    """Is this path (relative, "/"-separated) a hidden file or an editor's
+    leftover, never a source and never served? A part that starts with a
+    dot (.index.md.swp, .DS_Store, .#index.md, .git), but .well-known,
+    which a site serves on purpose; a backup or swap file (notes.md~,
+    index.md.swp, .swo, .swx), an Emacs autosave (#index.md#)."""
+    parts = rel.split("/")
+    name = parts[-1]
+    return (any(p.startswith(".") and p != ".well-known" for p in parts)
+            or name.endswith(("~", ".swp", ".swo", ".swx"))
+            or (name.startswith("#") and name.endswith("#")))
+
+
 def served(rel):
     """Is this theme- or assets-relative path a file to serve as-is? Not
     what the build reads (UNSERVED, UNSERVED_DIRS, the configuration
-    files), and not what belongs to the folder's own repository rather
-    than to the site: git files (.git, .gitignore, .gitmodules...) and a
-    README or LICENSE at its root. .well-known/ and the like are served."""
+    files), not a hidden file or an editor's leftover (hidden: git files,
+    .DS_Store, swap files), and not a README or LICENSE at the folder's
+    root, which belong to its own repository. .well-known/ is served."""
     parts = rel.split("/")
-    if any(part.startswith(".git") for part in parts):
+    if hidden(rel):
         return False
     if len(parts) == 1 and (rel == "README.md" or rel.startswith("LICENSE")):
         return False

@@ -133,7 +133,12 @@ an `upcoming` tag. A source file holds only the front matter and the sections.
 - A file or folder whose name starts with `_` is **never rendered** (the
   templates, `content/*/_template.md`).
 - Any other file in `content/` that is not Markdown (an image, a PDF) is
-  copied to the site at the same path.
+  copied to the site at the same path, but hidden files and editors'
+  leftovers, which are neither read nor copied nor watched: a name that
+  starts with a dot (`.index.md.swp`, `.DS_Store`, `.#index.md`, a
+  `.git` folder), except `.well-known/`; a backup or swap file (`*~`,
+  `*.swp`, `*.swo`, `*.swx`); an Emacs autosave (`#index.md#`). The same
+  goes for `theme/` and `assets/`.
 - Every rendered page is added to `sitemap.txt`, except `404`.
 
 ---

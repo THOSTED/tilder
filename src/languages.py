@@ -12,7 +12,7 @@ import re
 import urllib.parse
 
 from ansify import COLOURS, sgr
-from config import CFG, CONFIG, CONTENT, STATE, THEME, THEME_TOML, load_config, read_toml
+from config import CFG, CONFIG, CONTENT, STATE, THEME, THEME_TOML, hidden, load_config, read_toml
 from report import BuildError, error, fail
 
 # What looks like a language code after the last dot of a file stem: en,
@@ -115,7 +115,8 @@ def setup():
     # a monolingual site has no suffix to check: notes.old.md is a page.
     STATE["default"], STATE["languages"] = dflt, langs
     for f in sorted(CONTENT.rglob("*.md")) if len(langs) > 1 else []:
-        if any(part.startswith("_") for part in f.relative_to(CONTENT).parts):
+        rel = f.relative_to(CONTENT)
+        if any(part.startswith("_") for part in rel.parts) or hidden(rel.as_posix()):
             continue
         _, lang = split(f.stem)
         if lang and lang not in langs:
