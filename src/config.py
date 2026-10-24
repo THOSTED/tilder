@@ -85,6 +85,8 @@ def served(rel):
         return False
     if len(parts) == 1 and (rel == "README.md" or rel.startswith("LICENSE")):
         return False
+    if len(parts) == 1 and rel.startswith("share-") and rel.endswith(".svg"):
+        return False    # a page preview's template (previews.py)
     return rel not in UNSERVED and not config_file(rel) and not rel.startswith(UNSERVED_DIRS)
 
 

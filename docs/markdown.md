@@ -153,7 +153,8 @@ line. Values are plain text, not quoted.
 | `nav` | yes* | Which nav entry is marked current: `""` (landing), `events`, `blog/`, `members`, or `-` for none. |
 | `feed` | no | Adds `<link rel="alternate">` for `events`, `blog` or `all`. |
 | `text` | no | `text: no` skips the text mirror for this page (the 404 does). |
-| `image` | no | Preview image for link sharing, relative to the page's folder. Default: `share.image`. |
+| `image` | no | Preview image for link sharing, relative to the page's folder. Default: the page's own card, drawn from the theme's `share-page.svg`, else `share.image`. |
+| `share_title` | no | The title on the page's drawn card, when `title` is too long for it. |
 | `group` | no | In a collection: the item's group in the theme's collection sidebar (`docs/types.md`). |
 
 \* Items of a collection (posts, events) may leave `man`, `nav` and

@@ -16,6 +16,7 @@ Everything a search engine shows comes from a page's front matter:
 | `description` | `<meta name="description">`, `og:description`, feeds | 50-160 characters, one sentence, specific |
 | `image` | the share preview (`og:image`) | 1200x630 PNG or JPEG, relative to the page's folder |
 | `image_alt` | `og:image:alt` | what the image shows |
+| `share_title` | the title on the page's drawn preview (`previews/`) | a shorter title, when `title` would be cut there |
 | `updated` | `<lastmod>` in `sitemap.xml`, `dateModified` of a post | set it when a page changes in substance |
 | `robots` | `<meta name="robots">` | `noindex` for a page that must stay out of results |
 
@@ -63,7 +64,10 @@ set its own list.
   - `ProfilePage` + `Person` for members;
   - `BreadcrumbList` (accueil > section > page).
 - **Sharing**: Open Graph and Twitter Card, with a 1200x630 image
-  (`share.png`, drawn at every build, `summary_large_image`).
+  (`summary_large_image`): `share.png` for the landing page, and, when
+  the theme has `share-page.svg`, a card of its own for every other page
+  (its title, path, date or tagline, place or author, and tag), drawn at
+  every build into `previews/` (`docs/theme.md`, "Share previews").
 - **`sitemap.xml`** with `<lastmod>`, and `sitemap.txt`. `robots.txt` points
   to `sitemap.xml`. The 404 and `noindex` pages are left out.
 - **Feeds**: RSS for posts and events, iCalendar for events.

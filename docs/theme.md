@@ -19,6 +19,8 @@ A file of the same name in the site's `assets/` wins over the theme's.
 | `fonts/` | optional | web fonts; `*.woff2` are also used to draw `share.png` |
 | `icons/<network>.svg` | optional | logos of member profiles (`linkedin`, `github`...); else the network's name is shown |
 | `share.svg` | optional | the link preview, drawn to `share.png` (1200x630); without it, `og:image` is the icon |
+| `share-page.svg` | optional | the link preview of each page, drawn to `previews/<key>.png` with the page's fields ("Share previews"); without it, every page shows `share.png` |
+| `share-<type>.svg` | optional | the same for the pages of one type (`share-event.svg`), over `share-page.svg` |
 | `layouts/<name>.html` | optional | a layout for the pages of a type (`docs/types.md`), or asked for by `layout:` in a page's front matter; same placeholders as `layout.html` |
 | `types/<name>.py` | optional | a content type the theme adds, or a built-in one it replaces (`docs/types.md`) |
 | `mermaid.json` | optional | Mermaid's configuration for diagrams, its colours written `var(--token)` ("Diagrams") |
@@ -26,7 +28,7 @@ A file of the same name in the site's `assets/` wins over the theme's.
 | `theme.<lang>.toml` | optional | `theme.toml`'s per-language twin, between it and the site's `site.toml` (`docs/languages.md`); ignored when the site does not declare `<lang>`, so a theme may ship languages a site lacks |
 
 Everything in `theme/` but `layout.html`, `layouts/`, `share.svg`,
-`icons/`, `types/`, `mermaid.json` and `theme.toml` (and its
+`share-*.svg`, `icons/`, `types/`, `mermaid.json` and `theme.toml` (and its
 `theme.<lang>.toml` twins) is copied to the site as it is. Like `site.toml`, `theme.toml` and its twins
 are read at build time and never served. A theme kept in its own repository may carry a `README.md`, a `LICENSE` and git files (`.git`, `.gitignore`): they are never served either.
 
@@ -112,6 +114,64 @@ reads; a test keeps the two equal.
 Accessibility the theme is responsible for: contrast (4.5:1 for text), a
 visible focus outline, `.sr-only`, reduced motion. The builder takes care
 of the markup: headings, alt text, labels, `aria-*`.
+
+---
+
+## Share previews
+
+`share.svg` is the site's card: drawn once, `share.png`, the preview of
+the landing page. With `share-page.svg`, every other page gets its own
+card, drawn at every build from the page's fields into
+`previews/<key>.png` (1200x630; the key is a hash of the filled template
+and the fonts, so a page that does not change keeps its file and its
+URL), and named by `og:image`, `twitter:image` and a post's or an
+event's JSON-LD `image`. `share-<type>.svg` (`share-event.svg`) wins for
+the pages of that type. A page keeps the site's card when it is marked
+`noindex` (the 404), and shows its own image when its front matter sets
+`image:`. `og:image:alt` is then the card's text, unless the page sets
+`image_alt:`.
+
+The template is an SVG with `{{ placeholders }}`, XML-escaped: every
+`share.svg` one (`logo`, `manual_upper`, `wordmark`, `domain`, `card_1`,
+`card_2`, any `site.toml` key such as `{{ share.text_color }}`), and the
+page's own:
+
+| Placeholder | Value |
+|---|---|
+| `{{ man }}` | the page's `man:` (a collection's items: the collection's), else `footer.right` |
+| `{{ path }}` | where the page sits, as `~/<site>` continues: `/events` for an event (its collection's folder), `/mentoring` for a page, `/blog` for the blog's own page |
+| `{{ url }}` | the address of that place, without the scheme: `example.org/events`, `example.org/fr/events` |
+| `{{ title_1 }}`, `{{ title_2 }}` (`{{ title_3 }}`...) | the page's `share_title:`, else its `title`, wrapped on `[share] title_lines` lines of `title_columns` characters |
+| `{{ title_shift }}` | `-title_line_height` times the title lines left empty: a `translate` for what follows the title, so it moves up under a short title |
+| `{{ detail_1 }}` | the page's `tagline` (a post's or an event's default: its date in words) |
+| `{{ detail_2 }}` | an event's `place`, else a post's `author` |
+| `{{ tag }}` | the page's `tag` |
+| `{{ tag_width }}` | the width of a box around the tag: its characters times `[share] tag_advance`, plus `tag_padding` on each side |
+| `{{ tag_display }}` | `inline`, or `none` when the page has no tag: for `display=` on the tag's group |
+
+Text is fitted by **character count**, so the template is meant for a
+monospace face: lines break at spaces, a word longer than a line is
+split, and the last line that does not fit is cut, with `...` (three
+dots, never the ellipsis character). Each detail line, and the tag, is
+cut at `[share] detail_columns`. Set the columns in `theme.toml` for the
+font sizes the template uses (at 0.6 em per character, a 60px title in
+832px holds 23).
+
+| `[share]` key | Default | |
+|---|---|---|
+| `pages` | `true` | a site sets `false` to show `share.png` on every page |
+| `title_columns` | `23` | characters per title line |
+| `title_lines` | `2` | title lines |
+| `title_line_height` | `68` | the step of `{{ title_shift }}` |
+| `detail_columns` | `48` | characters per detail line, and of the tag |
+| `tag_advance` | `14.4` | px per character of the tag |
+| `tag_padding` | `16` | px on each side of the tag |
+
+The cards are drawn by the rasteriser of `share.png` (`rsvg-convert`,
+with the theme's fonts), and cached like diagrams: in memory for
+`--watch`, in `TILDER_CACHE` (else a folder of the system's temporary
+directory), and in the previous output. Without a rasteriser, every page
+shows the site's card.
 
 ---
 

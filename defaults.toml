@@ -91,6 +91,18 @@ text_color = "#073642"
 muted_color = "#506C75"
 rule_color = "#DED7C3"
 short_name = "site"                 # web manifest
+# A preview per page, when the theme has share-page.svg (or share-<type>.svg):
+# previews/<key>.png, drawn from the page's title, tagline, place or
+# author, and tag. The landing page, noindex pages and pages that set
+# image: keep their image. Text is fitted by character count (the template
+# is meant for a monospace face) and cut with "...".
+pages = true
+title_columns = 23                  # characters per title line
+title_lines = 2
+title_line_height = 68              # {{ title_shift }}: this, per unused title line
+detail_columns = 48                 # characters per detail line, and of the tag
+tag_advance = 14.4                  # {{ tag_width }}: px per character of the tag...
+tag_padding = 16                    # ...plus this on each side
 
 # Collections: a folder under content/ whose files are items of one type.
 # A site declares its own as [collections.<name>]: a `type` (page, post,

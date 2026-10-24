@@ -39,6 +39,7 @@ entry point):
     icons.py         the favicon, app icons and share.png, made at every build
     images.py        an image's width and height, read from the file itself
     diagrams.py      ```mermaid blocks drawn to SVG files (the Mermaid CLI), cached
+    previews.py      a share preview per page, from the theme's share-page.svg, cached
 
 types/ holds the built-in content types, one module each (docs/types.md).
 
@@ -62,6 +63,7 @@ import inline
 import languages
 import page as page_module
 import paths
+import previews
 import report
 from ansify import ansify
 from config import (ASSETS, BUILDER, CFG, CONTENT, EXTRA, ROOT, STATE,
@@ -86,6 +88,7 @@ def build():
     STATE["today"] = os.environ.get("BUILD_TODAY") or datetime.date.today().isoformat()
     page_module.WARNED.clear()
     diagrams.reset()
+    previews.reset()
     out, every, table = {}, [], {}  # every: the pages of every language, for the sitemap
     for lang in langs:
         languages.use(lang)
@@ -123,6 +126,7 @@ def build():
                 it = by_src[src] if src in by_src else contenttypes.page_item(src, meta)
                 meta = it["meta"]
                 meta["_dir"] = site_path(src)
+                previews.draw(it)
                 pages.append(it)
                 contenttypes.fill_lists(sections, src, it["path"], colls, items)
                 out[prefix + it["path"]] = render_html(it, sections, preamble, colls, items)
@@ -180,6 +184,7 @@ def build():
             if f.is_file() and served(rel):
                 out[rel] = f.read_bytes()
     out.update(generated())  # icons and share.png, from assets/logo.svg
+    out.update(previews.outputs())  # a share preview per page
     for f in EXTRA:
         out[f.name] = f.read_bytes()
     return out
