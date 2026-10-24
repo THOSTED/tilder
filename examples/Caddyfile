@@ -115,7 +115,7 @@
 		# SVG images (logo, figures in posts) often style themselves with a
 		# <style> element: allowed inside the SVG, scripts still are not.
 		@svg path *.svg
-		header @svg Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self'"
+		header @svg Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:"
 
 		# Caching. Fonts never change under the same name. Style, scripts,
 		# icons and images may: a day, then revalidated. Pages: five
