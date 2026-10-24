@@ -87,6 +87,7 @@ src/
   images.py       image sizes, rasterising, .ico packing
   diagrams.py     ```mermaid blocks -> SVG files (the Mermaid CLI), themed, cached
   previews.py     a share card per page, from the theme's share-page.svg, cached
+  maps.py         an event's static map from tiles fetched at build time ([maps], opt-in)
   paths.py, fold.py, watch.py
 types/          the built-in content types, one module each - no
                 `__init__.py`, ever: the folder must not become a package

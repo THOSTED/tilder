@@ -40,6 +40,7 @@ entry point):
     images.py        an image's width and height, read from the file itself
     diagrams.py      ```mermaid blocks drawn to SVG files (the Mermaid CLI), cached
     previews.py      a share preview per page, from the theme's share-page.svg, cached
+    maps.py          an event's static map, from map tiles fetched at build time, cached
 
 types/ holds the built-in content types, one module each (docs/types.md).
 
@@ -61,6 +62,7 @@ import contenttypes
 import diagrams
 import inline
 import languages
+import maps
 import page as page_module
 import paths
 import previews
@@ -89,6 +91,7 @@ def build():
     page_module.WARNED.clear()
     diagrams.reset()
     previews.reset()
+    maps.reset()
     out, every, table = {}, [], {}  # every: the pages of every language, for the sitemap
     for lang in langs:
         languages.use(lang)
@@ -186,6 +189,7 @@ def build():
                 out[rel] = f.read_bytes()
     out.update(generated())  # icons and share.png, from assets/logo.svg
     out.update(previews.outputs())  # a share preview per page
+    out.update(maps.outputs())      # the events' static maps
     for f in EXTRA:
         out[f.name] = f.read_bytes()
     return out

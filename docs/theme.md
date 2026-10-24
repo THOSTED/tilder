@@ -107,6 +107,7 @@ reads; a test keeps the two equal.
 | `.table`, `th.center`, `th.right`, `td.center`, `td.right` | a scrolling table wrapper, alignment |
 | `.tasks`, `.task`, `.task--done`, `.task--todo` | task lists |
 | `.figure` | an image and its caption |
+| `.map` | with `.figure`: an event's static map (`<a>` around its `<img>`, the attribution in `<figcaption>`), `docs/markdown.md` |
 | `.toc`, `.toc-label` | a `[TOC]`, a `<details>` in a `<nav>` |
 | `.profiles`, `.icon` | a member's profile links and their logos |
 | `u.u` | `++underlined++` |

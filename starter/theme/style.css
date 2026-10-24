@@ -106,6 +106,7 @@ th.right, td.right { text-align: right; }
 .figure { margin: 1.5rem 0; }
 .figure img { max-width: 100%; height: auto; }
 .figure figcaption { font-size: 0.85rem; color: var(--fg-muted); }
+.map img { display: block; border: 1px solid var(--rule); }
 .toc { border-left: 2px solid var(--rule); padding-left: 1rem; margin: 0 0 1.1rem; font-family: var(--mono); }
 .toc-label { cursor: pointer; font-weight: 700; }
 hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
