@@ -21,6 +21,7 @@ FIXTURE = pathlib.Path(__file__).resolve().parent / "site"
 CYAN = "\033[36m"
 ESC = re.compile(r"\x1b\[[0-9;]*m")
 ACCEPTED = ("one of black, red, green, yellow, blue, magenta, cyan, white, "
+            "its bright twin (bright-cyan), dim, "
             "or a 256-colour index from 16 to 255 (208: orange)")
 
 
