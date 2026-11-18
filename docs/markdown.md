@@ -529,7 +529,7 @@ Five constructs, no nesting:
 
 | Source | HTML | Text |
 |---|---|---|
-| `[label](target)` | `<a href="...">label</a>` | `label (target)` if absolute, else `label` |
+| `[label](target)` | `<a href="...">label</a>` | `label (target)`; an internal target as its path from the root, `label (/events)` |
 | `` `code` `` | `<code>code</code>` | `code` |
 | `**bold**` | `<b>bold</b>` | `bold` |
 | `*italic*` or `_italic_` | `<em>italic</em>` | `italic` |
@@ -588,8 +588,14 @@ told: "(external site, opens in a new tab)", from `labels.external` and
 `labels.new_tab`.
 
 Mark an external link with `↗` in its label: `[archive ↗](https://archive.example.org/)`.
-In the text mirror, an internal link keeps only its label (it is visited with
-`curl`, not copied), while an absolute one prints its URL in parentheses.
+In the text mirror, every link prints where it goes, in parentheses: an
+absolute URL as written, an internal one as its path from the root
+(`tous les articles (/blog/)`), the next thing to curl. A bare `#id`
+prints nothing. A linked card prints its URL under its title.
+
+The 404 is the one page whose links start at the root (`/style.css`,
+`/blog/`): the server answers any missing URL with it, at any depth, where
+a relative link would resolve from the missing URL.
 
 ---
 
@@ -998,5 +1004,5 @@ and documenting it here.
 | `*text*` (whole paragraph, `**text**` too) | `.empty` | plain |
 | `text {small muted}` | `<p class="small muted">` | plain |
 | `<!-- ... -->` | passthrough | skipped |
-| `[t](u)`, `` `c` ``, `**b**` | `<a>`, `<code>`, `<b>` | `t (u)` if absolute, else `t` |
+| `[t](u)`, `` `c` ``, `**b**` | `<a>`, `<code>`, `<b>` | `t (u)`, an internal `u` as its path from the root |
 | `*i*`, `_i_`, `~~s~~` | `<em>`, `<del>` | `i`, `~~s~~` |
