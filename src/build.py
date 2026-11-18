@@ -101,6 +101,8 @@ def build():
         inline.SAME_TAB = tuple(CFG["links"]["same_tab"])
         ansify_module.COMMANDS = CFG["text"]["commands"]
         ansify_module.ACCENT = ansify_module.sgr(CFG["text"]["accent"])  # checked by setup
+        ansify_module.LINK = ansify_module.sgr(CFG["text"].get("link") or CFG["text"]["accent"])
+        ansify_module.MUTED = ansify_module.sgr(CFG["text"].get("muted") or "dim")
         ansify_module.BOXES = {
             to_ascii(CFG["labels"][kind]): colour for kind, colour in
             (("info", ansify_module.ACCENT), ("warning", ansify_module.YELLOW),

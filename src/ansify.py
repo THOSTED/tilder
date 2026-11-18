@@ -34,11 +34,17 @@ HL = {kind: chr(0x0e + n) for n, kind in enumerate(KINDS)}  # as in text.py
 
 
 def sgr(value):
-    """The escape of an accent: a colour name -> ESC[3Nm, an index from 16
-    to 255 -> ESC[38;5;Nm (0-15 are the eight colours and their bright
-    twins, which a terminal's theme redefines). None for anything else."""
+    """The escape of a colour: a colour name -> ESC[3Nm, its bright twin
+    ("bright-cyan") -> ESC[9Nm, "dim" -> ESC[2m, an index from 16 to 255 ->
+    ESC[38;5;Nm (0-15 are the eight colours and their bright twins, which
+    a terminal's theme redefines: name them instead). None for anything
+    else."""
     if isinstance(value, str) and value in COLOURS:
         return f"\033[3{COLOURS.index(value)}m"
+    if isinstance(value, str) and value.startswith("bright-") and value[7:] in COLOURS:
+        return f"\033[9{COLOURS.index(value[7:])}m"
+    if value == "dim":
+        return DIM
     if type(value) is int and 16 <= value <= 255:
         return f"\033[38;5;{value}m"
     return None
@@ -48,11 +54,20 @@ def sgr(value):
 # callout labels and their colour (INFO in the accent), and the words that
 # start a command line in a code block.
 ACCENT = sgr("cyan")
+# [text] link: URLs and internal paths, quieter than what the accent puts
+# forward; [text] muted: the rules, the code frames, the cards' frames.
+LINK = ACCENT
+MUTED = DIM
 BOXES = {"INFO": ACCENT, "WARNING": YELLOW, "ERROR": RED}
 COMMANDS = ["curl"]
 
 HEADING = re.compile(r"^[A-Z][A-Z0-9()' -]*$")
 URL = re.compile(r"https?://[^\s\x01-\x08\x0e-\x1a]+")
+# An internal link's path, as text.py writes it: "label (/events)".
+LOCAL = re.compile(r"(?<=\()/[^\s()\x01-\x08\x0e-\x1a]*(?=\))")
+# A card's frame, and its URL line under the title (text.sidebar).
+CARD = re.compile(r"^(\s*)([,|'])(?= |$)")
+CARD_URL = re.compile(r"^(\s*\| )(/\S*)$")
 TAG = re.compile(r"\[ [^\]]+ \]")
 BOX_SIDE = re.compile(r"^(\s*)\|(.*)\|$")
 BOX_BOTTOM = re.compile(r"^\s*\+-+\+$")
@@ -86,9 +101,24 @@ def _accent(s, also=""):
     return ACCENT + also + kept + RESET + s[len(kept):] if kept else s
 
 
+def _link(s):
+    """s in the link colour, underlined, its closing punctuation left out."""
+    kept = trim(s)
+    return LINK + UNDER + kept + RESET + s[len(kept):] if kept else s
+
+
+def _split_tags(s):
+    """A card title's line -> (the title, the [ tags ] after it, spaces
+    included)."""
+    m = re.search(r"\s+(\[ [^\]]+ \]\s*)+$", s)
+    return (s[:m.start()], s[m.start():]) if m else (s, "")
+
+
 def text_part(s):
-    """Outside code: URLs and [ tags ] in the accent, list markers too."""
-    s = URL.sub(lambda m: _accent(m.group(0), UNDER), s)
+    """Outside code: URLs and internal paths in the link colour, [ tags ]
+    and list markers in the accent."""
+    s = URL.sub(lambda m: _link(m.group(0)), s)
+    s = LOCAL.sub(lambda m: LINK + UNDER + m.group(0) + RESET, s)
     s = TAG.sub(lambda m: BOLD + ACCENT + m.group(0) + RESET, s)
     return s.replace(LIST_ON, ACCENT).replace(LIST_OFF, RESET)
 
@@ -152,10 +182,10 @@ def ansify(text):
         if line.startswith(HL_BLOCK):
             out.append(highlighted(line[1:]))
             continue
-        if line.startswith(FRAME):  # a code block's rules: dim
+        if line.startswith(FRAME):  # a code block's rules: muted
             body = line[1:]
             indent = body[: len(body) - len(body.lstrip())]
-            out.append(indent + DIM + body.lstrip() + RESET)
+            out.append(indent + MUTED + body.lstrip() + RESET)
             continue
         top = _box_top(line)
         if top:
@@ -175,7 +205,26 @@ def ansify(text):
         if not line.strip():
             out.append(line)
         elif i in (0, footer):
-            out.append(DIM + line + RESET)
+            out.append(MUTED + line + RESET)
+        elif CARD.match(line):
+            # A card's line: its frame muted, its URL line in the link colour.
+            url = CARD_URL.match(line)
+            if url:
+                bar = url.group(1).rstrip()
+                out.append(bar[:-1] + MUTED + "|" + RESET + " " + LINK + UNDER + url.group(2) + RESET)
+                continue
+            m = CARD.match(line)
+            rest = line[m.end():]
+            if lines[i - 1].strip() == ",":
+                # The card's title, the line after its top: bold, its tags
+                # in the accent at the right edge.
+                gap = rest[:len(rest) - len(rest.lstrip(" "))]
+                title, tags = _split_tags(rest.lstrip(" "))
+                out.append(m.group(1) + MUTED + m.group(2) + RESET + gap
+                           + BOLD + title + RESET + text_part(tags))
+                continue
+            body, inside = marked(rest, inside)
+            out.append(m.group(1) + MUTED + m.group(2) + RESET + body)
         elif HEADING.match(line):
             out.append(BOLD + line + RESET)
         elif i == (first_heading or -1) + 1 and " - " in line:

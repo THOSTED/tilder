@@ -200,13 +200,19 @@ timezone = "UTC"
 uid_domain = "example.org"
 
 # The text mirror, coloured for terminals (ansi/): commands, the words that
-# start a command line worth highlighting; accent, the one accent colour
-# (links, [ tags ], list markers, inline code, command lines, the INFO box):
-# one of the eight colour names black, red, green, yellow, blue, magenta,
-# cyan, white, or a 256-colour index from 16 to 255, such as 208 for orange.
+# start a command line worth highlighting; three colours, each one of the
+# eight colour names black, red, green, yellow, blue, magenta, cyan, white,
+# its bright twin (bright-cyan), dim, or a 256-colour index from 16 to 255,
+# such as 208 for orange:
+#   accent  what is put forward: [ tags ], list markers, inline code,
+#           command lines, the INFO box;
+#   link    URLs and internal paths, underlined ("": the accent);
+#   muted   the header and footer rules, code and card frames ("": dim).
 [text]
 commands = ["curl"]
 accent = "cyan"
+link = ""
+muted = ""
 
 [robots]
 disallow = ["/txt/", "/ansi/"]      # the text mirrors

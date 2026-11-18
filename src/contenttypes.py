@@ -404,14 +404,14 @@ def _pager(path, n, total):
     if n > 1:
         t = _page_target(path, n - 1)
         parts.append(f"[{labels['prev']}]({t})")
-        plain.append(f"{labels['prev']} : /{t}")
+        plain.append(f"{labels['prev']} (/{t})")
     here = labels["page_of"].format(n=n, total=total)
     parts.append(here)
     plain.append(here)
     if n < total:
         t = _page_target(path, n + 1)
         parts.append(f"[{labels['next']}]({t})")
-        plain.append(f"{labels['next']} : /{t}")
+        plain.append(f"{labels['next']} (/{t})")
     return {"k": "para", "cls": ["pager", "small"], "text": " · ".join(parts), "txt": " · ".join(plain)}
 
 

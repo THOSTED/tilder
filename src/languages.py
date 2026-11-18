@@ -144,13 +144,17 @@ def setup():
 def _accent(lang):
     """[text] accent of the language just loaded, as errors: [] when it is
     a colour sgr() knows. The error names the file that set it."""
-    value = CFG["text"]["accent"]
-    if sgr(value) is not None:
-        return []
-    return [error(_setter(lang, "text", "accent"),
-                  f"[text] accent is {json.dumps(value, default=str)}, not a colour",
-                  f"Set one of {', '.join(COLOURS)}, "
-                  "or a 256-colour index from 16 to 255 (208: orange)")]
+    errs = []
+    for key in ("accent", "link", "muted"):
+        value = CFG["text"].get(key)
+        if key != "accent" and value in (None, ""):
+            continue    # link: the accent; muted: dim
+        if sgr(value) is None:
+            errs.append(error(_setter(lang, "text", key),
+                              f"[text] {key} is {json.dumps(value, default=str)}, not a colour",
+                              f"Set one of {', '.join(COLOURS)}, its bright twin (bright-cyan), dim, "
+                              "or a 256-colour index from 16 to 255 (208: orange)"))
+    return errs
 
 
 def _same_as(lang):

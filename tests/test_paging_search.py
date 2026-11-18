@@ -22,7 +22,7 @@ class Paging(unittest.TestCase):
         self.assertEqual(first["text"], "page 1 of 3 · [next](blog/2)")
         middle = contenttypes._pager("blog/index.html", 2, 3)
         self.assertEqual(middle["text"], "[previous](blog/) · page 2 of 3 · [next](blog/3)")
-        self.assertEqual(middle["txt"], "previous : /blog/ · page 2 of 3 · next : /blog/3")
+        self.assertEqual(middle["txt"], "previous (/blog/) · page 2 of 3 · next (/blog/3)")
         last = contenttypes._pager("events.html", 2, 2)
         self.assertEqual(last["text"], "[previous](events) · page 2 of 2")
 
@@ -54,3 +54,25 @@ class Sidebar(unittest.TestCase):
     def test_internal_links_show_their_path(self):
         self.assertEqual(text.txt("see [the events](events) and [top](#top)"), "see the events (/events) and top")
         self.assertEqual(text.txt("[home](./#join), [feed](blog/feed.xml)"), "home (/#join), feed (/blog/feed.xml)")
+
+
+class Colours(unittest.TestCase):
+    def test_bright_and_dim(self):
+        import ansify
+        self.assertEqual(ansify.sgr("bright-cyan"), "\033[96m")
+        self.assertEqual(ansify.sgr("dim"), "\033[2m")
+        self.assertIsNone(ansify.sgr("bright-orange"))
+
+    def test_links_take_the_link_colour_and_frames_the_muted_one(self):
+        import ansify
+        saved = ansify.ACCENT, ansify.LINK, ansify.MUTED
+        ansify.ACCENT, ansify.LINK, ansify.MUTED = "<A>", "<L>", "<M>"
+        try:
+            out = ansify.ansify("HEAD\n\n     ,\n     | Title\n     | /blog/-/x\n     | see the list (/blog/)\n"
+                                "     '\n\nFOOT")
+            self.assertIn("     <M>,", out)
+            self.assertIn("<M>|\033[0m <L>\033[4m/blog/-/x", out)
+            self.assertIn("(<L>\033[4m/blog/\033[0m)", out)
+            self.assertIn("     <M>'", out)
+        finally:
+            ansify.ACCENT, ansify.LINK, ansify.MUTED = saved

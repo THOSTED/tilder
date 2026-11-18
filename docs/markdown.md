@@ -51,19 +51,28 @@ The build also writes, from `site.toml`: `site.webmanifest`, `robots.txt`
 (from `[robots]`, plus the sitemap URL) and `txt/robots.txt`, which is the
 `robots.txt` of the plain-text host (from `[robots_man]`).
 
-The coloured text mirror (`ansi/`) takes two keys from `[text]`:
+The coloured text mirror (`ansi/`) takes four keys from `[text]`:
 `commands`, the words that start a command line in a code block, and
-`accent`, its one accent colour - links, `[ tags ]`, list markers, inline
-`code`, command lines and the INFO box. `accent` is one of the eight colour
-names `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan` (the
-default), `white`, or a 256-colour index from 16 to 255, such as `208` for
-orange; a `site.<lang>.toml` may set its own. Anything else stops the
-build. Warnings stay yellow and errors red.
+three colours, so that what matters stands out from the links:
+
+- `accent`: what is put forward - `[ tags ]`, list markers, inline `code`,
+  command lines and the INFO box; a card's title is bold;
+- `link`: URLs and internal paths, underlined (empty: the accent);
+- `muted`: the header and footer rules, code and card frames (empty: dim).
+
+Each is one of the eight colour names `black`, `red`, `green`, `yellow`,
+`blue`, `magenta`, `cyan` (the accent's default), `white`, its bright twin
+(`bright-cyan`: the terminal's brighter shade), `dim`, or a 256-colour
+index from 16 to 255, such as `208` for orange; a `site.<lang>.toml` may
+set its own. Anything else stops the build. Warnings stay yellow and
+errors red.
 
 ```toml
 [text]
 commands = ["curl"]
-accent = 208
+accent = "bright-cyan"
+link = "cyan"
+muted = "dim"
 ```
 
 ---
