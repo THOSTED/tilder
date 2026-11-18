@@ -639,7 +639,8 @@ stays inactive - no page, no feed - until its folder exists.
 | `title` | the post's title | the event's name |
 | `description` | one sentence: card text, feed summary | the same |
 | `author` | a named author | - |
-| `tag` | one word, the card's tag | - (set by the date: `upcoming_tag` / `past_tag`) |
+| `tag` | one word, the card's first tag | - (set by the date: `upcoming_tag` / `past_tag`) |
+| `tags` | more tags, separated by commas: `dns, tls`; on the card, the share preview and `article:tag` | - |
 | `place` | - | where; the iCalendar `LOCATION` |
 | `link` | - | the event's own site |
 | `end` | - | `YYYY-MM-DD`, for an event over several days |
@@ -718,6 +719,7 @@ Nothing else is written by hand. From these files the build makes:
 | `{past}` | events that started before today, latest first |
 | `{next-event}` | the next event only |
 | `{members}` | every member, a grid, category order then last name |
+| `{search}` | every item of every collection, a grid: dated ones newest first, then the others |
 
   Each marker may name its collection: `{posts:news}`, `{upcoming:meetups}`,
   `{next-event:meetups}`. A bare marker lists the page's own collection -
@@ -725,6 +727,30 @@ Nothing else is written by hand. From these files the build makes:
   `events/`) - else the first collection of the marker's type. An empty
   list shows the collection's empty-state text. Blocks written under the
   heading stay, after the cards.
+
+  **Pages.** A collection that sets `per_page = N` shows its `{posts}` or
+  `{past}` list N cards at a time: page 1 at the list's own URL
+  (`/blog/`, `/events`), page n at `/blog/n`, `/events/n`, each with
+  its own `<title>` and description (`labels.page_title`), its own
+  canonical URL and its place in the sitemap, and a line under the cards:
+  `previous · page 2 of 3 · next` (`labels.prev`, `labels.page_of`,
+  `labels.next`). Upcoming events are never paged. Have the server send
+  `/blog/1` to `/blog/` with a 301: the build writes no page 1 of its own.
+  To keep page numbers and items apart, give the collection an
+  `item_prefix`: `item_prefix = "-"` serves the posts at
+  `/blog/-/<slug>` (files of a post's folder stay at `/blog/<slug>/...`).
+  The RSS `guid` stays the URL without the prefix, so a reader does not
+  show a post again when the prefix comes in; redirect the old URLs with
+  a 301.
+
+  **Search.** `{search}` lists every post, event and member as their
+  type draws them, each card carrying its words (title, description,
+  tags, names) and its collection's `search_name`. With the theme's
+  script (`[search] script`, `members.js` by default) the page gets a
+  search box and a button per collection, and shows `[search] limit`
+  results at a time; without it, every card is shown, and the text mirror
+  is the whole index, for `grep`. No request leaves the page: the index
+  is the page. The words are under `[search]` in `site.toml`.
 - per collection, its `feed` (RSS) and, for events, its `calendar`
   (iCalendar): every item, with its own URL. Leave either empty for none.
   A page's `feed:` front-matter key names a collection (or `all`) to

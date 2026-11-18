@@ -185,7 +185,6 @@ def txt_table(b, ind):
 
 def txt_blocks(blocks, ind):
     out = []
-    prev = None
     for b in blocks:
         # A {html} block is the page's only; a {html} diagram with a {text}
         # drawing paired to it shows that drawing here.
@@ -193,12 +192,6 @@ def txt_blocks(blocks, ind):
             continue
         if out and out[-1] != "":
             out.append("")
-        if b["k"] == "entry" and prev == "entry":
-            # Between two cards, a rule: a blank line alone also parts a
-            # card's title from its body, so it cannot part the cards.
-            # FRAME: dim in colour, gone in txt/.
-            out += [FRAME + ind + "-" * (WIDTH - len(ind)), ""]
-        prev = b["k"]
         if b["k"] in ("para", "empty"):
             text = b.get("txt", b["text"])
             if not text:
@@ -250,23 +243,52 @@ def txt_blocks(blocks, ind):
                 out.extend(wrap(txt(b["caption"]), ind + "  "))
             out.append(ind + "  " + to_ascii(src))
         elif b["k"] == "entry":
-            title = txt(b["title"])
-            tags = [m[1:-1] for m in b["meta"] if m.startswith("`") and m.endswith("`")]
-            line = ind + title
-            if tags:
-                tag = " ".join("[ " + to_ascii(t) + " ]" for t in tags)
-                if vlen(line) + 2 + len(tag) <= WIDTH:
-                    line += " " * (WIDTH - vlen(line) - len(tag)) + tag
-            out.append(line)
-            for m in b["meta"]:
-                if m.startswith("`"):
-                    continue
-                val = m.split(" | ", 1)[1] if " | " in m else m
-                out.extend(wrap(to_ascii(val), ind))
-            body = txt_blocks(b["blocks"], ind + "    ")
-            if body:
-                out.append("")
-                out.extend(body)
+            out.extend(sidebar(txt_entry(b, ind + "  "), ind))
+    return out
+
+
+def sidebar(lines, ind):
+    """A card's lines with a bar down its left side, ending in ': a blank
+    line also parts a card's title from its body, so blank lines alone
+    could not part the cards. A mark at the start of a line stays first."""
+    out = []
+    for n, line in enumerate(lines):
+        mark = line[0] if line and line[0] < " " else ""
+        body = line[len(mark) + len(ind) + 2:]
+        bar = "'" if n == len(lines) - 1 else "|"
+        out.append(f"{mark}{ind}{bar} {body}".rstrip())
+    return out
+
+
+def txt_entry(b, ind):
+    """A card: its title (tags at the right edge), its meta lines, then its
+    body, indented."""
+    title = txt(b["title"])
+    tags = [m[1:-1] for m in b["meta"] if m.startswith("`") and m.endswith("`")]
+    line = ind + title
+    below = []
+    if tags:
+        tag = " ".join("[ " + to_ascii(t) + " ]" for t in tags)
+        if vlen(line) + 2 + len(tag) <= WIDTH:
+            line += " " * (WIDTH - vlen(line) - len(tag)) + tag
+        else:   # too long for the title's line: their own, under it, never cut
+            row = ind
+            for t in ("[ " + to_ascii(t) + " ]" for t in tags):
+                if row != ind and vlen(row) + 1 + len(t) > WIDTH:
+                    below.append(row)
+                    row = ind
+                row += ("" if row == ind else " ") + t
+            below.append(row)
+    out = [line] + below
+    for m in b["meta"]:
+        if m.startswith("`"):
+            continue
+        val = m.split(" | ", 1)[1] if " | " in m else m
+        out.extend(wrap(to_ascii(val), ind))
+    body = txt_blocks(b["blocks"], ind + "    ")
+    if body:
+        out.append("")
+        out.extend(body)
     return out
 
 

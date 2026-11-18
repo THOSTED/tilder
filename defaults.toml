@@ -43,6 +43,22 @@ languages = "Languages"             # the language switcher, {{ languages }}
 collection_nav = "In this section"  # names the {{ collection_nav }} sidebar; a collection may set nav_label
 prev = "previous"                   # {{ prev }}, and the text mirror's line of a sequential type
 next = "next"                       # {{ next }}
+page_of = "page {n} of {total}"     # under a paged list (a collection's per_page)
+page_title = "{title} - page {n}"   # the <title> and description of page n of a list, n > 1
+
+# The {search} list: every item of every collection, searched by the
+# theme's script (a collection names itself in it with search_name).
+[search]
+script = "members.js"
+search_label = "search"
+search_placeholder = "words"
+all = "all"
+one = "result"
+many = "results"
+none = "Nothing matches."
+shown = "shown"                     # "12 results, 10 shown"
+limit = 10                          # results shown at once
+empty = "Nothing to search yet."
 
 # External links: open in a new tab or not. `same_tab` lists hosts (and
 # their subdomains) that stay in the same tab when new_tab is on.

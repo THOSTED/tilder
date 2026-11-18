@@ -375,6 +375,8 @@ def render_html(item, sections, preamble=(), colls=None, items=None):
         table = STATE["pages"] or languages.pages()
         for i, part in enumerate(folders):
             target = "/".join(d.split("/")[:i + 1])
+            if target in paths.PREFIXES:   # blog/-: not a page, not a segment
+                continue
             # A section of a recursive collection without its own page is
             # named, not linked: no page would answer the link.
             if paths.SECTIONS.get(target) is False:
