@@ -185,6 +185,7 @@ def txt_table(b, ind):
 
 def txt_blocks(blocks, ind):
     out = []
+    prev = None
     for b in blocks:
         # A {html} block is the page's only; a {html} diagram with a {text}
         # drawing paired to it shows that drawing here.
@@ -192,6 +193,12 @@ def txt_blocks(blocks, ind):
             continue
         if out and out[-1] != "":
             out.append("")
+        if b["k"] == "entry" and prev == "entry":
+            # Between two cards, a rule: a blank line alone also parts a
+            # card's title from its body, so it cannot part the cards.
+            # FRAME: dim in colour, gone in txt/.
+            out += [FRAME + ind + "-" * (WIDTH - len(ind)), ""]
+        prev = b["k"]
         if b["k"] in ("para", "empty"):
             text = b.get("txt", b["text"])
             if not text:
