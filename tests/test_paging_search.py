@@ -37,7 +37,7 @@ class Tags(unittest.TestCase):
 class Sidebar(unittest.TestCase):
     def test_a_card_has_a_bar_down_its_side(self):
         lines = text.sidebar(["       Title", "       meta", "", "           body"], "     ")
-        self.assertEqual(lines, ["     | Title", "     | meta", "     |", "     '     body"])
+        self.assertEqual(lines, ["     ,", "     | Title", "     | meta", "     |", "     |     body", "     '"])
 
     def test_tags_too_long_go_under_the_title(self):
         b = {"title": "A title", "meta": ["`" + w + "`" for w in ["one", "two"] * 8], "blocks": []}
@@ -45,3 +45,12 @@ class Sidebar(unittest.TestCase):
         self.assertEqual(out[0], "     A title")
         self.assertTrue(out[1].startswith("     [ one ] [ two ]"))
         self.assertTrue(all(len(l) <= text.WIDTH for l in out))
+
+    def test_a_linked_title_shows_its_url_under_it(self):
+        out = text.txt_entry({"title": "[A post](blog/-/2026-01-01-a)", "meta": ["`news`"], "blocks": []}, "     ")
+        self.assertTrue(out[0].startswith("     A post") and out[0].endswith("[ news ]"))
+        self.assertEqual(out[1], "     /blog/-/2026-01-01-a")
+
+    def test_internal_links_show_their_path(self):
+        self.assertEqual(text.txt("see [the events](events) and [top](#top)"), "see the events (/events) and top")
+        self.assertEqual(text.txt("[home](./#join), [feed](blog/feed.xml)"), "home (/#join), feed (/blog/feed.xml)")

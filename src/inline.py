@@ -111,15 +111,18 @@ def to_html(text, resolve=lambda u: u):
 CODE_ON, CODE_OFF = "\x02", "\x03"
 
 
-def to_text(text, marks=False):
-    """Text keeps the label; the URL follows only when absolute - an internal
-    path is visited with curl, not copied by hand. Italic is plain text;
-    struck text keeps its ~~ marks, since dropping them changes the sense.
-    With marks, `code` is wrapped in CODE_ON / CODE_OFF."""
+def to_text(text, marks=False, local=None):
+    """Text keeps the label, and the URL follows: absolute as written, an
+    internal one as local(url) gives it (its path from the root, the next
+    thing to curl), or not at all without local or when it gives None.
+    Italic is plain text; struck text keeps its ~~ marks, since dropping
+    them changes the sense. With marks, `code` is wrapped in CODE_ON /
+    CODE_OFF."""
     out = []
     for kind, content, url in tokens(text):
         if kind == "link":
-            out.append(f"{content} ({url})" if url.startswith("http") else content)
+            shown = url if url.startswith("http") else (local(url) if local else None)
+            out.append(f"{content} ({shown})" if shown else content)
         elif kind == "strike":
             out.append(f"~~{content}~~")
         elif kind == "code" and marks:

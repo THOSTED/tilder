@@ -2,6 +2,7 @@
 
 import html as H
 import os
+import posixpath
 import re
 import struct
 import sys
@@ -301,6 +302,16 @@ def render_html(item, sections, preamble=(), colls=None, items=None):
 
     def res(u):
         _warn_scheduled(item["src"], u)
+        if path == "404.html":
+            # The server answers any missing URL with this page, at any
+            # depth: /blog/x/y. A relative link would resolve from there
+            # (no style, blog/blog/...), so here links start at the root.
+            r = relative(d, u)
+            if r.startswith(("http:", "https:", "mailto:", "#")):
+                return r
+            slash = "/" if r.endswith("/") or r in ("", "./") else ""
+            full = posixpath.normpath(posixpath.join("/" + STATE["prefix"], r))
+            return full.rstrip("/") + slash if full != "/" else "/"
         return relative(d, u)
 
     nav = []

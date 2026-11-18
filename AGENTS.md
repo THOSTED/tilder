@@ -126,11 +126,17 @@ name must not shadow the standard library (`html`, `site`,
   character added, the spaces around a token left uncoloured.
 - **Code blocks are framed**: `.-- lang ---.` above, `'------'` below; the
   code's lines carry nothing, so they copy clean from a terminal.
-- **Cards carry a bar down their left side**, `|` on each line and `'` on
-  the last: a blank line also parts a card's title from its body, so blank
-  lines alone could not part the cards. Tags sit at the right of the
+- **Cards are framed down their left side**: `,` above, `|` on each line,
+  `'` below. A blank line also parts a card's title from its body, so
+  blank lines alone could not part the cards. Tags sit at the right of the
   title, or on their own lines under it when they do not fit; a tag is
-  never cut.
+  never cut. A linked card shows its URL under its title.
+- **Every link shows where it goes**: an absolute URL as written, an
+  internal one as its path from the root (`tous les articles (/blog/)`),
+  so a reader always finds the next thing to curl. A bare `#id` shows
+  nothing.
+- The **404** is the one page whose links start at the root (`/style.css`,
+  `/blog/`): the server answers any missing URL with it, at any depth.
 - Eight-colour SGR, or a 256-colour accent chosen by the site (`[text]
   accent`); never a background; one accent (cyan by default); callouts in
   their kind's colour; code tokens in their kind's colour
@@ -247,7 +253,7 @@ PY
 # 4. One <h1> per page; no script but the two files and JSON-LD.
 for f in $(find . -name '*.html'); do [ "$(grep -c '<h1[ >]' $f)" = 1 ] || echo "h1: $f"; done
 grep -rniE '<script|<form|<input|\son[a-z]+="' --include='*.html' . \
-  | grep -vE '<script src="(\.\./)*(members|code)\.js" defer[^>]*></script>|<script type="application/ld\+json">'
+  | grep -vE '<script src="(\.\./|/)*(members|code)\.js" defer[^>]*></script>|<script type="application/ld\+json">'
 
 # 5. No request to another host.
 grep -rnE '(src|srcset)="https?://|url\(["'"'"']?https?://' --include='*.html' --include='*.css' .

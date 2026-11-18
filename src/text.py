@@ -14,7 +14,8 @@ import re
 import highlight
 import inline
 import languages
-from config import CFG, INDENT, WIDTH
+import paths
+from config import CFG, INDENT, STATE, WIDTH
 from fold import to_ascii
 from inline import CODE_OFF, CODE_ON
 
@@ -54,9 +55,21 @@ def fill(text, width):
     return lines
 
 
+def local_url(target):
+    """An internal link's target as the text mirror shows it: its path from
+    the site's root, what to curl next (/events, /blog/-/2026-..., /#id).
+    None for a bare #id or a mailto: there is nothing to visit."""
+    if target.startswith(("#", "mailto:")):
+        return None
+    t = target.removeprefix("./")
+    if t.startswith("/"):
+        return t
+    return "/" + ("" if paths.is_file(t) else STATE["prefix"]) + t
+
+
 def txt(text):
-    """Inline markup to marked ASCII."""
-    return to_ascii(inline.to_text(text, marks=True))
+    """Inline markup to marked ASCII; every link followed by its URL."""
+    return to_ascii(inline.to_text(text, marks=True, local=local_url))
 
 def rule(left, mid, right):
     gap = WIDTH - len(left) - len(mid) - len(right)
@@ -248,22 +261,28 @@ def txt_blocks(blocks, ind):
 
 
 def sidebar(lines, ind):
-    """A card's lines with a bar down its left side, ending in ': a blank
-    line also parts a card's title from its body, so blank lines alone
-    could not part the cards. A mark at the start of a line stays first."""
-    out = []
-    for n, line in enumerate(lines):
+    """A card's lines framed down its left side: , above, | on each line,
+    ' below. A blank line also parts a card's title from its body, so blank
+    lines alone could not part the cards. A mark at the start of a line
+    stays first."""
+    out = [ind + ","]
+    for line in lines:
         mark = line[0] if line and line[0] < " " else ""
         body = line[len(mark) + len(ind) + 2:]
-        bar = "'" if n == len(lines) - 1 else "|"
-        out.append(f"{mark}{ind}{bar} {body}".rstrip())
-    return out
+        out.append(f"{mark}{ind}| {body}".rstrip())
+    return out + [ind + "'"]
 
 
 def txt_entry(b, ind):
     """A card: its title (tags at the right edge), its meta lines, then its
     body, indented."""
-    title = txt(b["title"])
+    # A linked title: its words on the title's line, its URL under it.
+    parts = list(inline.tokens(b["title"]))
+    url = None
+    if len(parts) == 1 and parts[0][0] == "link":
+        title, url = to_ascii(parts[0][1]), local_url(parts[0][2])
+    else:
+        title = txt(b["title"])
     tags = [m[1:-1] for m in b["meta"] if m.startswith("`") and m.endswith("`")]
     line = ind + title
     below = []
@@ -279,7 +298,7 @@ def txt_entry(b, ind):
                     row = ind
                 row += ("" if row == ind else " ") + t
             below.append(row)
-    out = [line] + below
+    out = [line] + below + ([ind + url] if url else [])
     for m in b["meta"]:
         if m.startswith("`"):
             continue
