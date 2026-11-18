@@ -11,7 +11,7 @@ DEFAULTS = {
     "man": "SITE-MEMBERS(7)",
     "nav": "members",
     "categories": ["admin", "member"],   # display and sort order
-    "default_category": "member",
+    "default_category": "member",        # "": no tag for members who set none
     "empty": "No member listed yet.",
     "search_label": "search",
     "search_placeholder": "first or last name",
@@ -56,11 +56,23 @@ def profiles(meta):
     return out
 
 
+def categories(meta, conf):
+    """The member's categories: `category` holds one or several, separated
+    by spaces (`admin mentor`). None set: the default category, or none at
+    all when `default_category` is empty (a category every member has goes
+    without saying, and is not shown)."""
+    cats = meta.get("category", "").split()
+    if not cats and conf["default_category"]:
+        cats = [conf["default_category"]]
+    return cats
+
+
 def sort_key(item, conf):
-    """Category order, then last name (ASCII, lower), then slug."""
+    """Category order (a member's first-ranked category; none or unknown
+    last), then last name (ASCII, lower), then slug."""
     meta, order = item["meta"], conf["categories"]
-    category = meta.get("category", conf["default_category"])
-    rank = (order.index(category) if category in order else len(order), category)
+    ranks = sorted((order.index(c) if c in order else len(order), c) for c in categories(meta, conf))
+    rank = ranks[0] if ranks else (len(order), "")
     return (rank, to_ascii(meta.get("last_name", "")).lower(), item["slug"])
 
 
@@ -70,10 +82,10 @@ def entry(item, link, conf):
     meta = item["meta"]
     name = member_name(meta)
     line = [meta[k] for k in ("pronouns", "affiliation", "capacity") if meta.get(k)]
-    category = meta.get("category", conf["default_category"])
+    cats = categories(meta, conf)
     if meta.get("full") == "yes":
         line.append(conf["full"])  # said in words, not only by the tag's colour
-    line.append(f"`{category}`")
+    line.extend(f"`{c}`" for c in cats)
     names = [name, meta.get("first_name", ""), meta.get("last_name", "")]
     links = profiles(meta)
     return {
@@ -82,7 +94,7 @@ def entry(item, link, conf):
         "meta": line,
         "title": f"[{name}]({item['path'][:-5]})" if link else name,
         "cls": ["full"] if meta.get("full") == "yes" else [],
-        "data": {"category": category,
+        "data": {"category": " ".join(cats),
                  "search": " ".join(dict.fromkeys(to_ascii(" ".join(names)).lower().split()))},
     }
 

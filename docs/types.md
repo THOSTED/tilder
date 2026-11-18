@@ -90,7 +90,7 @@ language. `page` has none.
 | `man` | `"SITE-MEMBERS(7)"` | the items' man-page name, unless one sets its own |
 | `nav` | `"members"` | the items' nav entry |
 | `categories` | `["admin", "member"]` | the categories, in display and sort order |
-| `default_category` | `"member"` | a member's category when the front matter sets none |
+| `default_category` | `"member"` | a member's category when the front matter sets none; `""` for none, when every member has it and it goes without saying |
 | `empty` | `"No member listed yet."` | a `{members}` list with nothing in it |
 | `search_label` | `"search"` | the search field's label (members.js) |
 | `search_placeholder` | `"first or last name"` | the search field's placeholder |
