@@ -5,9 +5,10 @@ import urllib.parse
 
 import maps
 from config import CFG, STATE, apex
-from dates import human_date
+from dates import SESSION_KEY, TIME, hours, human_date, moment, session
 from feeds import calendar
 from paths import clean_url
+from report import error
 from seo import org_ref, page_heading, share_image
 
 NAME = "event"
@@ -35,6 +36,17 @@ def defaults(item, conf):
     meta.setdefault("nav", conf["nav"])
     meta.setdefault("tagline", human_date(item["date"]))
     meta.setdefault("description", "")
+    if meta.get("time"):
+        m = TIME.match(meta["time"].replace(" ", ""))
+        if not m or (m[3] and not meta.get("end") and (m[3], m[4]) <= (m[1], m[2])):
+            raise error(item["src"], f'time "{meta["time"]}" is not a start, or a start and a later end',
+                        "write it on a 24-hour clock: 14:00, or 14:00-15:00")
+    last = meta.get("end", item["date"])
+    for key in (k for k in meta if SESSION_KEY.match(k)):
+        day, span, title = session(meta[key])
+        if not title or (day and not item["date"] <= day <= last) or (span and span[1] and span[1] <= span[0]):
+            raise error(item["src"], f'{key} "{meta[key]}" is not "[day] [hours] title" within the event',
+                        f"write it like: {item['date']} 14:00-15:00 Talk, or just a title for the whole event")
 
 
 def osm_url(meta):
@@ -56,6 +68,10 @@ def entry(item, link, conf):
     line = [f"{item['date']} | {human_date(item['date'])}"]
     if meta.get("end"):
         line[0] += " - " + human_date(meta["end"])
+    if hours(meta):
+        # The hours stay as written, on a 24-hour clock: no word to translate.
+        start, end = hours(meta)
+        line[0] = line[0].replace(" | ", f"T{start} | ", 1) + f", {start}" + (f"-{end}" if end else "")
     if meta.get("place"):
         line.append(meta["place"])
     tag = conf["upcoming_tag" if item["date"] >= STATE["today"] else "past_tag"]
@@ -116,9 +132,14 @@ def json_ld(item, conf):
     place = {"@type": "Place", "name": meta.get("place", ""), "address": meta.get("place", "")}
     if meta.get("lat") and meta.get("lon"):
         place["geo"] = {"@type": "GeoCoordinates", "latitude": meta["lat"], "longitude": meta["lon"]}
+    start, end = item["date"], meta.get("end", item["date"])
+    if hours(meta):
+        first, last = hours(meta)
+        start = moment(item["date"], first).isoformat()
+        end = moment(meta.get("end", item["date"]), last).isoformat() if last else start
     return {"@type": "Event", "name": page_heading(meta),
-            "description": meta["description"], "startDate": item["date"],
-            "endDate": meta.get("end", item["date"]),
+            "description": meta["description"], "startDate": start,
+            "endDate": end,
             "eventStatus": "https://schema.org/EventScheduled",
             "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
             "location": place, "organizer": org_ref(), "image": share_image(meta)[0]}
