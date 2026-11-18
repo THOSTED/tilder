@@ -59,6 +59,25 @@ class Member(unittest.TestCase):
         self.assertEqual(node["meta"], ["`member`"])
         self.assertEqual(node["data"]["search"], "ada lovelace")
 
+    def test_several_categories(self):
+        node = self.member.entry(item(category="admin mentor"), True, CONF)
+        self.assertEqual(node["meta"], ["`admin`", "`mentor`"])
+        self.assertEqual(node["data"]["category"], "admin mentor")
+
+    def test_no_default_category_means_no_tag(self):
+        conf = {**CONF, "default_category": ""}
+        node = self.member.entry(item(), True, conf)
+        self.assertEqual(node["meta"], [])
+        self.assertEqual(node["data"]["category"], "")
+
+    def test_sort_key_first_ranked_category(self):
+        both = item("b", category="mentor admin", last_name="Zuse")
+        mentor = item("m", category="mentor", last_name="Aiken")
+        untagged = item("u", last_name="Babbage")
+        conf = {**CONF, "default_category": ""}
+        keys = sorted(self.member.sort_key(it, conf) for it in (untagged, mentor, both))
+        self.assertEqual([k[2] for k in keys], ["b", "m", "u"])
+
     def test_sort_key_category_then_last_name(self):
         admin = item("z", category="admin", last_name="Zuse")
         member = item("a", category="member", last_name="Émile")

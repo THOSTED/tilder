@@ -892,7 +892,7 @@ affiliation: Example Corp
 | `first_name`, `last_name` | The person's names. `last_name` sorts the list. |
 | `display_name` | The name to show, when it differs from first + last (chosen name, pseudonym, single name). When set, it is the only name displayed; the others stay searchable. |
 | `pronouns` | Written as the person writes them (`il/lui`, `elle`, `iel`...). Ask, never guess; leave empty if they prefer. |
-| `category` | one of the collection's `categories` (`admin` and `member` by default; a site lists its own under `[collections.members]`). Shown as the card's tag and used by the filter. |
+| `category` | one or several of the collection's `categories`, separated by spaces (`admin mentor`; `admin` and `member` by default; a site lists its own under `[collections.members]`). Each is a tag on the card and a button of the filter. |
 | `affiliation` | Company, school or project, if they want one shown. |
 | `capacity` | A note on remaining capacity, e.g. `2 per term` - for any category that tracks one, such as a site's own `mentor` category. |
 | `full` | `yes` when the capacity above is reached (the tag turns to the warning colour, and "full" is said in words). |
@@ -904,8 +904,9 @@ field.
 From these fields the build makes:
 
 - a card in every section marked `{members}` - on `/members`, the grid of
-  all members, ordered by category (in the order of `categories`, unknown
-  categories last), then by last name, each card linking to the member's
+  all members, ordered by category (a member's first-ranked one, in the
+  order of `categories`; unknown categories, and members with none, last),
+  then by last name, each card linking to the member's
   page;
 - the same card, without the link, at the end of the first section of the
   member's own page;
@@ -924,7 +925,8 @@ the theme's `members.js`, if it ships one. It adds a search box
 (first, last and display name, accent- and case-insensitive, every word
 must match) and one button per category. It is progressive enhancement:
 without JavaScript, the full list is simply shown. Each card carries its
-data as `data-search` and `data-category`, written by the build.
+data as `data-search` and `data-category` (its categories, separated by
+spaces), written by the build.
 
 ---
 

@@ -247,7 +247,7 @@ def txt_blocks(blocks, ind):
             tags = [m[1:-1] for m in b["meta"] if m.startswith("`") and m.endswith("`")]
             line = ind + title
             if tags:
-                tag = "[ " + to_ascii(tags[0]) + " ]"
+                tag = " ".join("[ " + to_ascii(t) + " ]" for t in tags)
                 if vlen(line) + 2 + len(tag) <= WIDTH:
                     line += " " * (WIDTH - vlen(line) - len(tag)) + tag
             out.append(line)
