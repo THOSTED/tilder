@@ -643,6 +643,8 @@ stays inactive - no page, no feed - until its folder exists.
 | `place` | - | where; the iCalendar `LOCATION` |
 | `link` | - | the event's own site |
 | `end` | - | `YYYY-MM-DD`, for an event over several days |
+| `time` | - | optional: `14:00-15:00` or `14:00`, on a 24-hour clock, in `[calendar] timezone`. The card shows the hours, the iCalendar has a timed `VEVENT` (in UTC). With `end`, the start is on the first day and the end on the last. Without `time`, the event lasts whole days. |
+| `session-1`, `session-2`... | - | optional: one iCalendar `VEVENT` each, instead of one for the event: `[YYYY-MM-DD] [HH:MM[-HH:MM]] title`, in the order of the numbers. No day: the event's first day; no hours: the whole day, or the whole event when no day is given either. `Stand` is a stand over the whole event; `14:00-15:00 Workshop` a workshop on its first day; `2026-05-17 10:00 Talk` a talk on its second day. The page stays one page. |
 | `lat`, `lon` | - | coordinates, for an exact OpenStreetMap marker and the iCalendar `GEO` |
 
 Member fields are documented in [Members](#members).
