@@ -27,7 +27,10 @@ images or files next to the page). For a `DATED` type the slug starts with
 outside every collection is a `page`. The keys a collection may set are
 the type's `DEFAULTS`, plus `dir` (default: the collection's name),
 `nav_label` (the sidebar's accessible name, see "Order, groups and
-navigation") and `recursive`.
+navigation"), `recursive`, `item_prefix` (a folder between the collection
+and its items: `"-"` serves them at `<dir>/-/<slug>`), `per_page` (the
+cards a page of a paged list shows: the markers a type names in `PAGED`)
+and `search_name` (the collection's name on the `{search}` page).
 
 A collection that sets `recursive = true` also reads its subfolders, at
 any depth: `content/docs/guide/install.md` is the item `guide/install`,

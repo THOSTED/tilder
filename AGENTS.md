@@ -126,6 +126,11 @@ name must not shadow the standard library (`html`, `site`,
   character added, the spaces around a token left uncoloured.
 - **Code blocks are framed**: `.-- lang ---.` above, `'------'` below; the
   code's lines carry nothing, so they copy clean from a terminal.
+- **Cards carry a bar down their left side**, `|` on each line and `'` on
+  the last: a blank line also parts a card's title from its body, so blank
+  lines alone could not part the cards. Tags sit at the right of the
+  title, or on their own lines under it when they do not fit; a tag is
+  never cut.
 - Eight-colour SGR, or a 256-colour accent chosen by the site (`[text]
   accent`); never a background; one accent (cyan by default); callouts in
   their kind's colour; code tokens in their kind's colour

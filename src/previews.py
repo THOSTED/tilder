@@ -101,14 +101,18 @@ def path_of(item):
     p = p.removesuffix("/index")
     if item.get("collection") and not own_index:
         p = p.rpartition("/")[0]
+        prefix = item.get("conf", {}).get("item_prefix")
+        if prefix:
+            p = p.removesuffix("/" + prefix)   # the card shows /blog, not /blog/-
     return "/" + p if p and p != "index" else ""
 
 
 def tag_list(meta):
-    """The page's tags for its card: a post's `tag`, then `share_tags`,
-    comma-separated, each once."""
+    """The page's tags for its card: a post's `tag` and `tags`, then
+    `share_tags`, comma-separated, each once."""
     out = []
-    for t in [meta.get("tag", "")] + str(meta.get("share_tags", "")).split(","):
+    words = [meta.get("tag", "")] + str(meta.get("tags", "")).split(",") + str(meta.get("share_tags", "")).split(",")
+    for t in words:
         t = " ".join(str(t).split())
         if t and t not in out:
             out.append(t)

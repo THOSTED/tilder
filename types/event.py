@@ -14,6 +14,7 @@ from seo import org_ref, page_heading, share_image
 NAME = "event"
 DATED = True
 ARTICLE = True
+PAGED = {"past"}        # past events go on pages of per_page; upcoming ones never do
 DEFAULTS = {
     "man": "SITE-EVENTS(7)",
     "nav": "events",

@@ -20,6 +20,11 @@ ITEM_FOLDERS = set()
 # Filled by contenttypes.load_items.
 SECTIONS = {}
 
+# The folders a collection's item_prefix puts between it and its items
+# ("blog/-"): no page answers them, so the <h1> path leaves them out.
+# Filled by contenttypes.load_items.
+PREFIXES = set()
+
 # Items of a collection that schedules them (`scheduled`, a post's
 # default) dated after the build's date: not published yet. Their
 # logical target ("blog/2026-11-01-launch") -> {"date", "collection",

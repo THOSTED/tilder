@@ -17,6 +17,7 @@ import importlib.util
 
 import languages
 import paths
+from fold import to_ascii
 from config import BUILDER, CFG, CONFIG, CONTENT, DATED, STATE, THEME, hidden
 from markdown import front_matter
 from report import BuildError, error, fail, rel
@@ -31,7 +32,7 @@ ERRORS = []    # what load() and collections() found, reported together by check
 # "the type's NAME".
 FLAGS = {"DATED": False, "ARTICLE": False, "OG_TYPE": "website", "SCRIPT": "",
          "LAYOUT": None, "DEFAULTS": {}, "MARKERS": {},
-         "SEQUENTIAL": False, "LOCALIZED_OUTPUTS": False}
+         "SEQUENTIAL": False, "LOCALIZED_OUTPUTS": False, "PAGED": set()}
 # Functions a type may leave out, with what the build does then.
 HOOKS = {
     "defaults": lambda item, conf: None,
@@ -106,6 +107,7 @@ def load(dirs=None):
     paths.ITEM_FOLDERS.clear()
     paths.SECTIONS.clear()
     paths.SCHEDULED.clear()
+    paths.PREFIXES.clear()
     ERRORS.clear()
     errs = ERRORS
     for n, folder in enumerate(dirs):
@@ -309,6 +311,11 @@ def load_items(name, conf):
     subfolders too: content/docs/guide/install.md is the item guide/install,
     in the section guide, and the order is depth-first (_depth_first)."""
     module, base, items = TYPES[conf["type"]], CONTENT / conf["dir"], []
+    # item_prefix: a folder between the collection and its items, so that
+    # /blog/2 can be a page of the list and /blog/-/2026-... a post.
+    at = f"{conf['dir']}/{conf['item_prefix']}" if conf.get("item_prefix") else conf["dir"]
+    if at != conf["dir"]:
+        paths.PREFIXES.add(at)
     recursive = conf.get("recursive", False)
     groups, sections = {}, {}  # slug -> {lang or None: source file}; section slug -> has its own page (index.md, or a <name>.md beside the folder)
     if base.is_dir():
@@ -335,7 +342,7 @@ def load_items(name, conf):
             # yet: left out of the collection, and of the pages (build.py).
             if conf.get("scheduled") and date > (STATE["today"] or datetime.date.today().isoformat()):
                 own = languages.split(src.stem)[0] == "index"
-                paths.SCHEDULED[f"{conf['dir']}/{slug}"] = {
+                paths.SCHEDULED[f"{at}/{slug}"] = {
                     "date": date, "collection": name, "files": set(candidates.values()),
                     "folder": src.parent if own else None}
                 continue
@@ -343,7 +350,7 @@ def load_items(name, conf):
             paths.ITEM_FOLDERS.add(str(src.parent.relative_to(CONTENT)))
         meta, _ = front_matter(src.read_text())
         items.append({"slug": slug, "date": date, "meta": meta, "src": src,
-                      "path": f"{conf['dir']}/{slug}.html", "collection": name,
+                      "path": f"{at}/{slug}.html", "collection": name,
                       "section": slug.rpartition("/")[0],
                       "conf": conf, "type": module, "lang": STATE["lang"],
                       "content_lang": content_lang})
@@ -377,19 +384,64 @@ def _target(marker, src, path, colls):
     return (own or same or [None])[0]
 
 
-def fill_lists(sections, src, path, colls, items):
+def paged_path(path, n):
+    """Page n of a list page: blog/index.html -> blog/2.html, events.html
+    -> events/2.html. Page 1 is the page itself."""
+    return path if n == 1 else f"{path[:-5].removesuffix('/index')}/{n}.html"
+
+
+def _page_target(path, n):
+    """The link to page n, as content writes it: blog/, blog/2, events."""
+    folder = path[:-5].removesuffix("/index")
+    if n > 1:
+        return f"{folder}/{n}"
+    return folder + "/" if path.endswith("/index.html") else ("" if folder == "index" else folder)
+
+
+def _pager(path, n, total):
+    """The line under a paged list: previous · page n/total · next."""
+    labels, parts, plain = CFG["labels"], [], []
+    if n > 1:
+        t = _page_target(path, n - 1)
+        parts.append(f"[{labels['prev']}]({t})")
+        plain.append(f"{labels['prev']} : /{t}")
+    here = labels["page_of"].format(n=n, total=total)
+    parts.append(here)
+    plain.append(here)
+    if n < total:
+        t = _page_target(path, n + 1)
+        parts.append(f"[{labels['next']}]({t})")
+        plain.append(f"{labels['next']} : /{t}")
+    return {"k": "para", "cls": ["pager", "small"], "text": " · ".join(parts), "txt": " · ".join(plain)}
+
+
+def fill_lists(sections, src, path, colls, items, page=1):
     """Fill every section carrying a list marker ({posts}, {upcoming:meetups},
     {members}...) with cards, and put an item's own card at the top of
-    its page. items: {collection name: [item]}."""
+    its page. items: {collection name: [item]}. A marker the type lists in
+    PAGED, in a collection with per_page, shows page `page` of its cards,
+    and a line to the others. Returns the number of pages (1: no paging)."""
+    total = 1
     for s in sections:
         for marker in list(s["cls"]):
             word = marker.partition(":")[0]
+            if word == "search":
+                _fill_search(s, colls, items)
+                continue
             if word not in MARKERS:
                 continue
             module = TYPES[MARKERS[word]]
             name = _target(marker, src, path, colls)
             conf, its = colls.get(name, {}), items.get(name, [])
             chosen = call(src, module, f'MARKERS["{word}"]', its, conf, fn=module.MARKERS[word])
+            per = int(conf.get("per_page", 0) or 0)
+            pager = None
+            if word in module.PAGED and per and len(chosen["items"]) > per:
+                pages = -(-len(chosen["items"]) // per)
+                total = max(total, pages)
+                n = min(page, pages)
+                chosen["items"] = chosen["items"][(n - 1) * per: n * per]
+                pager = _pager(path, n, pages)
             cards = []
             for it, extra in chosen["items"]:
                 node = call(it["src"], module, "entry", it, True, conf)
@@ -398,7 +450,8 @@ def fill_lists(sections, src, path, colls, items):
                 node["cls"] = list(extra) + node.get("cls", [])
                 cards.append(node)
             s["cls"].extend(chosen.get("cls", []))
-            s["blocks"] = (cards or [{"k": "empty", "text": chosen.get("empty", "")}]) + s["blocks"]
+            s["blocks"] = (cards or [{"k": "empty", "text": chosen.get("empty", "")}]) \
+                + ([pager] if pager else []) + s["blocks"]
             s["data"] = call(src, module, "list_data", conf) if name else {}
             s["script"] = module.SCRIPT
     for its in items.values():
@@ -407,6 +460,38 @@ def fill_lists(sections, src, path, colls, items):
                 card = call(it["src"], it["type"], "entry", it, False, it["conf"])
                 if card is not None:
                     sections[0]["blocks"].append(card)
+    return total
+
+
+def _fill_search(s, colls, items):
+    """{search}: every item of every collection, as its type draws its
+    card, newest dated first, then the others. Each card carries its words
+    (title, description, tags, names) as data-search, folded like the
+    member search, and its collection's search_name as data-category: the
+    theme's script searches them, the page shows them all without it."""
+    found = []
+    for name, its in items.items():
+        conf = colls[name]
+        module = TYPES[conf["type"]]
+        for it in its:
+            node = call(it["src"], module, "entry", it, True, conf)
+            if node is None:
+                continue
+            meta = it["meta"]
+            words = [meta.get(k, "") for k in ("title", "description", "first_name", "last_name",
+                                                "display_name", "affiliation", "tag", "tags", "category")]
+            words += [m.strip("`") for m in node["meta"] if m.startswith("`")]
+            node["data"] = {"category": conf.get("search_name", name),
+                            "search": " ".join(dict.fromkeys(to_ascii(" ".join(words)).lower().split()))}
+            found.append((it["date"] or "", node))
+    dated = sorted((f for f in found if f[0]), key=lambda f: f[0], reverse=True)
+    cards = [n for _, n in dated] + [n for d, n in found if not d]
+    conf = CFG["search"]
+    s["blocks"] = (cards or [{"k": "empty", "text": conf["empty"]}]) + s["blocks"]
+    s["cls"].extend(["grid"])
+    s["data"] = {k: conf[k] for k in ("search_label", "search_placeholder", "all", "one", "many",
+                                      "none", "shown", "limit")}
+    s["script"] = conf["script"]
 
 
 def summary(colls, items):

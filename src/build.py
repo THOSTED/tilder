@@ -131,12 +131,21 @@ def build():
                 meta["_dir"] = site_path(src)
                 previews.draw(it)
                 pages.append(it)
-                contenttypes.fill_lists(sections, src, it["path"], colls, items)
-                out[prefix + it["path"]] = render_html(it, sections, preamble, colls, items)
-                if meta.get("text", "yes") != "no":
-                    marked = render_txt(meta, sections, sequence.txt_line(it, colls, items))
-                    out[f"txt/{prefix}{txt_name(it['path'])}.txt"] = plain(marked)
-                    out[f"ansi/{prefix}{txt_name(it['path'])}.txt"] = ansify(marked)
+                total = contenttypes.fill_lists(sections, src, it["path"], colls, items)
+                render_page(out, prefix, it, sections, preamble, colls, items)
+                # A paged list: pages 2..total, each its own URL, title and
+                # description (search engines index them apart).
+                for n in range(2, total + 1):
+                    meta_n, sections_n, preamble_n = parse(src)
+                    words = CFG["labels"]["page_title"]
+                    # Its <h1> path ends in its number: ~/site/blog/2.
+                    meta_n = {**meta, "name": str(n), "title": words.format(title=meta["title"], n=n),
+                              "description": words.format(title=meta.get("description", ""), n=n)}
+                    it_n = {**it, "meta": meta_n, "path": contenttypes.paged_path(it["path"], n)}
+                    previews.draw(it_n)
+                    pages.append(it_n)
+                    contenttypes.fill_lists(sections_n, src, it["path"], colls, items, page=n)
+                    render_page(out, prefix, it_n, sections_n, preamble_n, colls, items)
             except report.BuildError:
                 raise
             except Exception as e:  # a missing `title:`...: name the page, not a traceback
@@ -193,6 +202,15 @@ def build():
     for f in EXTRA:
         out[f.name] = f.read_bytes()
     return out
+
+
+def render_page(out, prefix, it, sections, preamble, colls, items):
+    """A page's HTML and, unless it says `text: no`, its two text mirrors."""
+    out[prefix + it["path"]] = render_html(it, sections, preamble, colls, items)
+    if it["meta"].get("text", "yes") != "no":
+        marked = render_txt(it["meta"], sections, sequence.txt_line(it, colls, items))
+        out[f"txt/{prefix}{txt_name(it['path'])}.txt"] = plain(marked)
+        out[f"ansi/{prefix}{txt_name(it['path'])}.txt"] = ansify(marked)
 
 
 def write(outputs, dest):

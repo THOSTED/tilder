@@ -10,6 +10,7 @@ NAME = "post"
 DATED = True
 ARTICLE = True          # Reader mode and read-aloud tools look for one
 OG_TYPE = "article"
+PAGED = {"posts"}       # {posts} shows per_page cards a page, when the collection sets it
 DEFAULTS = {
     "man": "SITE-BLOG(7)",          # items' man-page name, unless they set one
     "nav": "blog/",                 # items' nav entry, and the feed's link
@@ -29,14 +30,20 @@ def defaults(item, conf):
     meta.setdefault("description", "")
 
 
+def tags(meta):
+    """`tag` (one) and `tags` (several, separated by commas), in that
+    order, each once."""
+    words = [meta.get("tag", "")] + meta.get("tags", "").split(",")
+    return list(dict.fromkeys(w.strip() for w in words if w.strip()))
+
+
 def entry(item, link, conf):
     """The card: date, author, tag; the description in a list."""
     meta = item["meta"]
     line = [f"{item['date']} | {human_date(item['date'])}"]
     if meta.get("author"):
         line.append(meta["author"])
-    if meta.get("tag"):
-        line.append(f"`{meta['tag']}`")
+    line.extend(f"`{t}`" for t in tags(meta))
     blocks = []
     if link and meta.get("description"):
         blocks.append({"k": "para", "text": meta["description"], "cls": []})
@@ -65,13 +72,12 @@ def json_ld(item, conf):
 
 
 def meta_tags(item, conf):
-    meta, tags = item["meta"], []
+    meta, out = item["meta"], []
     if meta.get("author"):
-        tags.append(("name", "author", meta["author"]))
-    tags.append(("property", "article:published_time", item["date"]))
-    if meta.get("tag"):
-        tags.append(("property", "article:tag", meta["tag"]))
-    return tags
+        out.append(("name", "author", meta["author"]))
+    out.append(("property", "article:published_time", item["date"]))
+    out.extend(("property", "article:tag", t) for t in tags(meta))
+    return out
 
 
 def feed_item(item, conf):

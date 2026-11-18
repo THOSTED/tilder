@@ -34,11 +34,16 @@ def feed(items, conf):
         f = call(it["src"], it["type"], "feed_item", it, conf)
         if f is None:
             continue
+        # With item_prefix, the guid stays the URL without it, which
+        # redirects to the item: a reader that saw an item before the
+        # prefix came does not show it again as new.
+        guid = f['link'].replace(f"/{conf['dir']}/{conf['item_prefix']}/", f"/{conf['dir']}/", 1) \
+            if conf.get("item_prefix") else f['link']
         rows += f"""
 	<item>
 		<title>{H.escape(f['title'])}</title>
 		<link>{f['link']}</link>
-		<guid isPermaLink="true">{f['link']}</guid>
+		<guid isPermaLink="true">{guid}</guid>
 		<pubDate>{rfc822(f['date'])}</pubDate>
 		<description>{H.escape(f['description'])}</description>
 	</item>
